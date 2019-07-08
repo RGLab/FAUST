@@ -1,0 +1,394 @@
+#' The FAUST pipeline automatically produces a plot "projectPath/faustData/plotData/scoreLines.pdf"
+#' that can be used to help set this threshold value for a particular experiment.
+#' 
+#' @param selectionQuantile A numeric value between 0 and 1 used for variable selection.
+#' Depth scores are computed for all concatenated samples in the experiment. The empirical
+#' selectionQuantile is then computed across each channel: `quantile(channelDepthScores,probs=selectoinQuantile)`.
+#' This empirical quantile is then compared to the depthScoreThreshold to decide whether to include a
+#' channel in the remainder of the pipeline.
+#'
+#' The FAUST pipeline automatically produces a plot "projectPath/faustData/plotData/scoreLines.pdf"
+#' that can be used to help set this threshold value for a particular experiment.
+#'
+#' @param debugFlag Boolean value. Set to TRUE to print pipeline status information to the console or a log file.
+#'
+#' @param threadNum Integer value. Many components of the FAUST pipeline support multi-threading on a single CPU.
+#' Set this parameter to the number of threads you wish to use.
+#'
+#' @param seedValue Integer value that determines the random seed. Used for reproducibility.
+#'
+#' @param numForestIter The number of annotation forest grown. Set to 1 by default.
+#'
+#' @param numScampIter The number of SCAMP iterations run at the clustering stage. Set to 1 by default.
+#'
+#' @param nameOccuranceNum The number of times a name has to appear in distinct SCAMP clusterings to be
+#' gated out.
+#' 
+#' @param minClusterSize The size of the smallest admissible candidate cluster.
+#'   The recursive search for candidate clusters will not consider subsets of observations
+#'   below this value as admissible candidates -- it terminates along such branches without
+#'   recording the subsets encountered. Increasing this parameter usually increases
+#'   the speed of a single SCAMP iteration.
+#'
+#' @param initSplitPval The significance level for the DIP test of Hartigan
+#'   and Hartigan (1985) used to reconcile annotation boundaries.
+#'
+#' @param supervisedList A list of lists.
+#' The names of list entries correspond to marker names in the active channels vector. 
+#' Channels named in this list will have their gate locations modified. See Details.
+#'
+#' @param annotationsApproved Boolean value. FALSE by default to encourage the
+#' user to review the proposed annotation boundaries. When set to TRUE, indicates the user
+#' wants to use the proposed annotation boundaries to cluster and gate the experiment.
+#' If you want to run the FAUST pipeline totally unsupervised, set this parameter to true
+#' before running the pipeline.
+#'
+#' @param drawGateHistograms Boolean. Set to 1 to draw the gate locations for selected markers
+#' for all samples. Set to 0 to forego the plotting.
+#' 
+#' @return The FAUST pipeline returns a null value on completion. The main output is the file
+#' "projectPath/faustData/faustCountMatrix.rds". The rownames are `sampleNames(gatingSet)]`
+#' and the column names are the cell populations discovered by the pipeline. Note that the
+#' special cell population "0_0_0_0_0" counts unclassified cells in the experiment.
+#' @importFrom cowplot save_plot plot_grid ggdraw draw_label get_legend
+#' @importFrom tidyr gather
+#' @importFrom stats quantile runif mad median qt sd weighted.mean
+#' @importFrom flowWorkspace load_gs getData sampleNames
+#' @importFrom flowCore exprs parameters
+#' @importFrom Biobase AnnotatedDataFrame
+#' @importFrom Biobase pData
+#' @importFrom scamp scamp
+#' @importFrom whisker whisker.render
+#' @importFrom utils read.table globalVariables
+#' @importFrom data.table fwrite
+#' @importFrom viridis magma viridis
+#' @importFrom grDevices nclass.FD
+#' @importFrom ggplot2 ggplot aes theme_bw geom_hex geom_vline geom_hline xlab ylab theme ggtitle scale_color_manual scale_linetype_manual geom_histogram geom_line
+#' @examples
+#'
+#' library(BiocManager)
+#' BiocManager::install("flowWorkspaceData")
+#' \dontrun{
+#' faust(gatingSetPath=clusterMatrix,
+#'                          numIter=1,
+#'                          projectPath=tempdir())
+#' table(scampClustering$RunOffVote)
+#' table(scampClustering$MaxVote)
+#' }
+#' @export
+#' @md
+faust <- function(gatingSet,
+                  activeChannels,
+                  channelBounds,
+                  startingCellPop,
+                  pDataVar2ConcatenateSamples="",
+                  projectPath=".",
+                  depthScoreThreshold=0.01,
+                  selectionQuantile=0.50,
+                  debugFlag=FALSE,
+                  threadNum=1,
+                  seedValue=123,
+                  numForestIter=1,
+                  numScampIter=1,
+                  nameOccuranceNum=1,
+                  minClusterSize=25,
+                  drawGateHistograms=1,
+                  initSplitPval=0,
+                  supervisedList=NA,
+                  annotationsApproved=FALSE
+                  )
+{
+    #test parameters. stop if invalid. initialize faustData.
+    .validateParameters(
+        activeChannels = activeChannels,
+        channelBounds = channelBounds,
+        startingCellPop = startingCellPop,
+        projectPath = projectPath,
+        depthScoreThreshold = depthScoreThreshold,
+        selectionQuantile = selectionQuantile,
+        debugFlag = debugFlag,
+        threadNum = threadNum,
+        seedValue = seedValue,
+        numForestIter = numForestIter,
+        numScampIter = numScampIter,
+        minClusterSize = minClusterSize,
+        initSplitPval = initSplitPval,
+        supervisedList = supervisedList,
+        annotationsApproved = annotationsApproved
+    )
+    
+    #construct the analysis map directly from gating set
+    gspData <- pData(gatingSet)
+    if ((pDataVar2ConcatenateSamples == "") || (!(pDataVar2ConcatenateSamples %in% colnames(gspData)))) {
+        analysisMap <- data.frame(sampleName = sampleNames(gatingSet),
+                                  analysisLevel = sampleNames(gatingSet),
+                                  stringsAsFactors = FALSE)
+    }
+    else {
+        analysisMap <- data.frame(sampleName = sampleNames(gatingSet),
+                                  analysisLevel = gspData[,pDataVar2ConcatenateSamples,drop=TRUE],
+                                  stringsAsFactors = FALSE)
+    }
+    
+    #test to see if the analysis map has changed
+    if (!file.exists(paste0(projectPath,"/faustData/metaData/analysisMap.rds"))) {
+        saveRDS(analysisMap,paste0(projectPath,"/faustData/metaData/analysisMap.rds"))
+    }
+    else {
+        oldAnalysisMap <- readRDS(paste0(projectPath,"/faustData/metaData/analysisMap.rds"))
+        if (!identical(oldAnalysisMap,analysisMap)) {
+            if (nrow(oldAnalysisMap) != nrow(analysisMap)) {
+                print("The number of samples has changed between faust runs.")
+                stop("Please start a new projectPath to analyze a different collection of samples.")
+            }
+            else {
+                print("The sample grouping derived from pDataVar2ConcatenateSamples has changed between faust runs.")
+                stop("Please start a new projectPath to analyze a different concatenation of samples.")
+            }
+        }
+    }
+    
+    #test to see if the channel bounds have changed.
+    if (!file.exists(paste0(projectPath,"/faustData/metaData/channelBounds.rds"))) {
+        saveRDS(channelBounds,paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
+    }
+    else {
+        #if the channel bounds exist already, the faust pipeline has been run at least once.
+        #check to see if any modifications have been made to the channel bounds.
+        oldChannelBounds <- readRDS(paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
+        if ((!identical(oldChannelBounds,channelBounds)) &&
+            (file.exists(paste0(projectPath,"/faustData/metaData/bigForestDone.rds")))) {
+            if (debugFlag) print("Detected change to channelBounds.")
+            file.remove(paste0(projectPath,"/faustData/metaData/bigForestDone.rds"))
+            file.remove(paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
+            uniqueLevels <- unique(analysisMap[,"analysisLevel"])
+            #delete flags for levels with annotation forests in order to regrow them.
+            #also delete flags for scamp clsuterings to relabel data.
+            for (analysisLevel in uniqueLevels) {
+                if (file.exists(paste0(projectPath,"/faustData/levelData/",analysisLevel,"/aLevelComplete.rds"))) {
+                    file.remove(paste0(projectPath,"/faustData/levelData/",analysisLevel,"/aLevelComplete.rds"))
+                }
+                if (file.exists(paste0(projectPath,"/faustData/levelData/",analysisLevel,"/scampALevelComplete.rds"))) {
+                    file.remove(paste0(projectPath,"/faustData/levelData/",analysisLevel,"/scampALevelComplete.rds"))
+                }
+            }
+            if (file.exists(paste0(projectPath,"/faustData/metaData/parsedGS.rds"))) {
+                file.remove(paste0(projectPath,"/faustData/metaData/parsedGS.rds"))
+            }
+            if (file.exists(paste0(projectPath,"/faustData/metaData/firstALReady.rds"))) {
+                file.remove(paste0(projectPath,"/faustData/metaData/firstALReady.rds"))
+            }
+            saveRDS(channelBounds,paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
+        }
+    }
+
+    #begin pipeline processing. copy data to projectPath from gatingSet.
+    if (debugFlag) print("Begin data extraction.")
+    .extractDataFromGS(
+        gs = gatingSet,
+        analysisMap = analysisMap,
+        activeChannels = activeChannels,
+        channelBounds = channelBounds,
+        startingCellPop = startingCellPop,
+        projectPath = projectPath
+    )
+    
+    #accumulate data into the analysis levels.
+    if (debugFlag) print("Begin first analysis level prep.")
+    .prepareFirstAL(
+        analysisMap = analysisMap,
+        projectPath = projectPath
+    )
+
+    #sanitize the starting cell pop for problem characters.
+    startingCellPop <- gsub("[[:punct:]]","",startingCellPop)
+    startingCellPop <- gsub("[[:space:]]","",startingCellPop)
+    startingCellPop <- gsub("[[:cntrl:]]","",startingCellPop)
+    
+    #start the annotation process
+    if (!file.exists(paste0(projectPath,"/faustData/metaData/bigForestDone.rds"))) {
+        #in large experiments, this can be a costly step without sub-sampling.
+        #often we will want to supervise the results after growing the forest,
+        #so only grow it on an as-need basis
+        .growAnnForest(
+            rootPop = startingCellPop,
+            activeChannels = activeChannels,
+            analysisMap = analysisMap,
+            numIter = numForestIter,
+            debugFlag = debugFlag,
+            threadNum = threadNum,
+            seedValue = seedValue,
+            projectPath = projectPath
+        )
+        bigForestDone <- TRUE
+        saveRDS(bigForestDone,paste0(projectPath,"/faustData/metaData/bigForestDone.rds"))
+    }
+    
+    if (debugFlag) print("Selecting standard set of channels across experiment using depth score.")
+    selC <- .selectChannels(
+        parentNode = startingCellPop,
+        analysisMap = analysisMap,
+        depthScoreThreshold = depthScoreThreshold,
+        selectionQuantile = selectionQuantile,
+        projectPath = projectPath
+    )
+    saveRDS(selC,paste0(projectPath,"/faustData/metaData/initSelC.rds"))    
+
+    if (!length(selC)) {
+        print("No channels selected at current settings.")
+        stop("Modify faust parameters: incease selectionQuantile, decrease depthScoreThreshold.")
+    }
+
+    manualList <- forceList <- selectionList <- preferenceList <- list()
+    if (!is.na(supervisedList)) {
+        #supervisedList is a named list of lists
+        #name of slot in list: marker
+        #list under marker slot 1: string describing type of supervision.
+        #list under marker slot 2: vector of ints dictating supervision action.
+        supervisedMarkers <- names(supervisedList)
+        for (markerNum in seq(length(supervisedMarkers))) {
+            marker <- supervisedMarkers[markerNum]
+            markerList <- supervisedList[[markerNum]]
+            actionType <- markerList[[1]]
+            action <- markerList[[2]]
+            if (actionType == "Preference")  {
+                preferenceList <- append(preferenceList,list(action))
+                names(preferenceList)[length(preferenceList)] <- marker
+            }
+            else if (actionType == "PostSelection")  {
+                selectionList <- append(selectionList,list(action))
+                names(selectionList)[length(selectionList)] <- marker
+            }
+            else if (actionType == "Force") {
+                forceList <- append(forceList,list(action))
+                names(forceList)[length(forceList)] <- marker
+            }
+            else if (actionType == "Manual") {
+                manualList <- append(manualList,list(action))
+                names(manualList)[length(manualList)] <- marker
+            }
+            else {
+                print(paste0("Requested unsupported supervision type for marker ", marker))
+                print("Only 'Preference' and 'PostSelection' supervision types are currently supported.")
+                print(paste0("Ignoring requested action: ",actionType))
+            }
+        }
+    }
+
+    if (debugFlag) print("Reconciling annotation boundaries across experiment.")
+    .reconcileAnnotationBoundaries(
+        selectedChannels = selC,
+        parentNode = startingCellPop,
+        analysisMap = analysisMap,
+        initSplitPval = initSplitPval,
+        projectPath = projectPath,
+        debugFlag = debugFlag,
+        preferenceList = preferenceList,
+        forceList = forceList,
+        manualList = manualList
+    )
+    
+    if ((!is.na(supervisedList)) && (length(selectionList) > 0)){
+        if (debugFlag) print("Selection specific reconciled annotation boundaries.")
+        .superviseReconciliation(
+            supervisedList = selectionList,
+            parentNode = startingCellPop,
+            projectPath = projectPath
+        )
+    }
+    else {
+        file.copy(from = paste0(projectPath,"/faustData/gateData/",startingCellPop,"_resListPrep.rds"),
+                  to = paste0(projectPath,"/faustData/gateData/",startingCellPop,"_resList.rds"),
+                  overwrite = TRUE)
+    }
+    
+    if (debugFlag) print("Writing annotation matrices to file.")
+    .mkAnnMats(
+        parentNode = startingCellPop,
+        analysisMap = analysisMap,
+        projectPath = projectPath
+    )
+    
+    if (debugFlag) print("Generating depth score plot.")
+    .plotScoreLines(
+        projectPath = projectPath,
+        depthScoreThreshold = depthScoreThreshold,
+        selectionQuantile = selectionQuantile,
+        forceList = forceList
+    )
+
+    if (drawGateHistograms) {
+        if (debugFlag) print("Generating annotation boundary histograms.")
+        for (sampleName in analysisMap[,"sampleName"]) {
+            .plotSampleHistograms(
+                sampleName = sampleName,
+                analysisMap = analysisMap,
+                startingCellPop = startingCellPop,
+                projectPath = projectPath
+            )
+        }
+    }
+    
+    if (!annotationsApproved) {
+        print("********************************************************")
+        print("Channels have been selected on the basis of the depth score at the specified selection quantile.")
+        print("Annotation boundaries have been generated for all selected channels.")
+        print(paste0("Plots have been written to file in the directory ",
+                     projectPath,"/faustData/plotData"))
+        print("")
+        print("Review these plots to ensure all desired channels have been selected.")
+        print("If too many/too few channels have been selected, modify the parameters")
+        print("depthScoreThreshold and selectionQuantile.")
+        print("")
+        print(paste0("Also review the annotation boundaries displayed on the sample-level histograms in",
+                     projectPath,"/faustData/plotData/histograms"))
+        print("If you wish to modify the placement of the annotation boundaries,")
+        print("change the parameters initSplitPval and supervisedList.")
+        print("")
+        print("Changing the Low/High values in the channelBounds matrix will also affect")
+        print("the placement of annotation boundaries. It is the most effective way to directly modify")
+        print("their placement. However, when you modify the Low/High values in the channelBounds matrix,")
+        print("the FAUST pipeline will regrow the entire annotation forest.")
+        print("")
+        print("Once you are satisfied with the annotation boundary placement, set the parameter")
+        print("annotationsApproved=TRUE to cluster and then gate the experiment.")
+        print("********************************************************")
+        return()
+    }
+
+    if (debugFlag) print("Clustering analysis levels.")
+    selC <- readRDS(paste0(projectPath,"/faustData/gateData/",startingCellPop,"_selectedChannels.rds"))
+    .clusterLevelsWithScamp(
+        startingCellPop = startingCellPop,
+        selectedChannels = selC,
+        analysisMap = analysisMap,
+        numScampIter = numScampIter,
+        nameOccuranceNum = nameOccuranceNum,
+        minClusterSize = minClusterSize,
+        debugFlag = debugFlag,
+        threadNum = threadNum,
+        seedValue = seedValue,
+        projectPath = projectPath
+    )
+    
+    if (debugFlag) print("Gating populations.")
+    .gateScampClusters(
+        startingCellPop = startingCellPop,
+        analysisMap = analysisMap,
+        selectedChannels = selC,
+        debugFlag = debugFlag,
+        projectPath = projectPath
+    )
+
+    if (debugFlag) print("Generating faust count matrix.")
+    .getFaustCountMatrix(
+        analysisMap = analysisMap,
+        selectedChannels = selC,
+        debugFlag = debugFlag,
+        projectPath = projectPath
+    )
+
+    return()
+}
+
+if (getRversion() >= "2.15.1")  utils::globalVariables(c(".","Channel","Quantile","QuantileValue","x","y"))

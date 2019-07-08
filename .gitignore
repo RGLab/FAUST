@@ -1,0 +1,10 @@
+.Rhistory
+/R/.Rhistory
+*.[oa]
+*~
+*.so
+.DS_Store
+autom4te.cache*
+configure
+*.Rhistory
+.Rproj.user

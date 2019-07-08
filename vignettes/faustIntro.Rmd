@@ -1,0 +1,344 @@
+---
+title: "Intro to FAUST R package"
+author: 
+- Evan Greene
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 12,
+  dpi = 100,
+  fig.align = "center"
+)
+```
+
+# FAUST Overview
+
+Fast Annotation using Shape-constrained Trees (FAUST) is a new method for
+automatically gating single-cell data from flow and mass cytometry experiments.
+
+The principal output of the pipeline is an **annotated count matrix**.
+
+- **Rows** in the count matrix correspond to **samples** collected in the single cell experiment.
+- The **columns** in the count matrix are **cell populations** discovered by the pipeline. 
+- The **columns** are *annotated* by the *markers* used in conducting the experiment.
+- The **column annotations** define, in terms of these *markers*, the **phenotypes** of all **cell populations** discovered by the pipeline.
+- **Entries** in the count matrix correspond the **number of cells** in a sample that belong to a discovered cell population. 
+
+This vigette provides an overview of how to use the implementation provided in the `FAUST` package.
+
+# Installation
+
+The `FAUST` package is available on the [FredHutch GitHub](http://www.github.com/RGLab/FAUST) repository. 
+It will be made available on [Bioconductor](http://www.bioconductor.org) in the future.
+
+In order to run the code in this vignette, you will need to install some dependencies. 
+`flowWorkspaceData` has some examples from the [Lyoplate data set](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4748244/).
+`flowWorkspace` is used to construct the `GatingSet` objects.
+
+```{r install_deps, eval = FALSE}
+# flowWorkspaceData has the Lyoplate data.
+# openCyto is used to construct gating sets.
+# Run the following to install the Bioconductor dependencies.
+tryCatch(installed.packages()["BiocManager","Version"],
+         error = function(e){
+           install.packages("BiocManager")
+         })
+library(BiocManager)
+BiocManager::install("flowWorkspaceData", update = FALSE)
+BiocManager::install("flowWorkspace", update = FALSE)
+```
+
+Now we install `FAUST` and its dependency, `scamp` from the FredHutch GitHub repo.
+
+```{r install_faust, eval = FALSE}
+devtools::install_github("RGLab/scamp")
+devtools::install_github("RGLab/FAUST")
+```
+
+# An example workflow. 
+
+We load all the required libraries. 
+
+```{r libraries, message = FALSE}
+# load needed libraries.
+suppressPackageStartupMessages({
+  library(flowWorkspaceData)
+  library(flowWorkspace)
+  library(ggdendro)
+  library(scamp)
+  library(ggplot2)
+  library(cowplot)
+  library(knitr)
+  library(dplyr)
+  library(tidyr)
+  library(faust)
+})
+```
+
+
+## Using the **<span style="color:skyblue">faust</span>** function in **R**
+
+After installing and loading the `FAUST` library, the `R` function 
+<code style="color:skyblue">faust</code> is available to analyze data.
+
+This function takes as input a `GatingSet` data structure.
+This data structure can be constructed available using the [`flowWorkspace`](https://bioconductor.org/packages/release/bioc/html/flowWorkspace.html) Bioconductor package.
+The gating set should contain all the experimental samples you wish to analyze using the faust pipeline.
+
+### Documentation. 
+
+```{r docs, warning=FALSE, eval=TRUE}
+?faust
+```
+The documentation provides details about many **<span style="color:skyblue">faust</span>** parameters. 
+The goal of this vignette is to demonstrate how to analyze experimental data,
+using data from the FlowCAP III Lyoplate challenge as a case-study.
+
+## FAUST step one: construct a gating set.
+
+Run the following code block to install needed libraries,
+load the gating set, and also set the gating set path.
+The gating set path is passed to the FAUST pipeline.
+
+```{r get_gatingset, warning=FALSE, eval=TRUE, fig.height = 8}
+# Get the gating set.
+flowWorkspaceDataInfo()
+gsPath <- system.file("extdata","gs_bcell_auto", package = "flowWorkspaceData")
+gs <- load_gs(gsPath)
+
+# Inspect the manual strategy.
+plot(gs[[1]],  boolean = TRUE)
+```
+
+## `FAUST` step two: specify the experimental unit of anlaysis.
+
+The first parameter the user must set to use the `FAUST` method is called `pDataVar2ConcatenateSamples`.
+This parameter specifies how samples in the experiment should be combined in order for `FAUST` to perform the gating.
+In other words, this parameter defines the experimental unit of analysis.
+
+The samples should usually be combined so that they represent relatively homogeneous collections of samples. 
+What constitutes a homogeneous collection depends on the experimental context.
+As examples, data could not be combined at all and analyzed by individual sample; 
+they could be grouped by subject, so that all samples from a subject are analyzed together; 
+they could be grouped by batch so all samples in a batch are combined;
+or they could be combined by stimulation so that all samples under common stimulation are analyzed together; or they could be combined so all samples in the experiment are analyzed as a homogeneous group. 
+
+Here we run `FAUST` at the sample level, so that each sample is analyzed separately.
+The gating set data structure contains expermental metadata, accessed through the `pData` method.
+When applied to a gating set, `pData(gs)` returns a data frame of experimental metadata.
+The `FAUST` parameter `pDataVar2ConcatenateSamples` must be set to one of the column names in the `pData(gs)` data frame.
+`FAUST` will use this parameter to concatenate experimental samples prior to conducting discovery and annotation.
+To run `FAUST` at the sample level, we will set this parameter to "name".
+
+```{r pick_starting_node, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
+pDataSetting <- "name"
+```
+
+## `FAUST` step three: decide on the starting cell population
+
+A `GatingSet` will often have a manual gating strategy attached to it, that records how human investigators have interrogated the flow or mass cytometry samples.
+The `FAUST` pipeline benefits from using this gating information by selecting a starting cell population that has had debris and dead cells already gated out.
+If gating has not been provided, [`openCyto`](https://bioconductor.org/packages/release/bioc/html/openCyto.html)
+can be used to gate singlets and identify live cells.
+
+We will use the "Live" node in the manual gating tree as our starting cell population for each sample.
+
+```{r pick_starting_node, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
+startingNode <- "Live"
+```
+
+## `FAUST` step three: decide what channels to use.
+
+The `GatingSet` records information about the *markers* used in a flow or mass cytometry experiment, as well as the 
+ expression level of those markers on each single cell recored in the experiment.
+The `FAUST` pipeline assumes that a common set of markers is available for all samples in an experiment.
+We are not required to use **all** the available markers. 
+The markers used should be passed to `FAUST` in a `character vector`.
+They must **exactly** match the `desc` field of the `parameters` of the `flowFrames` in the `GatingSet. 
+`FAUST` will not run if they do not match exactly.
+
+Here we are analyzing two samples from the manually gated Lyoplate B cell data set. This data set
+as a peculiarity, in that the `markers` and `channels` are swapped. We need to swap them back in order to 
+get meaningful cell population phenotypes returned to us by `FAUST`. We do that below:
+
+
+```{r select_active_channels, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
+## The marker names have channel assignments
+markernames(gs)
+## The column names are actually the channels.
+colnames(gs)
+
+## We need to swap these
+newmarkers <- colnames(gs)
+names(newmarkers) <- colnames(gs)
+markernames(gs) <- newmarkers
+markernames(gs)
+## We don't need the live channel.
+activeChannelsIn <- markernames(gs)[-1L]
+```
+
+
+## `FAUST` step four: set channel bounds.
+
+The channel bounds encode prior knowledge about the channels in the experiment.
+Our prior knowledge tells us about the expression level below which `FAUST` annotations should be treated as "Low" and above which `FAUST` annotations should be treated as "High". 
+For example, we would expect any cell populations with an median fluorescence intensity (MFI) below 0 in a channel to be annnotated as "Low" for that channel. 
+Similarly, cell populatins with an MFI above, say 3500 (out of 4096 in FlowJo channel space) in a channel, we would annotate as "High"
+This is domain-specific knowledge, and `FAUST` allows us to encode this knowledge. 
+We encode this in a `data.frame` with columns corresponding to **channels** and rows corresponding to the **lower** and **upper** bounds for "Low" and "High" annotations for each channel.
+
+Expression values in a channel less than or equal to the value in the "Low"
+row are treated as low, by default, and not actively considered when `FAUST` processes the data.
+Expression values in a channel greater than or equal to the value in the "High"
+row are treated as high, by default, and not actively considered when `FAUST` processes the data.
+
+Here we set the lower value to 0 and the upper value to 3500. These values are picked after inspecting
+the distribution of the data after compensation and transformation to a comparable scale.
+
+```{r set_channel_bounds, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
+channelBoundsIn <- matrix(0,nrow=2,ncol=length(activeChannelsIn))
+colnames(channelBoundsIn) <- activeChannelsIn
+rownames(channelBoundsIn) <- c("Low","High")
+channelBoundsIn["High",] <- 3500
+channelBoundsIn
+```
+
+## `FAUST` step five: set project path
+
+When you run the `FAUST` pipeline, it will create a directory called `faustData` on your computer, located
+at a path that you provide.
+
+The `faustData` directory stores intermediate data used by the pipeline, plotting data produced by the pipeline, and
+the final count matrix.
+
+Here we'll work in a temporary directory.
+
+```{r set_project_path, warning=FALSE, eval=TRUE, echo=TRUE,message=FALSE}
+projPath <- file.path(tempdir(),"FAUST")
+dir.create(projPath, recursive = TRUE)
+```
+
+## `FAUST` step six: run FAUST to generate channel depth scores.
+
+We've gathered all the information we need. We have the set of active channels, the lower and upper limits for annotation, 
+and we have a `GatingSet`, and a project path. 
+
+Recall that we swapped the channel and marker names in our GatingSet. We'll first save our GatingSet to our project path, and use this new path as our data source.
+
+```{r save_gs_and_create_line_plots, warning=FALSE, eval=TRUE, echo=TRUE, message=FALSE}
+save_gs(gs, path = file.path(projPath, "bcells"))
+gsPath <- file.path(projPath,"bcells")
+faust(
+  gatingSet = gs,
+  pDataVar2ConcatenateSamples = "name",
+  activeChannels = activeChannelsIn,
+  channelBounds = channelBoundsIn,
+  startingCellPop = startingNode,
+  projectPath = projPath,
+  depthScoreThreshold = 0.05,
+  selectionQuantile = 1.0,
+  debugFlag = FALSE,
+  #set this to the number of threads you want to use on your system
+  threadNum = parallel::detectCores() / 2 - 1,
+  seedValue = 271828,
+  #lower bound on the cluster size. If seeking rare populations, can set as low as 10.
+  minClusterSize = 25,
+  annotationsApproved = FALSE) # set to false before we inspect the scores plots.
+```
+
+## `FAUST` step seven: analyze the depth score line plots for each channel.
+
+`FAUST` generates a preliminary **annotation forest** and we can examine the information in each **channel** before continuing.
+Some channels may not be very informative and so it may not be desirable to use those channels to annotate cell populations. 
+`FAUST` computes a **depth score** that summarizes how informative a channel is. 
+
+```{r, results='asis'}
+path <- file.path(projPath,"faustData","plotData","scoreLines.pdf")
+cat(paste0("<img src='",path,"'>"))
+```
+
+
+## `FAUST` step eight: run the annotations with the revised depth score thresholds.
+
+```{r run_faust_to_completion, message= FALSE, results = 'hide'}
+faust(
+  gatingSet = gs,
+  pDataVar2ConcatenateSamples = "name",
+  activeChannels = activeChannelsIn,
+  channelBounds = channelBoundsIn,
+  startingCellPop = startingNode,
+  projectPath = projPath,
+  depthScoreThreshold = 0.05,
+  selectionQuantile = 1.0,
+  debugFlag = FALSE,
+  #set this to the number of threads you want to use on your system
+  threadNum = parallel::detectCores() / 2 - 1,
+  seedValue = 271828,
+  #lower bound on the cluster size. If seeking rare populations, can set as low as 10.
+  minClusterSize = 25,
+  annotationsApproved = TRUE)
+```
+
+
+## `FAUST` step nine: analyze the results. 
+
+The count matrix produced by the pipeline is written to file.
+We read it in.
+
+```{r read_count_matrix, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
+countMatrix <- readRDS(file.path(projPath,"faustData","faustCountMatrix.rds"))
+# Make suitable for ggplot
+count.long <- countMatrix %>% 
+  as.data.frame %>% 
+  mutate(sample = rownames(.)) %>% 
+  gather(key = population, value = count,1:(ncol(.) - 1) )
+
+# Run clustering
+count.dendro <- as.dendrogram(hclust(d = dist(x = t(countMatrix))))
+
+# Create dendrogram plot
+dendro.plot <- ggdendrogram(data = count.dendro, rotate = TRUE) + 
+  theme(axis.text.y = element_text(size = 6))
+
+# Extract the order
+count.order <- order.dendrogram(count.dendro)
+
+# Order the levels 
+count.long$population <- factor(x = count.long$population,
+                               levels = rownames(t(countMatrix))[count.order], 
+                               ordered = TRUE)
+
+# Create heatmap plot
+ggplot(data = count.long, aes(x = sample, y = population)) +
+  geom_tile(aes(fill = count)) +
+  scale_fill_distiller(trans ="log10", palette = 2, type = "div") +
+  theme(legend.position = "top") +
+  ggtitle("Cell counts of populations by samples") +
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+The last column is the "all-negative" subset. We're not interested in that here.
+
+We can generate pairwise dotplots showing the gating strategies to gate out discovered cell populations.
+Not all cell populations are meaningful (some are too small). We'll prefilter and plot those that might have some meaningful
+support in the data.
+
+```{r generate_gating_plots, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
+pops <- names(which(colSums(countMatrix) > 1000)) # at least 1000 cells across all samples
+pops <- setdiff(pops,"0_0_0_0_0") #We don't want the all-negative
+for (col in pops) {
+  for (r in rownames(countMatrix)) {
+    plotFaustGates(col, r, projPath)
+  }
+}
+```
+
+Plots are stored in the `projectPath/faustData/plotData` directory.
