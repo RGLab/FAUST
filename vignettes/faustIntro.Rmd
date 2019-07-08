@@ -249,9 +249,8 @@ faust(
   #set this to the number of threads you want to use on your system
   threadNum = parallel::detectCores() / 2 - 1,
   seedValue = 271828,
-  #lower bound on the cluster size. If seeking rare populations, can set as low as 10.
-  minClusterSize = 25,
-  annotationsApproved = FALSE) # set to false before we inspect the scores plots.
+  annotationsApproved = FALSE # set to false before we inspect the scores plots.
+) 
 ```
 
 ## `FAUST` step seven: analyze the depth score line plots for each channel.
@@ -282,9 +281,8 @@ faust(
   #set this to the number of threads you want to use on your system
   threadNum = parallel::detectCores() / 2 - 1,
   seedValue = 271828,
-  #lower bound on the cluster size. If seeking rare populations, can set as low as 10.
-  minClusterSize = 25,
-  annotationsApproved = TRUE)
+  annotationsApproved = TRUE
+)
 ```
 
 
