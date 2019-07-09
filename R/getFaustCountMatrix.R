@@ -24,9 +24,9 @@
     newColNames <- faustColNames <- colnames(faustCountMatrix)
     newColNames <- as.character(sapply(newColNames,function(x){gsub("~1~[[:digit:]]~","-",x)}))
     newColNames <- as.character(sapply(newColNames,function(x){gsub("~2~2~","+",x)}))
-    newColNames <- as.character(sapply(newColNames,function(x){gsub("~3~3~","+",x)}))
-    newColNames <- as.character(sapply(newColNames,function(x){gsub("~4~4~","+",x)}))
-    newColNames <- as.character(sapply(newColNames,function(x){gsub("~2~3~","Medium",x)}))
+    newColNames <- as.character(sapply(newColNames,function(x){gsub("~3~3~","Bright",x)}))
+    newColNames <- as.character(sapply(newColNames,function(x){gsub("~4~4~","++",x)}))
+    newColNames <- as.character(sapply(newColNames,function(x){gsub("~2~3~","Dim",x)}))
     newColNames <- as.character(sapply(newColNames,function(x){gsub("~2~4~","Med-",x)}))
     newColNames <- as.character(sapply(newColNames,function(x){gsub("~3~4~","Med+",x)}))
     colNameMap <- data.frame(faustColNames=faustColNames,
