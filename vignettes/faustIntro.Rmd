@@ -138,7 +138,7 @@ The `FAUST` parameter `pDataVar2ConcatenateSamples` must be set to one of the co
 `FAUST` will use this parameter to concatenate experimental samples prior to conducting discovery and annotation.
 To run `FAUST` at the sample level, we will set this parameter to "name".
 
-```{r pick_starting_node, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
+```{r set_p_data_for_groups_experimental_unit, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
 pDataSetting <- "name"
 ```
 
@@ -155,7 +155,7 @@ We will use the "Live" node in the manual gating tree as our starting cell popul
 startingNode <- "Live"
 ```
 
-## `FAUST` step three: decide what channels to use.
+## `FAUST` step four: decide what channels to use.
 
 The `GatingSet` records information about the *markers* used in a flow or mass cytometry experiment, as well as the 
  expression level of those markers on each single cell recored in the experiment.
@@ -186,7 +186,7 @@ activeChannelsIn <- markernames(gs)[-1L]
 ```
 
 
-## `FAUST` step four: set channel bounds.
+## `FAUST` step five: set channel bounds.
 
 The channel bounds encode prior knowledge about the channels in the experiment.
 Our prior knowledge tells us about the expression level below which `FAUST` annotations should be treated as "Low" and above which `FAUST` annotations should be treated as "High". 
@@ -211,7 +211,7 @@ channelBoundsIn["High",] <- 3500
 channelBoundsIn
 ```
 
-## `FAUST` step five: set project path
+## `FAUST` step six: set project path
 
 When you run the `FAUST` pipeline, it will create a directory called `faustData` on your computer, located
 at a path that you provide.
@@ -226,7 +226,7 @@ projPath <- file.path(tempdir(),"FAUST")
 dir.create(projPath, recursive = TRUE)
 ```
 
-## `FAUST` step six: run FAUST to generate channel depth scores.
+## `FAUST` step seven: run FAUST to generate channel depth scores.
 
 We've gathered all the information we need. We have the set of active channels, the lower and upper limits for annotation, 
 and we have a `GatingSet`, and a project path. 
@@ -253,7 +253,7 @@ faust(
 ) 
 ```
 
-## `FAUST` step seven: analyze the depth score line plots for each channel.
+## `FAUST` step eight: analyze the depth score line plots for each channel.
 
 `FAUST` generates a preliminary **annotation forest** and we can examine the information in each **channel** before continuing.
 Some channels may not be very informative and so it may not be desirable to use those channels to annotate cell populations. 
@@ -265,7 +265,7 @@ cat(paste0("<img src='",path,"'>"))
 ```
 
 
-## `FAUST` step eight: run the annotations with the revised depth score thresholds.
+## `FAUST` step nine: run the annotations with the revised depth score thresholds.
 
 ```{r run_faust_to_completion, message= FALSE, results = 'hide'}
 faust(
@@ -286,7 +286,7 @@ faust(
 ```
 
 
-## `FAUST` step nine: analyze the results. 
+## `FAUST` step ten: analyze the results. 
 
 The count matrix produced by the pipeline is written to file.
 We read it in.
@@ -334,7 +334,7 @@ pops <- names(which(colSums(countMatrix) > 1000)) # at least 1000 cells across a
 pops <- setdiff(pops,"0_0_0_0_0") #We don't want the all-negative
 for (col in pops) {
   for (r in rownames(countMatrix)) {
-    plotFaustGates(col, r, projPath)
+    faust:::plotFaustGates(col, r, projPath)
   }
 }
 ```
