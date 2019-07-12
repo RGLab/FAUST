@@ -206,13 +206,13 @@ rownames(channelBoundsIn) <- c("Low","High")
 channelBoundsIn["High",] <- Inf
 fs <- as(simmedExp[["flowFrameList"]], "flowSet")
 gs <- GatingSet(fs)
-faust(
+faust:::faust(
     gatingSet=gs,
     activeChannels=activeChannelsIn,
     channelBounds=channelBoundsIn,
     startingCellPop="root",
     projectPath=jobPath,
-    pDataVar2ConcatenateSamples="name",
+    experimentalUnit="name",
     depthScoreThreshold = 0.01,
     selectionQuantile = 0.5,
     drawGateHistograms = 0,
