@@ -1,0 +1,27 @@
+This directory contains R functions and shell scripts needed to reproduce the simulation results
+reported in the supplement of the FAUST manuscript.
+
+To reproduce the simulations, the R script "01_runSimulation.R" must be run with 36 different parameter settings.
+
+The shell script "startAllSims.sh" loops over the parameter settings, and calls the shell script "launchSim.sh" with
+all combinations of parameters reported in the supplement.
+
+The shell script "launchSim.sh" is a shell script that presumes the slurm workload manager is available to launch jobs.
+If slurm is available, and the requested resources are also avialable, you can modify the shell script parameters in
+order to run the simulation in your local environment.
+
+Otherwise, parameters can directly be set in the R script "01_runSimulation.R".
+The file "01_runSimulation.R" imports the file "functionsForSimulation.R", in order to simulate data.
+
+
+To run fewer than the 50 reported simulation iterations, the variable "simIter" on line 150 should be set to
+the desired number of simulation iterations.
+
+Within each simulation, if you wish to run fewer than the 50 reported response simulations, modify the
+variables "modelIter" and "NITERS" on line 458.
+
+Once simulations have completed, the script "02_parseResults.R" can be used to produce the repoting plots for all
+available output.
+
+
+
