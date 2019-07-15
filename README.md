@@ -1,11 +1,9 @@
 # FAUST
 ### Full Annotation Using Shape-constrained Trees
 
-The `FAUST` package implements the FAUST method described in a forthcoming manuscript as an R package.
+The `FAUST` package implements the FAUST method described in [A new data-driven cell population discovery and annotation method for single-cell data, FAUST, reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v1).
 
 The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is available.
-
-Currently, `FAUST` works only on MAC OSX and Linux.  
 
 ## Installation
 
@@ -42,3 +40,8 @@ To build the vignettes during installation, instead run:
 This takes longer since the vignettes must be built from source.
 
 After loading `FAUST`, type `vignette('faustIntro')` to read a vignette discussing how to use the `FAUST` function in R.
+
+## Citation
+
+If you end up using `FAUST` to analyze cytometry datasets,
+please consider citing [A new data-driven cell population discovery and annotation method for single-cell data, FAUST, reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v1).
