@@ -21,14 +21,13 @@ knitr::opts_chunk$set(
 
 # FAUST Overview
 
-Fast Annotation using Shape-constrained Trees (FAUST) is a new method for
-automatically gating single-cell data from flow and mass cytometry experiments.
+Full Annotation Using Shape-constrained Trees (FAUST) is a new method for automatically gating single-cell data from flow and mass cytometry experiments.
 
 The principal output of the pipeline is an **annotated count matrix**.
 
 - **Rows** in the count matrix correspond to **samples** collected in the single cell experiment.
 - The **columns** in the count matrix are **cell populations** discovered by the pipeline. 
-- The **columns** are *annotated* by the *markers* used in conducting the experiment.
+- The **columns** are *annotated* by a selected subset of *markers* used in conducting the experiment.
 - The **column annotations** define, in terms of these *markers*, the **phenotypes** of all **cell populations** discovered by the pipeline.
 - **Entries** in the count matrix correspond the **number of cells** in a sample that belong to a discovered cell population. 
 
@@ -121,8 +120,7 @@ plot(gs[[1]],  boolean = TRUE)
 ## `FAUST` step two: specify the experimental unit of anlaysis.
 
 The first parameter the user must set to use the `FAUST` method is called `experimentalUnit`.
-This parameter specifies how samples in the experiment should be combined in order for `FAUST` to perform discovery and
-annotation.
+This parameter specifies how samples in the experiment should be combined in order for `FAUST` to perform discovery and annotation.
 In other words, this parameter defines the experimental unit of analysis.
 
 The samples should usually be combined so that they represent relatively homogeneous collections of samples. 
@@ -133,8 +131,7 @@ they could be grouped by batch so all samples in a batch are combined;
 or they could be combined by stimulation so that all samples under common stimulation are analyzed together;
 or they could be combined so all samples in the experiment are analyzed as a homogeneous group. 
 
-Here we run `FAUST` at the individual sample level (which is its default setting),
-so that each sample is analyzed separately.
+Here we run `FAUST` at the individual sample level (which is its default setting),so that each sample is analyzed separately.
 The gating set data structure contains experimental metadata, accessed through the `pData` method.
 When applied to a gating set, `pData(gs)` returns a data frame of experimental metadata.
 The `FAUST` parameter `experimentalUnit` must be set to one of the column names in the `pData(gs)` data frame.
@@ -212,11 +209,9 @@ channelBoundsIn
 
 ## `FAUST` step six: set project path
 
-When you run the `FAUST` pipeline, it will create a directory called `faustData` on your computer, located
-at a path that you provide.
+When you run the `FAUST` pipeline, it will create a directory called `faustData` on your computer, located at a path that you provide.
 
-The `faustData` directory stores intermediate data used by the pipeline, plotting data produced by the pipeline, and
-the final count matrix.
+The `faustData` directory stores intermediate data used by the pipeline, plotting data produced by the pipeline, and the final count matrix.
 
 Here we'll work in a temporary directory.
 
@@ -227,14 +222,15 @@ dir.create(projPath, recursive = TRUE)
 
 ## `FAUST` step seven: run FAUST to generate channel depth scores.
 
-We've gathered all the information we need. We have the set of active channels, the lower and upper limits for annotation, 
-and we have a `GatingSet`, and a project path. 
+We've gathered all the information we need.
 
-Recall that we swapped the channel and marker names in our GatingSet. We'll first save our GatingSet to our project path, and use this new path as our data source.
+We have the set of active channels, the lower and upper limits for annotation, and we have a `GatingSet`, and a project path. 
+
+We now invoke <code style="color:skyblue">faust</code>, the main function of the package. Note that the parameter `annotationsApproved` is set to `FALSE`.
+This will cause <code style="color:skyblue">faust</code> to grow the annotation forest, produce summary plots in the directory `projectPath/faustData/plotData`, and then terminate.
+The next section will describe how to interpret these plots.
 
 ```{r save_gs_and_create_line_plots, warning=FALSE, eval=TRUE, echo=TRUE, message=FALSE}
-save_gs(gs, path = file.path(projPath, "bcells"))
-gsPath <- file.path(projPath,"bcells")
 faust(
   gatingSet = gs,
   experimentalUnit = "name",
