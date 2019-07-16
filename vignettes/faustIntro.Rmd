@@ -35,7 +35,7 @@ This vigette provides an overview of how to use the implementation provided in t
 
 # Installation
 
-The `FAUST` package is available on the [FredHutch GitHub](http://www.github.com/RGLab/FAUST) repository. 
+The `FAUST` package is available on the [RGLab GitHub](http://www.github.com/RGLab/FAUST) repository. 
 It will be made available on [Bioconductor](http://www.bioconductor.org) in the future.
 
 In order to run the code in this vignette, you will need to install some dependencies. 
