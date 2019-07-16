@@ -20,6 +20,8 @@ The most recent version can be installed from [github](https://github.com/FredHu
     BiocManager::install("flowCore", update = FALSE)
     BiocManager::install("flowWorkspace", update = FALSE)
     BiocManager::install("flowWorkspaceData", update = FALSE)
+    BiocManager::install("cytolib", update = FALSE)
+    BiocManager::install("CytoML", update = FALSE)
 
     library(devtools)
     devtools::install_github("RGLab/scamp")
