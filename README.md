@@ -36,8 +36,12 @@ To build the vignettes during installation, instead run:
     tryCatch(installed.packages()["rmarkdown","Version"],
 	     error = function(e){
                 install.packages("rmarkdown")
-             })	
-    devtools::install_github("RGLab/FAUST", build_vignettes=T)
+             })
+    tryCatch(installed.packages()["ggdendro","Version"],
+	     error = function(e){
+                install.packages("ggdendro")
+             })
+    devtools::install_github("RGLab/FAUST", build = TRUE, build_opts = c("--no-resave-data", "--no-manual"))
     
 This takes longer since the vignettes must be built from source.
 
