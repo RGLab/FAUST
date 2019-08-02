@@ -22,7 +22,6 @@
 #include <numeric>
 #include <Rcpp.h>
 #include "faust.h"
-#include <sys/resource.h>
 #include <thread>
 
 #ifndef _DEBUG_USER_ANNOTATION_FOREST_
