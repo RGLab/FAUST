@@ -2,7 +2,6 @@
                                     resList,
                                     selectedChannels,
                                     numScampIter,
-                                    minClusterSize,
                                     debugFlag,
                                     threadNum,
                                     seedValue,
@@ -27,17 +26,10 @@
     for (colName in colnames(levelExprs)) {
         scampAF[[colName]] <- resList[[colName]][[aLevel]]
     }
-    #scale the minimum cluster size to respect the number of sample in the analysisLevel.
-    if (minClusterSize > 0) {
-        useClusterNum <- minClusterSize
-    }
-    else {
-        useClusterNum <- 100 * length(uniqueLevels)
-    }
     scampClustering <- scamp(
         dataSet = levelExprs,
         numberIterations = numScampIter,
-        minimumClusterSize = useClusterNum,
+        minimumClusterSize = 25,
         numberOfThreads = threadNum,
         anyValueRestricted = resFlag,
         resValMatrix = levelRes,
@@ -88,7 +80,6 @@
                                     analysisMap,
                                     numScampIter,
                                     nameOccuranceNum,
-                                    minClusterSize,
                                     debugFlag,
                                     threadNum,
                                     seedValue,
@@ -113,7 +104,6 @@
             resList=resList,
             selectedChannels=selectedChannels,
             numScampIter=numScampIter,
-            minClusterSize=minClusterSize,
             debugFlag=debugFlag,
             threadNum=threadNum,
             seedValue=seedValue,

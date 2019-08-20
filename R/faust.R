@@ -25,10 +25,18 @@
 #' 
 #' @param experimentalUnit A character vector specifying the experimental unit of analysis of samples contained
 #' in the gating set. If left as its default value "", the "name" column in `pData(gatingSet)` will be used as
-#' the experimental unit, leading to `faust` analyzing each sample independently. If modified by the user, the
+#' the experimental unit, leading to `FAUST` analyzing each sample independently. If modified by the user, the
 #' value must match one of the strings in `colnames(pData(gatingSet))`; the corresponding column of the
 #' data frame `pData(gatingSet)` will be used to concatenate individual samples into experimental units for analysis
-#' by `faust`.
+#' by `FAUST`.
+#'
+#' @param imputationHierarchy A character vector specifying the imputation hierarchy for annotation boundaries computed
+#' by FAUST. If left as its default value "", `FAUST` will impose no hierarchy on the data.
+#' If modified by the user, the value must match one of the strings in `colnames(pData(gatingSet))`;
+#' the corresponding column of the data frame `pData(gatingSet)` will be used to impose the impose the imputation
+#' hierarchy: for each selected marker, experimental units that do not empirical support annotation bondaries for a marker
+#' will first attempt to use other experimental units with the same `imputationHierarchy` coding to impute boundaries.
+#' If this is not possible, annotation boundaries will be imputed usining boundaries from all experimental units.
 #' 
 #' @param projectPath An absolute path on your system that locates all intermediate data produced by faust.
 #' At the location specified by the projectPath, `faust` creates a directory called `faustData`, and subdirectories
@@ -64,17 +72,6 @@
 #' @param nameOccuranceNum The number of times a name has to appear in distinct SCAMP clusterings to be
 #' gated out.
 #' 
-#' @param minClusterSize The size of the smallest admissible candidate cluster.
-#' The recursive search for candidate clusters will not consider subsets of observations
-#' below this value as admissible candidates -- it terminates along such branches without
-#' recording the subsets encountered. Increasing this parameter usually increases
-#' the speed of a single SCAMP iteration, at the potential cost of missing rare subsets.
-#' The default value of 25 is the setting used in the FAUST manscript.
-#'
-#' @param initSplitPval The significance level for the DIP test of Hartigan
-#' and Hartigan (1985) used to reconcile annotation boundaries. Set to 0 by default (consistent with the FAUST
-#' manuscript), can be modified for exploratory annotation boundary reconcilition.
-#'
 #' @param supervisedList A list of lists.
 #' The names of list entries correspond to marker names in the active channels vector. 
 #' Channels named in this list will have their gate locations modified. See Details.
@@ -114,9 +111,10 @@
 #' @md
 faust <- function(gatingSet,
                   activeChannels,
-                  channelBounds,
+                  channelBounds="",
                   startingCellPop,
                   experimentalUnit="",
+                  imputationHierarchy="",
                   projectPath=".",
                   depthScoreThreshold=0.01,
                   selectionQuantile=0.50,
@@ -126,9 +124,7 @@ faust <- function(gatingSet,
                   numForestIter=1,
                   numScampIter=1,
                   nameOccuranceNum=1,
-                  minClusterSize=25,
                   drawGateHistograms=1,
-                  initSplitPval=0,
                   supervisedList=NA,
                   annotationsApproved=FALSE
                   )
@@ -146,8 +142,6 @@ faust <- function(gatingSet,
         seedValue = seedValue,
         numForestIter = numForestIter,
         numScampIter = numScampIter,
-        minClusterSize = minClusterSize,
-        initSplitPval = initSplitPval,
         supervisedList = supervisedList,
         annotationsApproved = annotationsApproved
     )
@@ -155,16 +149,29 @@ faust <- function(gatingSet,
     #construct the analysis map directly from gating set
     gspData <- pData(gatingSet)
     if ((experimentalUnit == "") || (!(experimentalUnit %in% colnames(gspData)))) {
-        analysisMap <- data.frame(sampleName = sampleNames(gatingSet),
-                                  analysisLevel = sampleNames(gatingSet),
-                                  stringsAsFactors = FALSE)
+        analysisMap <- data.frame(
+            sampleName = sampleNames(gatingSet),
+            analysisLevel = sampleNames(gatingSet),
+            stringsAsFactors = FALSE
+        )
     }
     else {
-        analysisMap <- data.frame(sampleName = sampleNames(gatingSet),
-                                  analysisLevel = gspData[,experimentalUnit,drop=TRUE],
-                                  stringsAsFactors = FALSE)
+        analysisMap <- data.frame(
+            sampleName = sampleNames(gatingSet),
+            analysisLevel = gspData[,experimentalUnit,drop=TRUE],
+            stringsAsFactors = FALSE
+        )
     }
-    
+    if ((imputationHierarchy=="") || (!(imputationHierarchy %in% colnames(gspData)))) {
+        analysisMap$impH <- "allSamples"
+    }
+    else {
+        analysisMap$impH <- as.character(gspData[,imputationHierarchy,drop=TRUE])
+    }
+    if (debugFlag) {
+        print("impH")
+        print(table(analysisMap$impH))
+    }
     #test to see if the analysis map has changed
     if (!file.exists(paste0(projectPath,"/faustData/metaData/analysisMap.rds"))) {
         saveRDS(analysisMap,paste0(projectPath,"/faustData/metaData/analysisMap.rds"))
@@ -225,7 +232,8 @@ faust <- function(gatingSet,
         activeChannels = activeChannels,
         channelBounds = channelBounds,
         startingCellPop = startingCellPop,
-        projectPath = projectPath
+        projectPath = projectPath,
+        debugFlag = debugFlag
     )
     
     #accumulate data into the analysis levels.
@@ -274,7 +282,7 @@ faust <- function(gatingSet,
         stop("Modify faust parameters: incease selectionQuantile, decrease depthScoreThreshold.")
     }
 
-    manualList <- forceList <- selectionList <- preferenceList <- list()
+    selectionList <- preferenceList <- list()
     if (!is.na(supervisedList)) {
         #supervisedList is a named list of lists
         #name of slot in list: marker
@@ -294,14 +302,6 @@ faust <- function(gatingSet,
                 selectionList <- append(selectionList,list(action))
                 names(selectionList)[length(selectionList)] <- marker
             }
-            else if (actionType == "Force") {
-                forceList <- append(forceList,list(action))
-                names(forceList)[length(forceList)] <- marker
-            }
-            else if (actionType == "Manual") {
-                manualList <- append(manualList,list(action))
-                names(manualList)[length(manualList)] <- marker
-            }
             else {
                 print(paste0("Requested unsupported supervision type for marker ", marker))
                 print("Only 'Preference' and 'PostSelection' supervision types are currently supported.")
@@ -315,12 +315,9 @@ faust <- function(gatingSet,
         selectedChannels = selC,
         parentNode = startingCellPop,
         analysisMap = analysisMap,
-        initSplitPval = initSplitPval,
         projectPath = projectPath,
         debugFlag = debugFlag,
-        preferenceList = preferenceList,
-        forceList = forceList,
-        manualList = manualList
+        preferenceList = preferenceList
     )
     
     if ((!is.na(supervisedList)) && (length(selectionList) > 0)){
@@ -348,8 +345,7 @@ faust <- function(gatingSet,
     .plotScoreLines(
         projectPath = projectPath,
         depthScoreThreshold = depthScoreThreshold,
-        selectionQuantile = selectionQuantile,
-        forceList = forceList
+        selectionQuantile = selectionQuantile
     )
 
     if (drawGateHistograms) {
@@ -378,7 +374,7 @@ faust <- function(gatingSet,
         print(paste0("Also review the annotation boundaries displayed on the sample-level histograms in",
                      projectPath,"/faustData/plotData/histograms"))
         print("If you wish to modify the placement of the annotation boundaries,")
-        print("change the parameters initSplitPval and supervisedList.")
+        print("change the parameters supervisedList.")
         print("")
         print("Changing the Low/High values in the channelBounds matrix will also affect")
         print("the placement of annotation boundaries. It is the most effective way to directly modify")
@@ -399,7 +395,6 @@ faust <- function(gatingSet,
         analysisMap = analysisMap,
         numScampIter = numScampIter,
         nameOccuranceNum = nameOccuranceNum,
-        minClusterSize = minClusterSize,
         debugFlag = debugFlag,
         threadNum = threadNum,
         seedValue = seedValue,

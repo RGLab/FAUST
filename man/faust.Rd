@@ -6,13 +6,13 @@
 \alias{faust-package}
 \title{Full Annotation Using Shape-constrained Trees}
 \usage{
-faust(gatingSet, activeChannels, channelBounds, startingCellPop,
-  experimentalUnit = "", projectPath = ".",
+faust(gatingSet, activeChannels, channelBounds = "", startingCellPop,
+  experimentalUnit = "", imputationHierarchy = "", projectPath = ".",
   depthScoreThreshold = 0.01, selectionQuantile = 0.5,
   debugFlag = FALSE, threadNum = 1, seedValue = 123,
   numForestIter = 1, numScampIter = 1, nameOccuranceNum = 1,
-  minClusterSize = 25, drawGateHistograms = 1, initSplitPval = 0,
-  supervisedList = NA, annotationsApproved = FALSE)
+  drawGateHistograms = 1, supervisedList = NA,
+  annotationsApproved = FALSE)
 }
 \arguments{
 \item{gatingSet}{The \code{faust} function requires that experimental cytometry data you wish to analyze
@@ -37,10 +37,18 @@ in each sample.}
 
 \item{experimentalUnit}{A character vector specifying the experimental unit of analysis of samples contained
 in the gating set. If left as its default value "", the "name" column in \code{pData(gatingSet)} will be used as
-the experimental unit, leading to \code{faust} analyzing each sample independently. If modified by the user, the
+the experimental unit, leading to \code{FAUST} analyzing each sample independently. If modified by the user, the
 value must match one of the strings in \code{colnames(pData(gatingSet))}; the corresponding column of the
 data frame \code{pData(gatingSet)} will be used to concatenate individual samples into experimental units for analysis
-by \code{faust}.}
+by \code{FAUST}.}
+
+\item{imputationHierarchy}{A character vector specifying the imputation hierarchy for annotation boundaries computed
+by FAUST. If left as its default value "", \code{FAUST} will impose no hierarchy on the data.
+If modified by the user, the value must match one of the strings in \code{colnames(pData(gatingSet))};
+the corresponding column of the data frame \code{pData(gatingSet)} will be used to impose the impose the imputation
+hierarchy: for each selected marker, experimental units that do not empirical support annotation bondaries for a marker
+will first attempt to use other experimental units with the same \code{imputationHierarchy} coding to impute boundaries.
+If this is not possible, annotation boundaries will be imputed usining boundaries from all experimental units.}
 
 \item{projectPath}{An absolute path on your system that locates all intermediate data produced by faust.
 At the location specified by the projectPath, \code{faust} creates a directory called \code{faustData}, and subdirectories
@@ -76,19 +84,8 @@ Set this parameter to the number of threads you wish to use.}
 \item{nameOccuranceNum}{The number of times a name has to appear in distinct SCAMP clusterings to be
 gated out.}
 
-\item{minClusterSize}{The size of the smallest admissible candidate cluster.
-The recursive search for candidate clusters will not consider subsets of observations
-below this value as admissible candidates -- it terminates along such branches without
-recording the subsets encountered. Increasing this parameter usually increases
-the speed of a single SCAMP iteration, at the potential cost of missing rare subsets.
-The default value of 25 is the setting used in the FAUST manscript.}
-
 \item{drawGateHistograms}{Boolean. Set to 1 to draw the gate locations for selected markers
 for all samples. Set to 0 to forego the plotting.}
-
-\item{initSplitPval}{The significance level for the DIP test of Hartigan
-and Hartigan (1985) used to reconcile annotation boundaries. Set to 0 by default (consistent with the FAUST
-manuscript), can be modified for exploratory annotation boundary reconcilition.}
 
 \item{supervisedList}{A list of lists.
 The names of list entries correspond to marker names in the active channels vector.

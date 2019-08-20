@@ -1,4 +1,4 @@
-.plotScoreLines <- function(projectPath=".",depthScoreThreshold,selectionQuantile,forceList) {
+.plotScoreLines <- function(projectPath=".",depthScoreThreshold,selectionQuantile) {
     scoreDF <- as.data.frame(readRDS(paste0(projectPath,"/faustData/metaData/scoreMat.rds")))
     qScore <- as.data.frame(apply(scoreDF,2,
                                   function(x){as.numeric(stats::quantile(x,probs=seq(0,1,by=0.01)))}))
@@ -14,10 +14,6 @@
     if (length(selectedNames)) colorMap[selectedNames] <- viridis::viridis(length(selectedNames))
     unselectedNames <- names(which(activeScore < depthScoreThreshold))
     if (length(unselectedNames)) colorMap[unselectedNames] <- viridis::viridis(length(unselectedNames))
-    if (length(forceList)) {
-        colorMap[names(forceList)] <- "#ff0000"
-        lineTypeMap[names(forceList)] <- "solid"
-    }
     qsDF <- tidyr::gather(qScore,key="Channel",value="QuantileValue",-Quantile)
     p <- ggplot(qsDF, aes(x = Quantile, y = QuantileValue, color = Channel)) +
       geom_line(aes(color = Channel, linetype = Channel)) +

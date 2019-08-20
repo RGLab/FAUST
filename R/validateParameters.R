@@ -9,8 +9,6 @@
                                 seedValue,
                                 numForestIter,
                                 numScampIter,
-                                minClusterSize,
-                                initSplitPval,
                                 supervisedList,
                                 annotationsApproved)
 {
@@ -28,14 +26,6 @@
     {
         print("supervisedList is attempting to supervise more channels")
         stop("than those listed in the activeChannels vector.")
-    }
-    if (length(initSplitPval) != 1)
-    {
-        stop("initSplitPval must be a single numeric value between 0 and 1.")
-    }
-    if (length(minClusterSize) != 1)
-    {
-        stop("minClusterSize must be a single integer value greater than 10.")
     }
     if (length(numForestIter) != 1)
     {
@@ -82,22 +72,22 @@
     if (length(activeChannels) != length(unique(activeChannels))) {
         stop("activeChannels must contain each active channel in the experiment only once.")
     }
-    if (!is.matrix(channelBounds)) {
-        stop("channelBounds must be a 2 x length(activeChannels) matrix.")
-    }
-    if ((nrow(channelBounds) != 2) ||
-        (ncol(channelBounds) != length(activeChannels)))
-    {
-        stop("channelBounds must be a 2 x length(activeChannels) matrix.")
-    }
-    if (length(intersect(rownames(channelBounds),c("Low","High"))) != 2)
-    {
-        stop("row names of channelBounds must be 'Low' and 'High'.")
-    }
-    if (length(intersect(colnames(channelBounds),activeChannels)) != length(activeChannels))
-    {
-        stop("column names of channelBounds must be the channels in the activeChannels vector.")
-    }
+    #if (!is.matrix(channelBounds)) {
+    #    stop("channelBounds must be a 2 x length(activeChannels) matrix.")
+    #}
+    #if ((nrow(channelBounds) != 2) ||
+    #    (ncol(channelBounds) != length(activeChannels)))
+    #{
+    #    stop("channelBounds must be a 2 x length(activeChannels) matrix.")
+    #}
+    #if (length(intersect(rownames(channelBounds),c("Low","High"))) != 2)
+    #{
+    #    stop("row names of channelBounds must be 'Low' and 'High'.")
+    #}
+    #if (length(intersect(colnames(channelBounds),activeChannels)) != length(activeChannels))
+    #{
+    #    stop("column names of channelBounds must be the channels in the activeChannels vector.")
+    #}
     if (!is.logical(annotationsApproved))
     {
         stop("annotationsApproved must be set to TRUE xor FALSE.")
@@ -109,16 +99,6 @@
     if ((!is.na(supervisedList)) && (!is.list(supervisedList)))
     {
         stop("supervisedList must be a named list.")
-    }
-    if ((!is.numeric(initSplitPval)) ||
-        (initSplitPval < 0) ||
-        (initSplitPval >= 1))
-    {
-        stop("initSplitPval must be a single numeric value between 0 and 1.")
-    }
-    if ((!is.numeric(minClusterSize)) || (minClusterSize <= 10))
-    {
-        stop("minClusterSize must be an integer value larger than 10.")
     }
     if ((!is.numeric(threadNum)) || (threadNum <= 0))
     {

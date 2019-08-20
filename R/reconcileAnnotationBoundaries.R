@@ -1,16 +1,14 @@
 .reconcileAnnotationBoundaries <- function(selectedChannels,
                                            parentNode,
                                            analysisMap,
-                                           initSplitPval,
                                            projectPath,
                                            debugFlag,
-                                           preferenceList,
-                                           forceList,
-                                           manualList) {
+                                           preferenceList){
     if (!dir.exists(paste0(projectPath,"/faustData/gateData"))) {
         dir.create(paste0(projectPath,"/faustData/gateData"))
     }
-    uniqueLevels <- unique(analysisMap[,"analysisLevel"])
+    uniqueLevels <- unique(analysisMap[,"analysisLevel",drop=TRUE])
+    uniqueIH <- unique(analysisMap[,"impH",drop=TRUE])
     gateList <- .makeGateList(
         uniqueLevels=uniqueLevels,
         projectPath=projectPath,
@@ -18,243 +16,135 @@
         selectedChannels=selectedChannels
     )
     if (length(gateList)) {
+        #the gateList is stratifed by the experimental unit.
         saveRDS(gateList,paste0(projectPath,"/faustData/gateData/",parentNode,"_rawGateList.rds"))
-        numGateMatrix <- Reduce(rbind,lapply(gateList,
-                                             function(x){unlist(lapply(x,
-                                                                       function(y){ifelse(is.na(y[1]),0,length(y))}))}))
+        #hence the number of rows in the numGateMatrix is the number of rows.
+        numGateMatrix <- Reduce(rbind,
+                                lapply(gateList,
+                                       function(x){unlist(lapply(x,
+                                                                 function(y){ifelse(is.na(y[1]),0,length(y))}))}))
         if (!is.matrix(numGateMatrix)) numGateMatrix <- t(as.matrix(numGateMatrix))
         rownames(numGateMatrix) <- names(gateList)
+        #numSel is a numeric vector.
+        #entry is the number of gates selected for the associated marker that annotates the slot.
         numSel <- .getConsistentNumberOfGatesForMarkers(
             numGateMatrix=numGateMatrix,
             preferenceList=preferenceList,
             projectPath=projectPath,
             debugFlag=debugFlag
         )
+        #resList is a container for the gates for all the markers.
         resList <- rep(list(NA),ncol(numGateMatrix))
         names(resList) <- colnames(numGateMatrix)
         for (channel in names(numSel)) {
+            #for each marker, get a standard set of annotation boundaries.
             resListUpdate <- rep(list(NA),nrow(numGateMatrix))
             names(resListUpdate) <- rownames(numGateMatrix)
-            #get data for our selected number of gates
+            #gateNumber stores the standard number across the experiment.
             gateNumber <- as.numeric(numSel[channel])
             numLookup <- which(numGateMatrix[,channel]==gateNumber)
             matchLevels <- rownames(numGateMatrix)[numLookup]
-            gateMatrix <- matrix(nrow=0,ncol=gateNumber)
-            for (level in matchLevels) {
-                gateData <- sort(gateList[[level]][[channel]])
-                gateMatrix <- rbind(gateMatrix,gateData)
-                rownames(gateMatrix)[nrow(gateMatrix)] <- level
-            }
-            fragmentedGates <- FALSE
-            possibleGates <- as.numeric(names(table(numGateMatrix[,channel])))
-            possibleGates <- setdiff(possibleGates,c(0,gateNumber))
-            if (initSplitPval > 0)
-            {
-                #user has indicated they wish to test gates for homogeneity
-                stillChecking <- TRUE
-                numSplits <- 1
-                while (stillChecking) {
-                    anySplit <- FALSE
-                    for (colNum in seq(ncol(gateMatrix))) {
-                        naLookup <- which(is.na(gateMatrix[,colNum]))
-                        if (length(naLookup)) dipPval <- singleDip(sort(gateMatrix[-naLookup,colNum]))
-                        else dipPval <- singleDip(sort(gateMatrix[,colNum]))
-                        if ((dipPval <= (initSplitPval/numSplits)))
-                        {
-                            numSplits <- numSplits + 1 
-                            if (length(naLookup)) splitGate <- tsGates(sort(gateMatrix[-naLookup,colNum]),2)[2]
-                            else splitGate <- tsGates(sort(gateMatrix[,colNum]),2)[2]
-                            updateMatrix <- matrix(NA,nrow=nrow(gateMatrix),ncol=(ncol(gateMatrix)+1))
-                            rownames(updateMatrix) <- rownames(gateMatrix)
-                            for (upColNum in setdiff(seq(ncol(updateMatrix)),c(colNum,(colNum+1))))
-                            {
-                                if (upColNum < colNum) updateMatrix[,upColNum] <- gateMatrix[,upColNum]
-                                else updateMatrix[,upColNum] <- gateMatrix[,(upColNum-1)]
-                            }
-                            bigUpdate <- gateMatrix[which(gateMatrix[,colNum] >= splitGate),colNum]
-                            smallUpdate <- gateMatrix[which(gateMatrix[,colNum] < splitGate),colNum]
-                            updateMatrix[which(gateMatrix[,colNum] >= splitGate),(colNum+1)] <- bigUpdate
-                            updateMatrix[which(gateMatrix[,colNum] < splitGate),colNum] <- smallUpdate
-                            newNumLookup <- which(numGateMatrix[,channel]==ncol(updateMatrix))
-                            if (length(newNumLookup)) {
-                                matchLevels <- rownames(numGateMatrix)[newNumLookup]
-                                newNumMatrix <- matrix(nrow=0,ncol=ncol(updateMatrix))
-                                for (level in matchLevels) {
-                                    gateData <- sort(gateList[[level]][[channel]])
-                                    newNumMatrix <- rbind(newNumMatrix,gateData)
-                                    rownames(newNumMatrix)[nrow(newNumMatrix)] <- level
+            for (currentIH in uniqueIH) {
+                #by imputation hierarchy, attempt to standardize gating.
+                levelsInIH <- sort(unique(analysisMap[which(analysisMap[,"impH"]==currentIH),"analysisLevel",drop=TRUE]))
+                mbLevels <- intersect(matchLevels,levelsInIH)
+                if (length(mbLevels)) {
+                    #there are levels in the imputation hierarchy that have the gateNumber. use them.
+                    gateMatrix <- matrix(nrow=0,ncol=gateNumber)
+                    for (level in mbLevels) {
+                        gateData <- sort(gateList[[level]][[channel]])
+                        gateMatrix <- rbind(gateMatrix,gateData)
+                        rownames(gateMatrix)[nrow(gateMatrix)] <- level
+                    }
+                    cbLookup <- which(rownames(numGateMatrix) %in% levelsInIH)
+                    possibleGates <- as.numeric(names(table(numGateMatrix[cbLookup,channel])))
+                    possibleGates <- setdiff(possibleGates,c(0,gateNumber))
+                    #update the resList
+                    for (level in rownames(gateMatrix)) {
+                        resListUpdate[[level]] <- sort(gateMatrix[which(rownames(gateMatrix)==level),])
+                    }
+                    #check for outliers
+                    mgMed <- apply(gateMatrix,2,stats::median)
+                    mgMAD <- apply(gateMatrix,2,stats::mad)
+                    #if we set the gate using only one example (via supervision, or due to sparsity in the
+                    #level of the imputation hierarchy), the MAD is 0.
+                    #set to (-Inf,Inf) because want to keep what's found by annotation forest. 
+                    if (any(mgMAD == 0)) {
+                        mgMAD <- Inf
+                    }
+                    lowVal <- mgMed - (stats::qt(0.975,df=1) * mgMAD)
+                    highVal <- mgMed + (stats::qt(0.975,df=1) * mgMAD)
+                    chkMatrix <- Reduce(cbind,
+                                        lapply(seq(ncol(gateMatrix)),
+                                               function(x){(gateMatrix[,x] >= lowVal[x])+(gateMatrix[,x] <= highVal[x])}))
+                    #map outliers to medians
+                    amendedNames <- c()
+                    for (i in seq(ncol(chkMatrix))) {
+                        badLookup <- which(chkMatrix[,i] != 2)
+                        if (length(badLookup)) {
+                            amendedNames <- append(amendedNames,(rownames(gateMatrix)[badLookup]))
+                            goodVals <- gateMatrix[-badLookup,i]
+                            newVal <- stats::median(goodVals)
+                            gateMatrix[badLookup,i] <- newVal
+                        }
+                    }
+                    amendedNames <- sort(unique(amendedNames))
+                    if (length(amendedNames)) {
+                        for (changeName in amendedNames) {
+                            resListUpdate[[changeName]] <- sort(gateMatrix[which(rownames(gateMatrix)==changeName),])
+                        }
+                    }
+                    finalVals <- apply(gateMatrix,2,stats::median)
+                    #for levels of analysis with different numbers of gates than the selection,
+                    #map them to selected values.
+                    if (length(possibleGates)) {
+                        for (gateNum in possibleGates) {
+                            modLookup <- which(numGateMatrix[,channel]==gateNum)
+                            allModSamples <- rownames(numGateMatrix)[modLookup]
+                            modSamples <- intersect(allModSamples,levelsInIH)
+                            for (modName in modSamples) {
+                                modVals <- gateList[[modName]][[channel]]
+                                if (gateNum < length(finalVals)) newModVals <- .upConvert(modVals,finalVals)
+                                else newModVals <- .downConvert(modVals,finalVals)
+                                newModVals <- sort(newModVals)
+                                for (mvNum in seq(length(newModVals))) {
+                                    if ((newModVals[mvNum] <= lowVal[mvNum]) || (newModVals[mvNum] >= highVal[mvNum])) {
+                                        newModVals[mvNum] <- finalVals[mvNum]
+                                    }
                                 }
-                                updateMatrix <- rbind(updateMatrix,newNumMatrix)
-                            }
-                            possibleGates <- setdiff(possibleGates,ncol(updateMatrix))
-                            gateMatrix <- updateMatrix
-                            fragmentedGates <- TRUE
-                            anySplit <- TRUE
-                            print(channel)
-                            break
-                        }
-                    }
-                    if (!anySplit) {
-                        stillChecking <- FALSE
-                    }
-                }
-            }
-            if (fragmentedGates) {
-                #if we did split our selection in the test for homogeneity, overwrite NA with gate median
-                medVals <- apply(updateMatrix,2,function(x){stats::median(x,na.rm=TRUE)})
-                for (colNum in seq(ncol(updateMatrix))) {
-                    naLookup <- which(is.na(updateMatrix[,colNum]))
-                    if (length(naLookup)) updateMatrix[naLookup,colNum] <- medVals[colNum]
-                }
-                updateMatrix[which(is.na(updateMatrix[,2])),2] <- medVals[2]
-                gateMatrix <- updateMatrix
-            }
-            #update the resList
-            for (level in rownames(gateMatrix)) {
-                resListUpdate[[level]] <- sort(gateMatrix[which(rownames(gateMatrix)==level),])
-            }
-            #check for outliers
-            mgMed <- apply(gateMatrix,2,stats::median)
-            if (fragmentedGates) mgMAD <- apply(gateMatrix,2,stats::sd)
-            else mgMAD <- apply(gateMatrix,2,stats::mad)
-            #if we set the gate using only one example (via supervision), the MAD is 0. 
-            #set to (-Inf,Inf) because want to keep whats found by annotation forest. 
-            if (mgMAD == 0) mgMAD <- Inf
-            lowVal <- mgMed - (stats::qt(0.975,df=1) * mgMAD)
-            highVal <- mgMed + (stats::qt(0.975,df=1) * mgMAD)
-            chkMatrix <- Reduce(cbind,lapply(seq(ncol(gateMatrix)),
-                                             function(x){(gateMatrix[,x] >= lowVal[x])+(gateMatrix[,x] <= highVal[x])}))
-            #map outliers to medians
-            amendedNames <- c()
-            for (i in seq(ncol(chkMatrix))) {
-                badLookup <- which(chkMatrix[,i] != 2)
-                if (length(badLookup)) {
-                    amendedNames <- append(amendedNames,(rownames(gateMatrix)[badLookup]))
-                    goodVals <- gateMatrix[-badLookup,i]
-                    newVal <- stats::median(goodVals)
-                    gateMatrix[badLookup,i] <- newVal
-                }
-            }
-            amendedNames <- sort(unique(amendedNames))
-            if (length(amendedNames)) {
-                for (changeName in amendedNames) {
-                    resListUpdate[[changeName]] <- sort(gateMatrix[which(rownames(gateMatrix)==changeName),])
-                }
-            }
-            finalVals <- apply(gateMatrix,2,stats::median)
-            #for levels of analysis with different numbers of gates than the selection,
-            #map them to selected values.
-            if (length(possibleGates)) {
-                for (gateNum in possibleGates) {
-                    modLookup <- which(numGateMatrix[,channel]==gateNum)
-                    modSamples <- rownames(numGateMatrix)[modLookup]
-                    for (modName in modSamples) {
-                        modVals <- gateList[[modName]][[channel]]
-                        if (gateNum < length(finalVals)) newModVals <- .upConvert(modVals,finalVals)
-                        else newModVals <- .downConvert(modVals,finalVals)
-                        newModVals <- sort(newModVals)
-                        for (mvNum in seq(length(newModVals))) {
-                            if ((newModVals[mvNum] <= lowVal[mvNum]) || (newModVals[mvNum] >= highVal[mvNum])) {
-                                newModVals[mvNum] <- finalVals[mvNum]
+                                resListUpdate[[modName]] <- sort(newModVals)
                             }
                         }
-                        resListUpdate[[modName]] <- sort(newModVals)
+                    }
+                    #finally deal with NA boundaries in the imputation hierarchy
+                    naNames <- intersect(names(which(is.na(resListUpdate))),levelsInIH)
+                    if (length(naNames)) {
+                        for (changeName in naNames) {
+                            resListUpdate[[changeName]] <- sort(finalVals)
+                        }
                     }
                 }
             }
-            #finally deal with NA gates
-            naNames <- names(which(is.na(resListUpdate)))
-            if (length(naNames)) {
+            if (length(which(is.na(resListUpdate)))) {
+                #experimental units within a level of the imputation hierarchy do not have annotation boundaries.
+                #so, impute boundaries across all levels in the imputation hierarchy.
+                gateMatrix <- matrix(nrow=0,ncol=gateNumber)
+                for (level in names(which(!is.na(resListUpdate)))) {
+                    gateData <- sort(resListUpdate[[level]])
+                    gateMatrix <- rbind(gateMatrix,gateData)
+                    rownames(gateMatrix)[nrow(gateMatrix)] <- level
+                }
+                finalVals <- apply(gateMatrix,2,stats::median)
+                #map those still NA to the experiment wide medians.
+                naNames <- names(which(is.na(resListUpdate)))
                 for (changeName in naNames) {
                     resListUpdate[[changeName]] <- sort(finalVals)
                 }
             }
             resList[[channel]] <- resListUpdate
         }
-        if (length(forceList) > 0) {
-            #the user has indicated a channel must be included in the anlaysis and gated at a value.
-            #add it in now, overwriting any automatic reconciliation.
-            forcedNames <- names(forceList)
-            listTemplate <- resList[[1]]
-            designSettings <- names(listTemplate)
-            selectedChannelsPrep <- selectedChannels
-            for (forcedMarkerName in forcedNames) {
-                forcedGates <- forceList[[forcedMarkerName]] #the forced gate values
-                newTemplate <- listTemplate #copy the template for updating
-                for (setting in designSettings) {
-                    newTemplate[[setting]] <- forcedGates
-                }
-                if (forcedMarkerName %in% selectedChannelsPrep) {
-                    print(paste0("Overwriting empirical gates for user settings on marker ",
-                                 forcedMarkerName))
-                    resList[[forcedMarkerName]] <- newTemplate
-                }
-                else {
-                    resList <- append(resList,list(newTemplate))
-                    names(resList)[length(resList)] <- forcedMarkerName
-                    selectedChannelsPrep <- append(selectedChannelsPrep,
-                                                  forcedMarkerName)
-                }
-            }
-        }
-        else {
-            selectedChannelsPrep <- selectedChannels
-        }
-        if (length(manualList) > 0) {
-            #the user has provided manual gates for some marker.
-            #add these gates in now.
-            #one of two conditions must be met.
-            #either the marker must be selected automatically by FAUST.
-            #or manual gates must be provided for ALL levels by the user.
-            #if the case the marker is selected by FAUST, a subsets of levels may be manually gated.
-            manualNames <- names(manualList)
-            listTemplate <- resList[[1]]
-            designSettings <- names(listTemplate)
-            selectedChannelsOut <- selectedChannelsPrep
-            for (manualMarkerName in manualNames) {
-                manualGateList <- manualList[[manualMarkerName]] #the forced gate values
-                manualSettings <- names(manualGateList)
-                if (manualMarkerName %in% selectedChannelsOut) {
-                    #the marker is selected and gated by FAUST. 
-                    #get faust gates and update only those levels modified by the user.
-                    newTemplate <- resList[[manualMarkerName]]
-                    for (setting in manualSettings) {
-                        newTemplate[[setting]] <- manualGateList[[setting]]
-                    }
-                    resList[[manualMarkerName]] <- newTemplate
-                }
-                else {
-                    #the marker is not selected by FAUST
-                    #therefore, the user must set gates for all design levels.
-                    #check to make sure this occurs before updating.
-                    newTemplate <- listTemplate
-                    if (length(setdiff(designSettings,manualSettings))) {
-                        print("Manual gates do not include all levels.")
-                        print("Set gates for the following.")
-                        print(setdiff(designSettings,manualSettings))
-                        stop("Killing faust run.")
-                    }
-                    if (length(setdiff(manualSettings,designSettings))) {
-                        print("Manual gates include levels not specified by the design.")
-                        print("These levels are the following.")
-                        print(setdiff(manualSettings,designSettings))
-                        stop("Killing faust run.")
-                    }
-                    for (setting in manualSettings) {
-                        newTemplate[[setting]] <- manualGateList[[setting]]
-                    }
-                    resList <- append(resList,list(newTemplate))
-                    names(resList)[length(resList)] <- manualMarkerName
-                    selectedChannelsOut <- append(selectedChannelsOut,
-                                                  manualMarkerName)
-                }
-            }
-        }
-        else {
-            selectedChannelsOut <- selectedChannelsPrep
-        }
         saveRDS(resList,paste0(projectPath,"/faustData/gateData/",parentNode,"_resListPrep.rds"))
-        saveRDS(selectedChannelsOut,paste0(projectPath,"/faustData/gateData/",parentNode,"_selectedChannels.rds"))
+        saveRDS(selectedChannels,paste0(projectPath,"/faustData/gateData/",parentNode,"_selectedChannels.rds"))
     }
     return()
 }
@@ -288,7 +178,7 @@
                 if (debugFlag) print(paste0("Selecting ",selUpdate," gates for marker ",columnName))
             }
             else {
-                                        #the request is not supported by the data. Use standard rule.
+                #the request is not supported by the data. Use standard rule.
                 selUpdate <- sort(as.numeric(names(which(columnCounts==columnMax))))[1]
                 if (debugFlag) {
                     print(paste0("No empirical evidence for user gating preference in marker ",columnName))
