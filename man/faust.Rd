@@ -11,7 +11,7 @@ faust(gatingSet, activeChannels, channelBounds = "", startingCellPop,
   depthScoreThreshold = 0.01, selectionQuantile = 0.5,
   debugFlag = FALSE, threadNum = 1, seedValue = 123,
   numForestIter = 1, numScampIter = 1, nameOccuranceNum = 1,
-  drawGateHistograms = 1, supervisedList = NA,
+  drawAnnotationHistograms = 1, supervisedList = NA,
   annotationsApproved = FALSE)
 }
 \arguments{
@@ -28,7 +28,8 @@ with \code{colnames(channelBounds) <- activeChannels} and \code{rownames(channel
 Expression values in a channel less than or equal to the value in the "Low"
 row are treated as low, by default, and not actively considered when \code{FAUST} processes the data.
 Expression values in a channel greater than or equal to the value in the "High"
-row are treated as high, by default, and not actively considered when \code{FAUST} processes the data.}
+row are treated as high, by default, and not actively considered when \code{FAUST} processes the data.
+If this parameter is not set by the user, it will be set empirically by heuristic, and printed to log.}
 
 \item{startingCellPop}{A character vector specifying the node from the manual gating strategy attached to
 the \code{gatingSet} to use for \code{faust} analysis. The node in the manual gating strategy is, at minimum,
@@ -84,8 +85,8 @@ Set this parameter to the number of threads you wish to use.}
 \item{nameOccuranceNum}{The number of times a name has to appear in distinct SCAMP clusterings to be
 gated out.}
 
-\item{drawGateHistograms}{Boolean. Set to 1 to draw the gate locations for selected markers
-for all samples. Set to 0 to forego the plotting.}
+\item{drawAnnotationHistograms}{Boolean. Set to 1 to draw the annotation boundary locations for selected markers
+for all samples and all markers. Set to 0 to forego the plotting.}
 
 \item{supervisedList}{A list of lists.
 The names of list entries correspond to marker names in the active channels vector.

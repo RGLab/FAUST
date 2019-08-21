@@ -17,6 +17,7 @@
 #' row are treated as low, by default, and not actively considered when `FAUST` processes the data.
 #' Expression values in a channel greater than or equal to the value in the "High"
 #' row are treated as high, by default, and not actively considered when `FAUST` processes the data.
+#' If this parameter is not set by the user, it will be set empirically by heuristic, and printed to log.
 #' 
 #' @param startingCellPop A character vector specifying the node from the manual gating strategy attached to
 #' the `gatingSet` to use for `faust` analysis. The node in the manual gating strategy is, at minimum,
@@ -82,8 +83,8 @@
 #' If you want to run the FAUST method totally unsupervised, set this parameter to true
 #' before running the method.
 #'
-#' @param drawGateHistograms Boolean. Set to 1 to draw the gate locations for selected markers
-#' for all samples. Set to 0 to forego the plotting.
+#' @param drawAnnotationHistograms Boolean. Set to 1 to draw the annotation boundary locations for selected markers
+#' for all samples and all markers. Set to 0 to forego the plotting.
 #' 
 #' @return The FAUST method returns a null value on completion. The main output is the file
 #' "projectPath/faustData/faustCountMatrix.rds". The rownames are `sampleNames(gatingSet)]`
@@ -123,8 +124,8 @@ faust <- function(gatingSet,
                   seedValue=123,
                   numForestIter=1,
                   numScampIter=1,
-                  nameOccuranceNum=1,
-                  drawGateHistograms=1,
+                  nameOccuranceNum=ceiling((0.1*length(gatingSet))),
+                  drawAnnotationHistograms=1,
                   supervisedList=NA,
                   annotationsApproved=FALSE
                   )
@@ -228,14 +229,21 @@ faust <- function(gatingSet,
     if (debugFlag) print("Begin data extraction.")
     .extractDataFromGS(
         gs = gatingSet,
-        analysisMap = analysisMap,
         activeChannels = activeChannels,
-        channelBounds = channelBounds,
         startingCellPop = startingCellPop,
         projectPath = projectPath,
         debugFlag = debugFlag
     )
-    
+
+    if (debugFlag) print("Making restriction matrices.")
+    .makeRestrictionMatrices(
+        samplesInExp = flowWorkspace::sampleNames(gatingSet),
+        analysisMap = analysisMap,
+        channelBounds = channelBounds,
+        projectPath = projectPath,
+        debugFlag = debugFlag
+    )
+
     #accumulate data into the analysis levels.
     if (debugFlag) print("Begin first analysis level prep.")
     .prepareFirstAL(
@@ -348,7 +356,14 @@ faust <- function(gatingSet,
         selectionQuantile = selectionQuantile
     )
 
-    if (drawGateHistograms) {
+    if (debugFlag) print("Generating marker boundary histograms.")
+    .plotMarkerHistograms(
+        analysisMap = analysisMap,
+        startingCellPop = startingCellPop,
+        projectPath = projectPath
+    )
+
+    if (drawAnnotationHistograms) {
         if (debugFlag) print("Generating annotation boundary histograms.")
         for (sampleName in analysisMap[,"sampleName"]) {
             .plotSampleHistograms(

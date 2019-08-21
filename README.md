@@ -9,7 +9,7 @@ The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is
 
 Currently `faust` must be installed from its source. It depends on the `scamp` package.
 
-The most recent version can be installed from [github](https://github.com/FredHutch/faust) using [devtools](https://github.com/r-lib/devtools) in R. A quick installation (without vignettes) can be performed by:
+The most recent version can be installed from [github](https://github.com/FredHutch/faust) using [devtools](https://github.com/r-lib/devtools) in R. An installation (without vignettes) can be performed by first installing:
 
     tryCatch(installed.packages()["BiocManager","Version"],
 	     error = function(e){
@@ -25,6 +25,9 @@ The most recent version can be installed from [github](https://github.com/FredHu
 
     library(devtools)
     devtools::install_github("RGLab/scamp")
+
+Once these preliminary libraries are installed, run the command:
+
     devtools::install_github("RGLab/FAUST")
     
 To build the vignettes during installation, instead run:
@@ -41,8 +44,12 @@ To build the vignettes during installation, instead run:
 	     error = function(e){
                 install.packages("ggdendro")
              })
-    devtools::install_github("RGLab/FAUST", build = TRUE, build_opts = c("--no-resave-data", "--no-manual"))
-    
+    tryCatch(installed.packages()["remotes","Version"],
+    	     error = function(e){
+                install.packages("remotes")
+             })	
+    remotes::install_github("RGLab/FAUST", force = TRUE, build_vignettes = TRUE)
+
 This takes longer since the vignettes must be built from source.
 
 After loading `FAUST`, type `vignette('faustIntro')` to read a vignette discussing how to use the `FAUST` function in R.
