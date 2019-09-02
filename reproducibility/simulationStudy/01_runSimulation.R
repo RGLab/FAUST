@@ -215,7 +215,7 @@ faust:::faust(
     experimentalUnit="name",
     depthScoreThreshold = 0.01,
     selectionQuantile = 0.5,
-    drawGateHistograms = 0,
+    drawAnnotationHistograms = FALSE,
     nameOccuranceNum = max(1,floor(length(gs)/4)),
     debugFlag = TRUE,
     threadNum = 10,

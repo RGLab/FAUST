@@ -3,7 +3,8 @@
                                            analysisMap,
                                            projectPath,
                                            debugFlag,
-                                           preferenceList){
+                                           preferenceList,
+                                           forceList){
     if (!dir.exists(paste0(projectPath,"/faustData/gateData"))) {
         dir.create(paste0(projectPath,"/faustData/gateData"))
     }
@@ -143,8 +144,37 @@
             }
             resList[[channel]] <- resListUpdate
         }
+        if (length(forceList) > 0) {
+            #the user has indicated a channel must be included in the anlaysis and gated at a value.
+            #add it in now, overwriting any automatic reconciliation.
+            forcedNames <- names(forceList)
+            listTemplate <- resList[[1]]
+            designSettings <- names(listTemplate)
+            selectedChannelsOut <- selectedChannels
+            for (forcedMarkerName in forcedNames) {
+                forcedGates <- forceList[[forcedMarkerName]] #the forced gate values
+                newTemplate <- listTemplate #copy the template for updating
+                for (setting in designSettings) {
+                    newTemplate[[setting]] <- forcedGates
+                }
+                if (forcedMarkerName %in% selectedChannelsOut) {
+                    print(paste0("Overwriting empirical gates for user settings on marker ",
+                                 forcedMarkerName))
+                    resList[[forcedMarkerName]] <- newTemplate
+                }
+                else {
+                    resList <- append(resList,list(newTemplate))
+                    names(resList)[length(resList)] <- forcedMarkerName
+                    selectedChannelsOut <- append(selectedChannelsOut,
+                                                  forcedMarkerName)
+                }
+            }
+        }
+        else {
+            selectedChannelsOut <- selectedChannels
+        }
         saveRDS(resList,paste0(projectPath,"/faustData/gateData/",parentNode,"_resListPrep.rds"))
-        saveRDS(selectedChannels,paste0(projectPath,"/faustData/gateData/",parentNode,"_selectedChannels.rds"))
+        saveRDS(selectedChannelsOut,paste0(projectPath,"/faustData/gateData/",parentNode,"_selectedChannels.rds"))
     }
     return()
 }

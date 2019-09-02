@@ -5,9 +5,10 @@
                                      debugFlag
                                      ) {
     if (!file.exists(paste0(projectPath,"/faustData/metaData/madeResMats.rds"))) {
-        uniqueHNum <- length(table(analysisMap[,"impH",drop=TRUE]))
+        uniqueHierarchyNames <- names(table(analysisMap[,"impH",drop=TRUE]))
+        uniqueHNum <- length(uniqueHierarchyNames)
         channelBoundsUsedByFAUST <- channelBounds
-        if ((uniqueHNum==1) && (!is.matrix(channelBounds))) {
+        if (channelBounds=="") {
             #the user did not set the channelBounds parameter.
             #set it empirically using the folloing hueristic.
             firstSampleForCB <- TRUE
@@ -18,7 +19,7 @@
                 if (firstSampleForCB) {
                     quantileDataLow <- apply(exprsMat,2,function(x){quantile(x,probs=0.01)})
                     quantileDataHigh <- apply(exprsMat,2,function(x){quantile(x,probs=0.99)})
-                    empiricalCB <- matrix(-Inf,nrow=2,ncol=length(activeChannels))
+                    empiricalCB <- matrix(-Inf,nrow=2,ncol=ncol(exprsMat))
                     colnames(empiricalCB) <- colnames(exprsMat)
                     rownames(empiricalCB) <- c("Low","High")
                     firstSampleForCB <- FALSE
@@ -34,7 +35,25 @@
             empiricalCB["High",] <- as.numeric(apply(quantileDataHigh,2,function(x){quantile(x,probs=0.95)}))
             print("Set the channelBounds parameter empirically. Resulted in the following matrix:")
             print(empiricalCB)
-            channelBoundsUsedByFAUST <- empiricalCB 
+            if (uniqueHNum==1) {
+                channelBoundsUsedByFAUST <- empiricalCB
+            }
+            else {
+                internalCBList <- list()
+                for (hName in uniqueHierarchyNames) {
+                    internalCBList <- append(internalCBList,list(empiricalCB))
+                    names(internalCBList)[length(internalCBList)] <- hName
+                }
+                channelBoundsUsedByFAUST <- internalCBList
+            }
+        }
+        else if ((is.matrix(channelBounds)) && (uniqueHNum > 1)) {
+            internalCBList <- list()
+            for (hName in uniqueHierarchyNames) {
+                internalCBList <- append(internalCBList,list(channelBounds))
+                names(internalCBList)[length(internalCBList)] <- hName
+            }
+            channelBoundsUsedByFAUST <- internalCBList
         }
         saveRDS(channelBoundsUsedByFAUST,paste0(projectPath,"/faustData/metaData/channelBoundsUsedByFAUST.rds"))
         for (sampleName in samplesInExp) {
