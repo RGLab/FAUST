@@ -353,6 +353,8 @@ echo "End of program at `date`"'
     controlData <- list(
         threadNum = threadNum,
         jobNumber = jobNumber,
+        partitionID = partitionID,
+        jobTime = jobTime,
         jobPath = paste0("'",file.path(normalizePath(projectPath),"faustData","slurmScampData",aLevel,"slurmScampJob.R"),"'"),
         logPath = paste0("'",file.path(normalizePath(projectPath),"faustData","slurmScampData",aLevel,"sjLog"),"'")
     )
