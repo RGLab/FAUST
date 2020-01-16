@@ -5,8 +5,13 @@
                                            debugFlag,
                                            preferenceList,
                                            forceList){
-    if (!dir.exists(paste0(projectPath,"/faustData/gateData"))) {
-        dir.create(paste0(projectPath,"/faustData/gateData"))
+    if (!dir.exists(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "gateData")))
+    {
+        dir.create(file.path(normalizePath(projectPath),
+                             "faustData",
+                             "gateData"))
     }
     uniqueLevels <- unique(analysisMap[,"analysisLevel",drop=TRUE])
     uniqueIH <- unique(analysisMap[,"impH",drop=TRUE])
@@ -18,7 +23,11 @@
     )
     if (length(gateList)) {
         #the gateList is stratifed by the experimental unit.
-        saveRDS(gateList,paste0(projectPath,"/faustData/gateData/",parentNode,"_rawGateList.rds"))
+        saveRDS(gateList,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "gateData",
+                          paste0(parentNode,"_rawGateList.rds")))
         #hence the number of rows in the numGateMatrix is the number of rows.
         numGateMatrix <- Reduce(rbind,
                                 lapply(gateList,
@@ -173,8 +182,16 @@
         else {
             selectedChannelsOut <- selectedChannels
         }
-        saveRDS(resList,paste0(projectPath,"/faustData/gateData/",parentNode,"_resListPrep.rds"))
-        saveRDS(selectedChannelsOut,paste0(projectPath,"/faustData/gateData/",parentNode,"_selectedChannels.rds"))
+        saveRDS(resList,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "gateData",
+                          paste0(parentNode,"_resListPrep.rds")))
+        saveRDS(selectedChannelsOut,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "gateData",
+                          paste0(parentNode,"_selectedChannels.rds")))
     }
     return()
 }
@@ -224,7 +241,11 @@
     }
     #save the possible number of gates for all selected markers in the experiment.
     #users can examine this data to override max selection
-    saveRDS(possibilityList,paste0(projectPath,"/faustData/metaData/possibilityList.rds"))
+    saveRDS(possibilityList,
+            file.path(normalizePath(projectPath),
+                      "faustData",
+                      "metaData",
+                      "possibilityList.rds"))
     return(numSel)
 }
 
@@ -233,8 +254,17 @@
 {
     gateList <- list()
     for (aLevel in uniqueLevels) {
-        if (file.exists(paste0(projectPath,"/faustData/levelData/",aLevel,"/",parentNode,"_pAnnF.rds"))) {
-            afIn <- readRDS(paste0(projectPath,"/faustData/levelData/",aLevel,"/",parentNode,"_pAnnF.rds"))
+        if (file.exists(file.path(normalizePath(projectPath),
+                                  "faustData",
+                                  "levelData",
+                                  aLevel,
+                                  paste0(parentNode,"_pAnnF.rds"))))
+        {
+            afIn <- readRDS(file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "levelData",
+                                      aLevel,
+                                      paste0(parentNode,"_pAnnF.rds")))
             gates <- lapply(selectedChannels,
                             function(x){eval(parse(text=paste0("afIn$`",x,"`$gates")))})
             if (length(gates) == length(selectedChannels)) {

@@ -1,11 +1,20 @@
 .mkAnnMats <- function(parentNode,analysisMap,projectPath=".") {
-    resList <- readRDS(paste0(projectPath,"/faustData/gateData/",parentNode,"_resList.rds"))
-    selC <- readRDS(paste0(projectPath,"/faustData/gateData/",parentNode,"_selectedChannels.rds"))
+    resList <- readRDS(file.path(normalizePath(projectPath),
+                                 "faustData",
+                                 "gateData",
+                                 paste0(parentNode,"_resList.rds")))
+    selC <- readRDS(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "gateData",
+                              paste0(parentNode,"_selectedChannels.rds")))
     for (sampleNum in seq(nrow(analysisMap))) {
         sampleName <- analysisMap[sampleNum,"sampleName"]
         aLevel <- analysisMap[sampleNum,"analysisLevel"]
-        exprsMatIn <- readRDS(paste0(projectPath,"/faustData/sampleData/",
-                                     sampleName,"/exprsMat.rds"))
+        exprsMatIn <- readRDS(file.path(normalizePath(projectPath),
+                                        "faustData",
+                                        "sampleData",
+                                        sampleName,
+                                        "exprsMat.rds"))
         exprsMat <- exprsMatIn[,selC,drop=FALSE]
         annotationMatrix <- matrix(0,nrow=nrow(exprsMat),ncol=ncol(exprsMat))
         colnames(annotationMatrix) <- colnames(exprsMat)
@@ -23,9 +32,14 @@
             }
         }
         data.table::fwrite(as.data.frame(annotationMatrix),
-                    file=paste0(projectPath,"/faustData/sampleData/",sampleName,
-                                "/annotationMatrix.csv"),
-                    sep=",",row.names=FALSE,col.names=FALSE)
+                           file=file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "sampleData",
+                                          sampleName,
+                                          "annotationMatrix.csv"),
+                           sep=",",
+                           row.names=FALSE,
+                           col.names=FALSE)
     }
 }
 

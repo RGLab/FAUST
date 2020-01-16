@@ -6,10 +6,23 @@
     uniqueLevels <- unique(analysisMap[,"analysisLevel"])
     firstForest <- TRUE
     for (aLevel in uniqueLevels) {
-        if (file.exists(paste0(projectPath,"/faustData/levelData/",aLevel,"/",parentNode,"_pAnnF.rds"))) {
-            afIn <- readRDS(paste0(projectPath,"/faustData/levelData/",aLevel,"/",parentNode,"_pAnnF.rds"))
+        if (file.exists(file.path(normalizePath(projectPath),
+                                  "faustData",
+                                  "levelData",
+                                  aLevel,
+                                  paste0(parentNode,"_pAnnF.rds"))))
+        {
+            afIn <- readRDS(file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "levelData",
+                                      aLevel,
+                                      paste0(parentNode,"_pAnnF.rds")))
             forestScores <- unlist(lapply(afIn,function(x){x$channelScore}))
-            rafIn <- readRDS(paste0(projectPath,"/faustData/levelData/",aLevel,"/",parentNode,"_annF.rds"))
+            rafIn <- readRDS(file.path(normalizePath(projectPath),
+                                       "faustData",
+                                       "levelData",
+                                       aLevel,
+                                       paste0(parentNode,"_annF.rds")))
             gd <- rafIn[["gateData"]]
             firstDepth <- unlist(lapply(seq(3,length(gd),by=5),
                                         function(x){ifelse(length(gd[[x]])==0,Inf,min(gd[[x]]))}))
@@ -39,14 +52,26 @@
                 scoreMat[naLookup,column] <- 0
             }
         }
-        saveRDS(scoreMat,paste0(projectPath,"/faustData/metaData/scoreMat.rds"))
-        saveRDS(depthMat,paste0(projectPath,"/faustData/metaData/depthMat.rds"))
+        saveRDS(scoreMat,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "metaData",
+                          "scoreMat.rds"))
+        saveRDS(depthMat,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "metaData",
+                          "depthMat.rds"))
         quantileScore <- apply(scoreMat,2,function(x){as.numeric(quantile(x,probs=c(selectionQuantile)))})
         scoreNames <- names(which(quantileScore >= depthScoreThreshold))
         quantileDepth <- apply(depthMat,2,function(x){as.numeric(quantile(x,probs=c((1-selectionQuantile))))})
         depthNames <- names(which(quantileDepth <= 2))
         selectedNames <- scoreNames 
-        outScore <- quantileScore[selectedNames]
+        #outScore <- quantileScore[selectedNames]
+        #
+        #Order selected markers relative to their total depth score across the experiment.
+        #
+        outScore <- apply(scoreMat[,selectedNames,drop=FALSE],2,sum)
         outNames <- names(sort(outScore,decreasing=TRUE))
         return(outNames)
     }

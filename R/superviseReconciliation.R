@@ -1,6 +1,9 @@
 .superviseReconciliation <- function(supervisedList,parentNode,projectPath=".")
 {
-    resListPrep <- readRDS(paste0(projectPath,"/faustData/gateData/",parentNode,"_resListPrep.rds"))
+    resListPrep <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "gateData",
+                                     paste0(parentNode,"_resListPrep.rds")))
     outList <- resListPrep
     selectedChannels <- names(resListPrep)
     supervisedChannels <- names(supervisedList)
@@ -26,5 +29,9 @@
         }
         outList[[channel]] <- tmpList
     }
-    saveRDS(outList,paste0(projectPath,"/faustData/gateData/",parentNode,"_resList.rds"))
+    saveRDS(outList,
+            file.path(normalizePath(projectPath),
+                      "faustData",
+                      "gateData",
+                      paste0(parentNode,"_resList.rds")))
 }

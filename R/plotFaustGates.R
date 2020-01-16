@@ -29,33 +29,62 @@
 #' @md
 plotFaustGates <- function(cellPop,sampleName,projectPath=".") {
     if (cellPop=="0_0_0_0_0") return(NA)
-    if (!dir.exists(paste0(projectPath,"/faustData"))) {
+    if (!dir.exists(file.path(normalizePath(projectPath),
+                              "faustData")))
+    {
         print(paste0("faustData directory not detected in ",projectPath))
         print("Update the projectPath variable.")
         return(NA)
     }
-    if (!dir.exists(paste0(projectPath,"/faustData/plotData"))) {
+    if (!dir.exists(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData")))
+    {
         print(paste0("faustData/plotData directory not detected in ",projectPath))
         print("This indicates the FAUST pipeline has not been run.")
         print("If it has, update the projectPath to the directory containing faustData")
         print("If it has not, run the FAUST pipeline before calling this function.")
         return(NA)
     }
-    if (!dir.exists(paste0(projectPath,"/faustData/plotData/gatingStrats/"))) {
-        dir.create(paste0(projectPath,"/faustData/plotData/gatingStrats/"))
+    if (!dir.exists(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData",
+                              "gatingStrats")))
+    {
+        dir.create(file.path(normalizePath(projectPath),
+                             "faustData",
+                             "plotData",
+                             "gatingStrats"))
     }
-    if (!dir.exists(paste0(projectPath,"/faustData/plotData/gatingStrats/",cellPop))) {
-        dir.create(paste0(projectPath,"/faustData/plotData/gatingStrats/",cellPop))
+    if (!dir.exists(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData",
+                              "gatingStrats",
+                              cellPop)))
+    {
+        dir.create(file.path(normalizePath(projectPath),
+                             "faustData",
+                             "plotData",
+                             "gatingStrats",
+                             cellPop))
     }
-    colNameMap <- readRDS(paste0(projectPath,"/faustData/metaData/colNameMap.rds"))
+    colNameMap <- readRDS(file.path(normalizePath(projectPath),
+                                    "faustData",
+                                    "metaData",
+                                    "colNameMap.rds"))
     cellPopLookup <- which(colNameMap[,"newColNames"]==cellPop)
     if (length(cellPopLookup)) {
         faustPopName <- colNameMap[cellPopLookup,"faustColNames"]
         p <- .plotFaustGates(cellPop=faustPopName,sampleName=sampleName,projectPath=projectPath)
-        cowplot::save_plot(paste0(projectPath,"/faustData/plotData/gatingStrats/",cellPop,"/",sampleName,".pdf"),
-                  p,
-                  base_height = 20,
-                  base_width = 20)
+        cowplot::save_plot(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "plotData",
+                                     "gatingStrats",
+                                     cellPop,
+                                     paste0(sampleName,".pdf")),
+                           p,
+                           base_height = 20,
+                           base_width = 20)
         return()
     }
     else {
@@ -64,18 +93,34 @@ plotFaustGates <- function(cellPop,sampleName,projectPath=".") {
 }
 
 .plotFaustGates <- function(cellPop,sampleName,projectPath) {
-    channelBounds <- readRDS(paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
-    analysisMap <- readRDS(paste0(projectPath,"/faustData/metaData/analysisMap.rds"))
-    startingCellPop <- readRDS(paste0(projectPath,"/faustData/metaData/startingCellPop.rds"))
+    channelBounds <- readRDS(file.path(normalizePath(projectPath),
+                                       "faustData",
+                                       "metaData",
+                                       "channelBounds.rds"))
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
+    startingCellPop <- readRDS(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "metaData",
+                                         "startingCellPop.rds"))
     startingCellPop <- gsub("[[:punct:]]","",startingCellPop)
     startingCellPop <- gsub("[[:space:]]","",startingCellPop)
     startingCellPop <- gsub("[[:cntrl:]]","",startingCellPop)
-    resList <- readRDS(paste0(projectPath,"/faustData/gateData/",startingCellPop,"_resList.rds"))
+    resList <- readRDS(file.path(normalizePath(projectPath),
+                                 "faustData",
+                                 "gateData",
+                                 paste0(startingCellPop,"_resList.rds")))
     staticPop <- cellPop
     snLookup <- which(analysisMap[,"sampleName"] == sampleName)
     if (length(snLookup)) {
         aLevel <- analysisMap[snLookup,"analysisLevel"]
-        exprsMat <- readRDS(paste0(projectPath,"/faustData/sampleData/",sampleName,"/exprsMat.rds"))
+        exprsMat <- readRDS(file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "sampleData",
+                                      sampleName,
+                                      "exprsMat.rds"))
         indexRows <- rep(TRUE,nrow(exprsMat))
         targetPop <- staticPop
         plotPop <- strsplit(targetPop,"~")[[1]]

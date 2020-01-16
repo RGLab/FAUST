@@ -4,14 +4,38 @@
                                   projectPath=".")
 {
     
-    resList <- readRDS(paste0(projectPath,"/faustData/gateData/",
-                              startingCellPop,"_resList.rds"))
-    selC <- readRDS(paste0(projectPath,"/faustData/gateData/",
-                           startingCellPop,"_selectedChannels.rds"))
+    resList <- readRDS(file.path(normalizePath(projectPath),
+                                 "faustData",
+                                 "gateData",
+                                 paste0(startingCellPop,"_resList.rds")))
+    selC <- readRDS(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "gateData",
+                              paste0(startingCellPop,"_selectedChannels.rds")))
 
-    exprsMat <- readRDS(paste0(projectPath,"/faustData/sampleData/",sampleName,"/exprsMat.rds"))
+    exprsMat <- readRDS(file.path(normalizePath(projectPath),
+                                  "faustData",
+                                  "sampleData",
+                                  sampleName,
+                                  "exprsMat.rds"))
     aLevel <- analysisMap[which(analysisMap[,"sampleName"]==sampleName),"analysisLevel"]
     plotList <- list()
+    #initialize directories for the selected channels
+    for (channel in selC) {
+        if (!dir.exists(file.path(normalizePath(projectPath),
+                                  "faustData",
+                                  "plotData",
+                                  "histograms",
+                                  channel)))
+        {
+            dir.create(file.path(normalizePath(projectPath),
+                                 "faustData",
+                                 "plotData",
+                                 "histograms",
+                                 channel))
+        }
+    }
+    #plot marker histograms by sample
     for (channel in selC) {
         channelData <- as.data.frame(exprsMat[,channel,drop=FALSE])
         colnames(channelData) <- "x"
@@ -22,13 +46,27 @@
         histLookup <- intersect(histLookupLow,histLookupHigh)
         histData <- channelData[histLookup,"x",drop=FALSE]
         p <- .getHistogram(histData,channel,gateData)
-        plotList <- append(plotList,list(p))
+        cowplot::save_plot(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "plotData",
+                                     "histograms",
+                                     channel,
+                                     paste0(sampleName,".png")),
+                           p,
+                           base_height = 7,
+                           base_width = 7)
+
+        #plotList <- append(plotList,list(p))
     }
-    pOut <- cowplot::plot_grid(plotlist=plotList)
-    cowplot::save_plot(paste0(projectPath,"/faustData/plotData/histograms/",sampleName,".pdf"),
-              pOut,
-              base_height = (5*ceiling(sqrt(length(selC)))),
-              base_width = (5*ceiling(sqrt(length(selC)))))
+    #pOut <- cowplot::plot_grid(plotlist=plotList)
+    #cowplot::save_plot(file.path(normalizePath(projectPath),
+    #                             "faustData",
+    #                             "plotData",
+    #                             "histograms",
+    #                             paste0(sampleName,".png")),
+    #          pOut,
+    #          base_height = (5*ceiling(sqrt(length(selC)))),
+    #          base_width = (5*ceiling(sqrt(length(selC)))))
     return()
 }
 

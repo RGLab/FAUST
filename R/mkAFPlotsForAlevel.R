@@ -30,15 +30,40 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
         print("If it has not, run the FAUST pipeline before calling this function.")
         return(NA)
     }
-    if (!dir.exists(file.path(projectPath,"faustData","plotData","afPlots"))) {
-        dir.create(file.path(projectPath,"faustData","plotData","afPlots"))
+    if (!dir.exists(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData",
+                              "afPlots"))) {
+        dir.create(file.path(normalizePath(projectPath),
+                             "faustData",
+                             "plotData",
+                             "afPlots"))
     }
-    if (!dir.exists(file.path(projectPath,"faustData","plotData","afPlots",aLevel))) {
-        dir.create(file.path(projectPath,"faustData","plotData","afPlots",aLevel))
+    if (!dir.exists(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData",
+                              "afPlots",
+                              aLevel))) {
+        dir.create(file.path(normalizePath(projectPath),
+                             "faustData",
+                             "plotData",
+                             "afPlots",
+                             aLevel))
     }
-    levelExprs <- readRDS(paste0(projectPath,"/faustData/levelData/",aLevel,"/levelExprs.rds"))
-    levelRes <- readRDS(paste0(projectPath,"/faustData/levelData/",aLevel,"/levelRes.rds"))
-    channelBounds <- readRDS(paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
+    levelExprs <- readRDS(file.path(normalizePath(projectPath),
+                                    "faustData",
+                                    "levelData",
+                                    aLevel,
+                                    "levelExprs.rds"))
+    levelRes <- readRDS(file.path(normalizePath(projectPath),
+                                  "faustData",
+                                  "levelData",
+                                  aLevel,
+                                  "levelRes.rds"))
+    channelBounds <- readRDS(file.path(normalizePath(projectPath),
+                                       "faustData",
+                                       "metaData",
+                                       "channelBounds.rds"))
     resFlag <- as.logical(max(apply(levelRes,2,max)))
     annF <- growAnnotationForest(dataSet = levelExprs, 
                                  numberIterations = 1,
@@ -127,16 +152,41 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
         if (maxRidgesAtDepth < Inf) {
             #only save these files if we are limiting the number of ridges
             #assumes user wishes to generate plots with a requested sub-collection
-            saveRDS(indexCtr,file.path(projectPath,"faustData","plotData","afPlots",
-                                       aLevel,paste0(outChannel,"_indexCtr.rds")))
-            saveRDS(indexLengths,file.path(projectPath,"faustData","plotData","afPlots",
-                                           aLevel,paste0(outChannel,"_indexLengths.rds")))
-            saveRDS(expressionData,file.path(projectPath,"faustData","plotData","afPlots",
-                                             aLevel,paste0(outChannel,"_expressionData.rds")))
-            saveRDS(expressionDepths,file.path(projectPath,"faustData","plotData","afPlots",
-                                               aLevel,paste0(outChannel,"_expressionDepths.rds")))
-            saveRDS(gateDF,file.path(projectPath,"faustData","plotData","afPlots",
-                                     aLevel,paste0(outChannel,"_gateDF.rds")))
+            saveRDS(indexCtr,
+                    file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData",
+                              "afPlots",
+                              aLevel,
+                              paste0(outChannel,"_indexCtr.rds")))
+            saveRDS(indexLengths,
+                    file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData",
+                              "afPlots",
+                              aLevel,
+                              paste0(outChannel,"_indexLengths.rds")))
+            saveRDS(expressionData,
+                    file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData",
+                              "afPlots",
+                              aLevel,
+                              paste0(outChannel,"_expressionData.rds")))
+            saveRDS(expressionDepths,
+                    file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData",
+                              "afPlots",
+                              aLevel,
+                              paste0(outChannel,"_expressionDepths.rds")))
+            saveRDS(gateDF,
+                    file.path(normalizePath(projectPath),
+                              "faustData",
+                              "plotData",
+                              "afPlots",
+                              aLevel,
+                              paste0(outChannel,"_gateDF.rds")))
         }
         indexScaling <- c()
         for (indexNum in seq(indexCtr - 1)) {
@@ -170,8 +220,20 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
         gateDF3 <- gather(gateDF2,xName,x1,-y1)
         gateDF3$x2 <- gateDF3$x1
         gateDF3$y2 <- as.numeric(gateDF3$y1 + 1)
-        saveRDS(plotDF2,file.path(projectPath,"faustData","plotData","afPlots",aLevel,paste0(outChannel,"_plotDF2.rds")))
-        saveRDS(gateDF3,file.path(projectPath,"faustData","plotData","afPlots",aLevel,paste0(outChannel,"_gateDF3.rds")))
+        saveRDS(plotDF2,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "plotData",
+                          "afPlots",
+                          aLevel,
+                          paste0(outChannel,"_plotDF2.rds")))
+        saveRDS(gateDF3,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "plotData",
+                          "afPlots",
+                          aLevel,
+                          paste0(outChannel,"_gateDF3.rds")))
         p <- ggplot(plotDF2,aes(x = xData, y = y1, height = hData,
                                 group = y1, fill = y1))+
             geom_density_ridges(data = plotDF2,
@@ -189,10 +251,16 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
             theme(axis.ticks.y = element_blank(),        
                   axis.text.y = element_blank(),         
                   legend.position = "none")
-        save_plot(paste0(projectPath,"/faustData/plotData/afPlots/",
-                         aLevel,"/",outChannel,".pdf"),
-        (p + ggtitle(paste0(channel,": Annotation Forest with Gates")) + xlab("Expression Value")),
-        base_width = 15, base_height = 15)
+        pOut <- p + ggtitle(paste0(channel,": Annotation Forest with Gates")) + xlab("Expression Value")
+        save_plot(file.path(normalizePath(projectPath),
+                            "faustData",
+                            "plotData",
+                            "afPlots",
+                            aLevel,
+                            paste0(outChannel,".png")),
+                  pOut,
+                  base_width = 15,
+                  base_height = 15)
     }
     return()
 }

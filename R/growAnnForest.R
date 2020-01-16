@@ -10,8 +10,16 @@
 {
     #function to
     if (debugFlag) print(paste0("Growing annotation forest for: ",aLevel))
-    levelExprs <- readRDS(file.path(normalizePath(projectPath),"faustData","levelData",aLevel,"levelExprs.rds"))
-    levelRes <- readRDS(file.path(normalizePath(projectPath),"faustData","levelData",aLevel,"levelRes.rds"))
+    levelExprs <- readRDS(file.path(normalizePath(projectPath),
+                                    "faustData",
+                                    "levelData",
+                                    aLevel,
+                                    "levelExprs.rds"))
+    levelRes <- readRDS(file.path(normalizePath(projectPath),
+                                  "faustData",
+                                  "levelData",
+                                  aLevel,
+                                  "levelRes.rds"))
     levelExprs <- levelExprs[,activeChannels,drop=FALSE]
     levelRes <- levelRes[,activeChannels,drop=FALSE]
     resFlag <- FALSE
@@ -38,14 +46,29 @@
         recordCounts=FALSE,
         recordIndices=FALSE
     )
-    saveRDS(annF,file.path(normalizePath(projectPath),"faustData","levelData",aLevel,paste0(rootPop,"_annF.rds")))
+    saveRDS(annF,
+            file.path(normalizePath(projectPath),
+                      "faustData",
+                      "levelData",
+                      aLevel,
+                      paste0(rootPop,"_annF.rds")))
     ePop <- apply(levelRes,2,function(x){length(which(x==0))})
     names(ePop) <- colnames(levelExprs)
     af <- annF[["gateData"]]
     pAnnF <- .parseAnnotationForest(af,ePop)
-    saveRDS(pAnnF,file.path(normalizePath(projectPath),"faustData","levelData",aLevel,paste0(rootPop,"_pAnnF.rds")))
+    saveRDS(pAnnF,
+            file.path(normalizePath(projectPath),
+                      "faustData",
+                      "levelData",
+                      aLevel,
+                      paste0(rootPop,"_pAnnF.rds")))
     aLevelDone <- TRUE
-    saveRDS(aLevelDone,file.path(normalizePath(projectPath),"faustData","levelData",aLevel,"aLevelComplete.rds"))
+    saveRDS(aLevelDone,
+            file.path(normalizePath(projectPath),
+                      "faustData",
+                      "levelData",
+                      aLevel,
+                      "aLevelComplete.rds"))
     if (debugFlag) print(paste0("Annotation forest complete for: ",aLevel))
     return()
 }
@@ -66,7 +89,11 @@
     activeLevels <- c()
     #accumulate vector of levels without annotation forests.
     for (analysisLevel in uniqueLevels) {
-        if (!file.exists(file.path(normalizePath(projectPath),"faustData","levelData",analysisLevel,"aLevelComplete.rds"))) {
+        if (!file.exists(file.path(normalizePath(projectPath),
+                                   "faustData",
+                                   "levelData",
+                                   analysisLevel,
+                                   "aLevelComplete.rds"))) {
             activeLevels <- append(activeLevels,analysisLevel)
         }
     }
@@ -89,8 +116,12 @@
         }
     }
     else if ((length(activeLevels)) && (archDescriptionList$targetArch=="slurmCluster")) {
-        if (!dir.exists(file.path(normalizePath(projectPath),"faustData","slurmData"))) {
-            dir.create(file.path(normalizePath(projectPath),"faustData","slurmData"))
+        if (!dir.exists(file.path(normalizePath(projectPath),
+                                  "faustData",
+                                  "slurmData"))) {
+            dir.create(file.path(normalizePath(projectPath),
+                                 "faustData",
+                                 "slurmData"))
         }
         stillRunningSlurm <- TRUE
         startSlurmTime <- proc.time()
@@ -107,8 +138,14 @@
                 activeLevels <- activeLevels[-1]
                 currentJobs <- (currentJobs + 1)
                 slurmLevels <- append(slurmLevels,currentLevel)
-                if (!dir.exists(file.path(normalizePath(projectPath),"faustData","slurmData",currentLevel))) {
-                    dir.create(file.path(normalizePath(projectPath),"faustData","slurmData",currentLevel))
+                if (!dir.exists(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "slurmData",
+                                          currentLevel))) {
+                    dir.create(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "slurmData",
+                                         currentLevel))
                 }
                 .prepareSlurmJob(
                     aLevel=currentLevel,
@@ -143,7 +180,10 @@
                 currentSlurmTime <- (proc.time() - startSlurmTime)
                 if (as.numeric(currentSlurmTime[3]) > maxTime) {
                     print("Slurm annotation forest exceeded max time.")
-                    print(paste0("Check logs in ",file.path(normalizePath(projectPath),"faustData","slurmData")))
+                    print(paste0("Check logs in ",
+                                 file.path(normalizePath(projectPath),
+                                           "faustData",
+                                           "slurmData")))
                     stop("Killing FAUST")
                 }
                 activeSlurmLevels <- c()
@@ -246,7 +286,11 @@ saveRDS(slurmDone,file.path(normalizePath({{projectPath}}),"faustData","slurmDat
     renderedProgram <- whisker.render(.programTemplate, programData)
     write(
         renderedProgram,
-        file=file.path(normalizePath(projectPath),"faustData","slurmData",aLevel,"slurmJob.R")
+        file=file.path(normalizePath(projectPath),
+                       "faustData",
+                       "slurmData",
+                       aLevel,
+                       "slurmJob.R")
     )
     .controlTemplate <-'#!/bin/bash
 #SBATCH --partition={{partitionID}}
@@ -266,13 +310,29 @@ echo "End of program at `date`"'
         jobNumber = jobNumber,
         partitionID = partitionID,
         jobTime=jobTime,
-        jobPath = paste0("'",file.path(normalizePath(projectPath),"faustData","slurmData",aLevel,"slurmJob.R"),"'"),
-        logPath = paste0("'",file.path(normalizePath(projectPath),"faustData","slurmData",aLevel,"fjLog"),"'")
+        jobPath = paste0("'",
+                         file.path(normalizePath(projectPath),
+                                   "faustData",
+                                   "slurmData",
+                                   aLevel,
+                                   "slurmJob.R"),
+                         "'"),
+        logPath = paste0("'",
+                         file.path(normalizePath(projectPath),
+                                   "faustData",
+                                   "slurmData",
+                                   aLevel,
+                                   "fjLog"),
+                         "'")
     )
     renderedScript <- whisker.render(.controlTemplate, controlData)
     write(
         renderedScript,
-        file=file.path(normalizePath(projectPath),"faustData","slurmData",aLevel,"slurmJob.sh")
+        file=file.path(normalizePath(projectPath),
+                       "faustData",
+                       "slurmData",
+                       aLevel,
+                       "slurmJob.sh")
     )
     return()
 }

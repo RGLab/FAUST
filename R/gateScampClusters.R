@@ -4,14 +4,28 @@
                                projectPath=".",
                                debugFlag=FALSE)
 {
-    resList <- readRDS(paste0(projectPath,"/faustData/gateData/",startingCellPop,"_resList.rds"))
+    resList <- readRDS(file.path(normalizePath(projectPath),
+                                 "faustData",
+                                 "gateData",
+                                 paste0(startingCellPop,"_resList.rds")))
     activeSamples <- analysisMap[,"sampleName"]
-    scampCellPops <- readRDS(paste0(projectPath,"/faustData/metaData/scampClusterNames.rds"))
+    scampCellPops <- readRDS(file.path(normalizePath(projectPath),
+                                       "faustData",
+                                       "metaData",
+                                       "scampClusterNames.rds"))
     for (sampleName in activeSamples) {
-        sAnn <- utils::read.table(file = paste0(projectPath,"/faustData/sampleData/",sampleName,"/scampAnnotation.csv"),
+        sAnn <- utils::read.table(file = file.path(normalizePath(projectPath),
+                                                   "faustData",
+                                                   "sampleData",
+                                                   sampleName,
+                                                   "scampAnnotation.csv"),
                                   header = FALSE, sep = "`", 
                                   stringsAsFactors = FALSE)[,1]
-        annotationMatrix <- utils::read.table(file = paste0(projectPath,"/faustData/sampleData/",sampleName,"/annotationMatrix.csv"),
+        annotationMatrix <- utils::read.table(file = file.path(normalizePath(projectPath),
+                                                               "faustData",
+                                                               "sampleData",
+                                                               sampleName,
+                                                               "annotationMatrix.csv"),
                                        header = FALSE,
                                        sep = ",",
                                        stringsAsFactors = FALSE)
@@ -37,12 +51,16 @@
         #     }
         # }
         data.table::fwrite(list(exactPartition),
-                    file = paste0(projectPath, "/faustData/sampleData/", sampleName, "/faustAnnotation.csv"),
-                    sep = "~",
-                    append = FALSE,
-                    row.names = FALSE,
-                    col.names = FALSE,
-                    quote = FALSE)
+                           file = file.path(normalizePath(projectPath),
+                                            "faustData",
+                                            "sampleData",
+                                            sampleName,
+                                            "faustAnnotation.csv"),
+                           sep = "~",
+                           append = FALSE,
+                           row.names = FALSE,
+                           col.names = FALSE,
+                           quote = FALSE)
     }
     return()
 }

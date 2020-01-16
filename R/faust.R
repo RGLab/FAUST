@@ -187,11 +187,20 @@ faust <- function(gatingSet,
         print(table(analysisMap$impH))
     }
     #test to see if the analysis map has changed
-    if (!file.exists(paste0(projectPath,"/faustData/metaData/analysisMap.rds"))) {
-        saveRDS(analysisMap,paste0(projectPath,"/faustData/metaData/analysisMap.rds"))
+    if (!file.exists(file.path(normalizePath(projectPath),
+                               "faustData",
+                               "metaData",
+                               "analysisMap.rds"))) {
+        saveRDS(analysisMap,file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "metaData",
+                                      "analysisMap.rds"))
     }
     else {
-        oldAnalysisMap <- readRDS(paste0(projectPath,"/faustData/metaData/analysisMap.rds"))
+        oldAnalysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                            "faustData",
+                                            "metaData",
+                                            "analysisMap.rds"))
         if (!identical(oldAnalysisMap,analysisMap)) {
             if (nrow(oldAnalysisMap) != nrow(analysisMap)) {
                 print("The number of samples has changed between faust runs.")
@@ -205,36 +214,86 @@ faust <- function(gatingSet,
     }
 
     #test to see if the channel bounds have changed.
-    if (!file.exists(paste0(projectPath,"/faustData/metaData/channelBounds.rds"))) {
-        saveRDS(channelBounds,paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
+    if (!file.exists(file.path(normalizePath(projectPath),
+                               "faustData",
+                               "metaData",
+                               "channelBounds.rds"))) {
+        saveRDS(channelBounds,file.path(normalizePath(projectPath),
+                                        "faustData",
+                                        "metaData",
+                                        "channelBounds.rds"))
     }
     else {
         #if the channel bounds exist already, the faust method has been run at least once.
         #check to see if any modifications have been made to the channel bounds.
-        oldChannelBounds <- readRDS(paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
+        oldChannelBounds <- readRDS(file.path(normalizePath(projectPath),
+                                              "faustData",
+                                              "metaData",
+                                              "channelBounds.rds"))
         if ((!identical(oldChannelBounds,channelBounds)) &&
-            (file.exists(paste0(projectPath,"/faustData/metaData/bigForestDone.rds")))) {
+            (file.exists(file.path(normalizePath(projectPath),
+                                   "faustData",
+                                   "metaData",
+                                   "bigForestDone.rds")))) {
             if (debugFlag) print("Detected change to channelBounds.")
-            file.remove(paste0(projectPath,"/faustData/metaData/bigForestDone.rds"))
-            file.remove(paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
+            file.remove(file.path(normalizePath(projectPath),
+                                  "faustData",
+                                  "metaData",
+                                  "bigForestDone.rds"))
+            file.remove(file.path(normalizePath(projectPath),
+                                  "faustData",
+                                  "metaData",
+                                  "channelBounds.rds"))
             uniqueLevels <- unique(analysisMap[,"analysisLevel"])
             #delete flags for levels with annotation forests in order to regrow them.
             #also delete flags for scamp clsuterings to relabel data.
             for (analysisLevel in uniqueLevels) {
-                if (file.exists(paste0(projectPath,"/faustData/levelData/",analysisLevel,"/aLevelComplete.rds"))) {
-                    file.remove(paste0(projectPath,"/faustData/levelData/",analysisLevel,"/aLevelComplete.rds"))
+                if (file.exists(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "levelData",
+                                          analysisLevel,
+                                          "aLevelComplete.rds"))) {
+                    file.remove(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "levelData",
+                                          analysisLevel,
+                                          "aLevelComplete.rds"))
                 }
-                if (file.exists(paste0(projectPath,"/faustData/levelData/",analysisLevel,"/scampALevelComplete.rds"))) {
-                    file.remove(paste0(projectPath,"/faustData/levelData/",analysisLevel,"/scampALevelComplete.rds"))
+                if (file.exists(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "levelData",
+                                          analysisLevel,
+                                          "scampALevelComplete.rds"))) {
+                    file.remove(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "levelData",
+                                          analysisLevel,
+                                          "scampALevelComplete.rds"))
                 }
             }
-            if (file.exists(paste0(projectPath,"/faustData/metaData/parsedGS.rds"))) {
-                file.remove(paste0(projectPath,"/faustData/metaData/parsedGS.rds"))
+            if (file.exists(file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "metaData",
+                                      "parsedGS.rds"))) {
+                file.remove(file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "metaData",
+                                      "parsedGS.rds"))
             }
-            if (file.exists(paste0(projectPath,"/faustData/metaData/firstALReady.rds"))) {
-                file.remove(paste0(projectPath,"/faustData/metaData/firstALReady.rds"))
+            if (file.exists(file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "metaData",
+                                      "firstALReady.rds"))) {
+                file.remove(file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "metaData",
+                                      "firstALReady.rds"))
             }
-            saveRDS(channelBounds,paste0(projectPath,"/faustData/metaData/channelBounds.rds"))
+            saveRDS(channelBounds,
+                    file.path(normalizePath(projectPath),
+                              "faustData",
+                              "metaData",
+                              "channelBounds.rds"))
         }
     }
 
@@ -270,7 +329,10 @@ faust <- function(gatingSet,
     startingCellPop <- gsub("[[:cntrl:]]","",startingCellPop)
 
     #start the annotation process
-    if (!file.exists(paste0(projectPath,"/faustData/metaData/bigForestDone.rds"))) {
+    if (!file.exists(file.path(normalizePath(projectPath),
+                               "faustData",
+                               "metaData",
+                               "bigForestDone.rds"))) {
         #in large experiments, this can be a costly step without sub-sampling.
         #often we will want to supervise the results after growing the forest,
         #so only grow it on an as-need basis
@@ -286,7 +348,11 @@ faust <- function(gatingSet,
             archDescriptionList=archDescriptionList
         )
         bigForestDone <- TRUE
-        saveRDS(bigForestDone,paste0(projectPath,"/faustData/metaData/bigForestDone.rds"))
+        saveRDS(bigForestDone,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "metaData",
+                          "bigForestDone.rds"))
     }
 
     if (debugFlag) print("Selecting standard set of channels across experiment using depth score.")
@@ -297,11 +363,16 @@ faust <- function(gatingSet,
         selectionQuantile = selectionQuantile,
         projectPath = projectPath
     )
-    saveRDS(selC,paste0(projectPath,"/faustData/metaData/initSelC.rds"))
+    saveRDS(selC,
+            file.path(normalizePath(projectPath),
+                      "faustData",
+                      "metaData",
+                      "initSelC.rds"))
 
     if (!length(selC)) {
         print("No channels selected at current settings.")
-        stop("Modify faust parameters: incease selectionQuantile, decrease depthScoreThreshold.")
+        print("Use plotData/scoreLines to modify faust parameters.")
+        stop("Incease selectionQuantile, decrease depthScoreThreshold.")
     }
 
     forceList <- selectionList <- preferenceList <- list()
@@ -356,9 +427,17 @@ faust <- function(gatingSet,
         )
     }
     else {
-        file.copy(from = paste0(projectPath,"/faustData/gateData/",startingCellPop,"_resListPrep.rds"),
-                  to = paste0(projectPath,"/faustData/gateData/",startingCellPop,"_resList.rds"),
-                  overwrite = TRUE)
+        file.copy(
+            from = file.path(normalizePath(projectPath),
+                             "faustData",
+                             "gateData",
+                             paste0(startingCellPop,"_resListPrep.rds")),
+            to = file.path(normalizePath(projectPath),
+                           "faustData",
+                           "gateData",
+                           paste0(startingCellPop,"_resList.rds")),
+            overwrite = TRUE
+        )
     }
 
     if (debugFlag) print("Writing annotation matrices to file.")
@@ -423,7 +502,10 @@ faust <- function(gatingSet,
     }
 
     if (debugFlag) print("Clustering analysis levels.")
-    selC <- readRDS(paste0(projectPath,"/faustData/gateData/",startingCellPop,"_selectedChannels.rds"))
+    selC <- readRDS(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "gateData",
+                              paste0(startingCellPop,"_selectedChannels.rds")))
     .clusterLevelsWithScamp(
         startingCellPop = startingCellPop,
         selectedChannels = selC,

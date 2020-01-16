@@ -1,5 +1,8 @@
 .plotScoreLines <- function(projectPath=".",depthScoreThreshold,selectionQuantile,forceList) {
-    scoreDF <- as.data.frame(readRDS(paste0(projectPath,"/faustData/metaData/scoreMat.rds")))
+    scoreDF <- as.data.frame(readRDS(file.path(normalizePath(projectPath),
+                                               "faustData",
+                                               "metaData",
+                                               "scoreMat.rds")))
     qScore <- as.data.frame(apply(scoreDF,2,
                                   function(x){as.numeric(stats::quantile(x,probs=seq(0,1,by=0.01)))}))
     qScore$Quantile <- seq(0,1,by=0.01)
@@ -40,7 +43,12 @@
       theme_bw()
     leg <- cowplot::get_legend(p+theme(legend.position="bottom"))
     pj <- cowplot::plot_grid((p+theme(legend.position="none")),leg,ncol=1,rel_heights=c(1,0.2))
-    cowplot::save_plot(paste0(projectPath,"/faustData/plotData/scoreLines.pdf"),
-                     pj,base_height=20,base_width=25)
+    cowplot::save_plot(file.path(normalizePath(projectPath),
+                                 "faustData",
+                                 "plotData",
+                                 "scoreLines.png"),
+                       pj,
+                       base_height=20,
+                       base_width=25)
     return()
 }

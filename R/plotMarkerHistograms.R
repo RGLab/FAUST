@@ -2,14 +2,22 @@
                                   startingCellPop,
                                   projectPath=".")
 {
-    resList <- readRDS(paste0(projectPath,"/faustData/gateData/",
-                              startingCellPop,"_resList.rds"))
-    selC <- readRDS(paste0(projectPath,"/faustData/gateData/",
-                           startingCellPop,"_selectedChannels.rds"))
+    resList <- readRDS(file.path(normalizePath(projectPath),
+                                 "faustData",
+                                 "gateData",
+                                 paste0(startingCellPop,"_resList.rds")))
+    selC <- readRDS(file.path(normalizePath(projectPath),
+                              "faustData",
+                              "gateData",
+                              paste0(startingCellPop,"_selectedChannels.rds")))
     uniqueLevels <- sort(unique(analysisMap[,"analysisLevel"]))
     firstALevel <- TRUE
     for (aLevel in uniqueLevels) {
-        levelExprs <- readRDS(paste0(projectPath,"/faustData/levelData/",aLevel,"/levelExprs.rds"))
+        levelExprs <- readRDS(file.path(normalizePath(projectPath),
+                                        "faustData",
+                                        "levelData",
+                                        aLevel,
+                                        "levelExprs.rds"))
         rndLook <- sample(seq(nrow(levelExprs)),min(1000,nrow(levelExprs)))
         if (firstALevel) {
             plotMat <- levelExprs[rndLook,selC,drop=FALSE]
@@ -32,7 +40,10 @@
         for (gateNum in seq(totalGateNum)) {
             gatesForPlotting <- unlist(lapply(gateData,function(x){x[gateNum]}))
             p <- .getHistogram(histData,channel,gatesForPlotting)
-            cowplot::save_plot(paste0(projectPath,"/faustData/plotData/hist_",channel,"_ab_",gateNum,".pdf"),
+            cowplot::save_plot(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "plotData",
+                                         paste0("hist_",channel,"_ab_",gateNum,".png")),
                                p,
                                base_height = 7,
                                base_width = 7)

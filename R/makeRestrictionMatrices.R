@@ -4,7 +4,10 @@
                                      projectPath=".",
                                      debugFlag
                                      ) {
-    if (!file.exists(paste0(projectPath,"/faustData/metaData/madeResMats.rds"))) {
+    if (!file.exists(file.path(normalizePath(projectPath),
+                               "faustData",
+                               "metaData",
+                               "madeResMats.rds"))) {
         uniqueHierarchyNames <- names(table(analysisMap[,"impH",drop=TRUE]))
         uniqueHNum <- length(uniqueHierarchyNames)
         channelBoundsUsedByFAUST <- channelBounds
@@ -15,7 +18,11 @@
             for (sampleName in samplesInExp) {
                 #assumes that all exprsMat is in activeChannel column order.
                 #this is determined by extractDataFromGS.
-                exprsMat <- readRDS(paste0(projectPath,"/faustData/sampleData/",sampleName,"/exprsMat.rds"))#nolint
+                exprsMat <- readRDS(file.path(normalizePath(projectPath),
+                                              "faustData",
+                                              "sampleData",
+                                              sampleName,
+                                              "exprsMat.rds"))
                 if (firstSampleForCB) {
                     quantileDataLow <- apply(exprsMat,2,function(x){quantile(x,probs=0.01)})
                     quantileDataHigh <- apply(exprsMat,2,function(x){quantile(x,probs=0.99)})
@@ -55,9 +62,17 @@
             }
             channelBoundsUsedByFAUST <- internalCBList
         }
-        saveRDS(channelBoundsUsedByFAUST,paste0(projectPath,"/faustData/metaData/channelBoundsUsedByFAUST.rds"))
+        saveRDS(channelBoundsUsedByFAUST,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "metaData",
+                          "channelBoundsUsedByFAUST.rds"))
         for (sampleName in samplesInExp) {
-            exprsMat <- readRDS(paste0(projectPath,"/faustData/sampleData/",sampleName,"/exprsMat.rds"))#nolint
+            exprsMat <- readRDS(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "sampleData",
+                                          sampleName,
+                                          "exprsMat.rds"))
             resMat <- matrix(0,nrow = nrow(exprsMat), ncol = ncol(exprsMat))
             colnames(resMat) <- colnames(exprsMat)
             if (uniqueHNum > 1) {
@@ -85,10 +100,19 @@
                     resMat[highLookup,channel] <- 2
                 }
             }
-            saveRDS(resMat,paste0(projectPath,"/faustData/sampleData/",sampleName,"/resMat.rds"))
+            saveRDS(resMat,
+                    file.path(normalizePath(projectPath),
+                              "faustData",
+                              "sampleData",
+                              sampleName,
+                              "resMat.rds"))
         }
         madeResMats <- TRUE
-        saveRDS(madeResMats,paste0(projectPath,"/faustData/metaData/madeResMats.rds"))
+        saveRDS(madeResMats,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "metaData",
+                          "madeResMats.rds"))
     }
     return()
 }    
