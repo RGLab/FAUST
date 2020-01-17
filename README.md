@@ -1,7 +1,7 @@
 # FAUST
 ### Full Annotation Using Shape-constrained Trees
 
-The `FAUST` package implements the FAUST method described in [A new data-driven cell population discovery and annotation method for single-cell data, FAUST, reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v1).
+The `FAUST` package implements the FAUST method described in [New interpretable machine learning method for single-cell data reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v2).
 
 The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is available.
 
@@ -17,13 +17,13 @@ The most recent version can be installed from [github](https://github.com/FredHu
              })	
     library(BiocManager)
     BiocManager::install("Biobase", update = FALSE)
-    BiocManager::install("flowCore", update = FALSE)
-    BiocManager::install("flowWorkspace", update = FALSE)
-    BiocManager::install("flowWorkspaceData", update = FALSE)
-    BiocManager::install("cytolib", update = FALSE)
-    BiocManager::install("CytoML", update = FALSE)
 
+    tryCatch(installed.packages()["devtools","Version"],
+	     error = function(e){
+                install.packages("devtools")
+             })	
     library(devtools)
+    devtools::install_github("RGLab/cytoverse")
     devtools::install_github("RGLab/scamp")
 
 Once these preliminary libraries are installed, run the command:
@@ -56,5 +56,4 @@ After loading `FAUST`, type `vignette('faustIntro')` to read a vignette discussi
 
 ## Citation
 
-If you end up using `FAUST` to analyze cytometry datasets,
-please consider citing [A new data-driven cell population discovery and annotation method for single-cell data, FAUST, reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v1).
+If you end up using `FAUST` to analyze cytometry datasets, please consider citing [New interpretable machine learning method for single-cell data reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v2).

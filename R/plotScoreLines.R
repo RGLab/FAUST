@@ -48,7 +48,7 @@
                                  "plotData",
                                  "scoreLines.png"),
                        pj,
-                       base_height=20,
-                       base_width=25)
+                       base_height=12,
+                       base_width=11)
     return()
 }

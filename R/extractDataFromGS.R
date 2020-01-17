@@ -13,7 +13,8 @@
             if (debugFlag) {
                 print(paste0("Extracting data from sample: ",sampleName))
             }
-            dataSet <- flowWorkspace::getData(gs[[sampleName]],startingCellPop)
+            #dataSet <- flowWorkspace::getData(gs[[sampleName]],startingCellPop)
+            dataSet <- flowWorkspace::gh_pop_get_data(gs[[sampleName]],startingCellPop)
             exprsMatIn <- flowCore::exprs(dataSet)
             markers <- Biobase::pData(flowCore::parameters(dataSet))
             colnames(exprsMatIn) <- as.vector(markers[match(colnames(exprsMatIn),markers[,"name"], nomatch=0),]$desc)

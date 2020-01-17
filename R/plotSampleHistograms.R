@@ -22,17 +22,20 @@
     plotList <- list()
     #initialize directories for the selected channels
     for (channel in selC) {
+        sanitizedChannel <- gsub("[[:punct:]]","",channel)
+        sanitizedChannel <- gsub("[[:space:]]","",sanitizedChannel)
+        sanitizedChannel <- gsub("[[:cntrl:]]","",sanitizedChannel)
         if (!dir.exists(file.path(normalizePath(projectPath),
                                   "faustData",
                                   "plotData",
                                   "histograms",
-                                  channel)))
+                                  sanitizedChannel)))
         {
             dir.create(file.path(normalizePath(projectPath),
                                  "faustData",
                                  "plotData",
                                  "histograms",
-                                 channel))
+                                 sanitizedChannel))
         }
     }
     #plot marker histograms by sample
@@ -46,15 +49,31 @@
         histLookup <- intersect(histLookupLow,histLookupHigh)
         histData <- channelData[histLookup,"x",drop=FALSE]
         p <- .getHistogram(histData,channel,gateData)
-        cowplot::save_plot(file.path(normalizePath(projectPath),
-                                     "faustData",
-                                     "plotData",
-                                     "histograms",
-                                     channel,
-                                     paste0(sampleName,".png")),
-                           p,
-                           base_height = 7,
-                           base_width = 7)
+        sanitizedChannel <- gsub("[[:punct:]]","",channel)
+        sanitizedChannel <- gsub("[[:space:]]","",sanitizedChannel)
+        sanitizedChannel <- gsub("[[:cntrl:]]","",sanitizedChannel)
+        ggplot2::ggsave(
+                     filename=file.path(normalizePath(projectPath),
+                                        "faustData",
+                                        "plotData",
+                                        "histograms",
+                                        sanitizedChannel,
+                                        paste0(sampleName,".png")),
+                     plot=p,
+                     device="png",
+                     units="in",
+                     height = 6,
+                     width = 6
+                 )
+        #cowplot::save_plot(file.path(normalizePath(projectPath),
+        #                             "faustData",
+        #                             "plotData",
+        #                             "histograms",
+        #                             channel,
+        #                             paste0(sampleName,".png")),
+        #                   p,
+        #                   base_height = 7,
+        #                   base_width = 7)
 
         #plotList <- append(plotList,list(p))
     }

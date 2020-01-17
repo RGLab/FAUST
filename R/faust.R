@@ -143,7 +143,7 @@ faust <- function(gatingSet,
                       )
                   )
 {
-    #test parameters. stop if invalid. initialize faustData.
+    #first, test parameters for validity. stop faust run if invalid settings detected.
     .validateParameters(
         activeChannels = activeChannels,
         channelBounds = channelBounds,
@@ -160,142 +160,29 @@ faust <- function(gatingSet,
         annotationsApproved = annotationsApproved
     )
 
-    #construct the analysis map directly from gating set
-    gspData <- pData(gatingSet)
-    if ((experimentalUnit == "") || (!(experimentalUnit %in% colnames(gspData)))) {
-        analysisMap <- data.frame(
-            sampleName = sampleNames(gatingSet),
-            analysisLevel = sampleNames(gatingSet),
-            stringsAsFactors = FALSE
-        )
-    }
-    else {
-        analysisMap <- data.frame(
-            sampleName = sampleNames(gatingSet),
-            analysisLevel = gspData[,experimentalUnit,drop=TRUE],
-            stringsAsFactors = FALSE
-        )
-    }
-    if ((imputationHierarchy=="") || (!(imputationHierarchy %in% colnames(gspData)))) {
-        analysisMap$impH <- "allSamples"
-    }
-    else {
-        analysisMap$impH <- as.character(gspData[,imputationHierarchy,drop=TRUE])
-    }
-    if (debugFlag) {
-        print("impH")
-        print(table(analysisMap$impH))
-    }
-    #test to see if the analysis map has changed
-    if (!file.exists(file.path(normalizePath(projectPath),
-                               "faustData",
-                               "metaData",
-                               "analysisMap.rds"))) {
-        saveRDS(analysisMap,file.path(normalizePath(projectPath),
-                                      "faustData",
-                                      "metaData",
-                                      "analysisMap.rds"))
-    }
-    else {
-        oldAnalysisMap <- readRDS(file.path(normalizePath(projectPath),
-                                            "faustData",
-                                            "metaData",
-                                            "analysisMap.rds"))
-        if (!identical(oldAnalysisMap,analysisMap)) {
-            if (nrow(oldAnalysisMap) != nrow(analysisMap)) {
-                print("The number of samples has changed between faust runs.")
-                stop("Please start a new projectPath to analyze a different collection of samples.")
-            }
-            else {
-                print("The sample grouping derived from experimentalUnit has changed between faust runs.")
-                stop("Please start a new projectPath to analyze a different concatenation of samples.")
-            }
-        }
-    }
+    #next, set up the faustData directory for check-pointing/metadata storage.
+    .initialzeFaustDataDir(
+        projectPath = projectPath,
+        activeChannels=activeChannels,
+        channelBounds = channelBounds,
+        startingCellPop = startingCellPop,
+        gspData=flowWorkspace::pData(gatingSet),
+        debugFlag=debugFlag,
+    )
 
-    #test to see if the channel bounds have changed.
-    if (!file.exists(file.path(normalizePath(projectPath),
-                               "faustData",
-                               "metaData",
-                               "channelBounds.rds"))) {
-        saveRDS(channelBounds,file.path(normalizePath(projectPath),
-                                        "faustData",
-                                        "metaData",
-                                        "channelBounds.rds"))
-    }
-    else {
-        #if the channel bounds exist already, the faust method has been run at least once.
-        #check to see if any modifications have been made to the channel bounds.
-        oldChannelBounds <- readRDS(file.path(normalizePath(projectPath),
-                                              "faustData",
-                                              "metaData",
-                                              "channelBounds.rds"))
-        if ((!identical(oldChannelBounds,channelBounds)) &&
-            (file.exists(file.path(normalizePath(projectPath),
-                                   "faustData",
-                                   "metaData",
-                                   "bigForestDone.rds")))) {
-            if (debugFlag) print("Detected change to channelBounds.")
-            file.remove(file.path(normalizePath(projectPath),
-                                  "faustData",
-                                  "metaData",
-                                  "bigForestDone.rds"))
-            file.remove(file.path(normalizePath(projectPath),
-                                  "faustData",
-                                  "metaData",
-                                  "channelBounds.rds"))
-            uniqueLevels <- unique(analysisMap[,"analysisLevel"])
-            #delete flags for levels with annotation forests in order to regrow them.
-            #also delete flags for scamp clsuterings to relabel data.
-            for (analysisLevel in uniqueLevels) {
-                if (file.exists(file.path(normalizePath(projectPath),
-                                          "faustData",
-                                          "levelData",
-                                          analysisLevel,
-                                          "aLevelComplete.rds"))) {
-                    file.remove(file.path(normalizePath(projectPath),
-                                          "faustData",
-                                          "levelData",
-                                          analysisLevel,
-                                          "aLevelComplete.rds"))
-                }
-                if (file.exists(file.path(normalizePath(projectPath),
-                                          "faustData",
-                                          "levelData",
-                                          analysisLevel,
-                                          "scampALevelComplete.rds"))) {
-                    file.remove(file.path(normalizePath(projectPath),
-                                          "faustData",
-                                          "levelData",
-                                          analysisLevel,
-                                          "scampALevelComplete.rds"))
-                }
-            }
-            if (file.exists(file.path(normalizePath(projectPath),
-                                      "faustData",
-                                      "metaData",
-                                      "parsedGS.rds"))) {
-                file.remove(file.path(normalizePath(projectPath),
-                                      "faustData",
-                                      "metaData",
-                                      "parsedGS.rds"))
-            }
-            if (file.exists(file.path(normalizePath(projectPath),
-                                      "faustData",
-                                      "metaData",
-                                      "firstALReady.rds"))) {
-                file.remove(file.path(normalizePath(projectPath),
-                                      "faustData",
-                                      "metaData",
-                                      "firstALReady.rds"))
-            }
-            saveRDS(channelBounds,
-                    file.path(normalizePath(projectPath),
-                              "faustData",
-                              "metaData",
-                              "channelBounds.rds"))
-        }
-    }
+    #construct the analysis map using the metadata stored in the gating set.
+    #the analysis map is a data frame that links samples to their experimental unit
+    #and their level in the imputation hierarchy.
+    analysisMap <- .constructAnalysisMap(
+        projectPath = projectPath,
+        gspData=flowWorkspace::pData(gatingSet),
+        sampNames=flowWorkspace::sampleNames(gatingSet),
+        experimentalUnit=experimentalUnit,
+        imputationHierarchy=imputationHierarchy
+    )
+    
+    #gspData <- pData(gatingSet)
+
 
     #begin method processing. copy data to projectPath from gatingSet.
     if (debugFlag) print("Begin data extraction.")
@@ -304,6 +191,16 @@ faust <- function(gatingSet,
         activeChannels = activeChannels,
         startingCellPop = startingCellPop,
         projectPath = projectPath,
+        debugFlag = debugFlag
+    )
+
+    #make sure the channel bounds conform to internal requirements
+    #test to see if there have been changes between faust runs.
+    .processChannelBounds(
+        samplesInExp = flowWorkspace::sampleNames(gatingSet),
+        projectPath = projectPath,
+        channelBounds = channelBounds,
+        analysisMap = analysisMap,
         debugFlag = debugFlag
     )
 
