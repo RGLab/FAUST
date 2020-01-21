@@ -200,16 +200,16 @@ simmedExp <- simulateExperiment(
 activeChannelsIn <- paste0("V",seq((10 + nuisanceVariables)))
 print("activeChannelsIn")
 print(activeChannelsIn)
-channelBoundsIn <- matrix(-Inf,nrow=2,ncol=length(activeChannelsIn))
-colnames(channelBoundsIn) <- activeChannelsIn
-rownames(channelBoundsIn) <- c("Low","High")
-channelBoundsIn["High",] <- Inf
+#channelBoundsIn <- matrix(-Inf,nrow=2,ncol=length(activeChannelsIn))
+#colnames(channelBoundsIn) <- activeChannelsIn
+#rownames(channelBoundsIn) <- c("Low","High")
+#channelBoundsIn["High",] <- Inf
 fs <- as(simmedExp[["flowFrameList"]], "flowSet")
 gs <- GatingSet(fs)
 faust:::faust(
     gatingSet=gs,
     activeChannels=activeChannelsIn,
-    channelBounds=channelBoundsIn,
+    #channelBounds=channelBoundsIn,
     startingCellPop="root",
     projectPath=jobPath,
     experimentalUnit="name",
@@ -220,7 +220,8 @@ faust:::faust(
     debugFlag = TRUE,
     threadNum = 10,
     seedValue = 12345,
-    annotationsApproved = TRUE
+    annotationsApproved = TRUE,
+    plottingDevice = "pdf"
 )
 #
 #Concatenate and cluster the data with flowSOM

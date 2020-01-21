@@ -13,6 +13,6 @@ sbatch <<EOT
 #SBATCH --dependency=singleton
 
 echo "Start of program at `date`" 
-Rscript --no-save --no-restore ./runSimulation.R -a $1 -b $2 -c $3 -d $4
+Rscript --no-save --no-restore ./01_runSimulation.R -a $1 -b $2 -c $3 -d $4
 echo "End of program at `date`"
 EOT

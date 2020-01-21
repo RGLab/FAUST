@@ -158,7 +158,8 @@
                     projectPath=projectPath,
                     jobNumber = jobNum,
                     partitionID=archDescriptionList$partitionID,
-                    jobTime=archDescriptionList$jobTime
+                    jobTime=archDescriptionList$jobTime,
+                    jobPrefix=archDescriptionList$jobPrefix
                 )
                 print(paste0("Slurm annotation forest starting for ", currentLevel))
                 launchJob <- system2("sbatch",
@@ -232,7 +233,8 @@
                              projectPath,
                              jobNumber,
                              partitionID,
-                             jobTime)
+                             jobTime,
+                             jobPrefix)
 {
     .programTemplate <-'library(faust)
 levelExprs <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},"levelExprs.rds"))
@@ -299,7 +301,7 @@ saveRDS(slurmDone,file.path(normalizePath({{projectPath}}),"faustData","slurmDat
 #SBATCH --cpus-per-task={{threadNum}}
 #SBATCH --time={{jobTime}}
 #SBATCH -o {{logPath}}
-#SBATCH -J fj{{jobNumber}}
+#SBATCH -J {{jobPrefix}}fj{{jobNumber}}
 #SBATCH --threads-per-core=1
 
 echo "Start of program at `date`"
@@ -310,6 +312,7 @@ echo "End of program at `date`"'
         jobNumber = jobNumber,
         partitionID = partitionID,
         jobTime=jobTime,
+        jobPrefix=jobPrefix,
         jobPath = paste0("'",
                          file.path(normalizePath(projectPath),
                                    "faustData",

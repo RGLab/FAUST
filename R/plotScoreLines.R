@@ -1,4 +1,11 @@
-.plotScoreLines <- function(projectPath=".",depthScoreThreshold,selectionQuantile,forceList) {
+.plotScoreLines <- function(
+                            projectPath,
+                            depthScoreThreshold,
+                            selectionQuantile,
+                            forceList,
+                            plottingDevice
+                            )
+{
     scoreDF <- as.data.frame(readRDS(file.path(normalizePath(projectPath),
                                                "faustData",
                                                "metaData",
@@ -43,12 +50,17 @@
       theme_bw()
     leg <- cowplot::get_legend(p+theme(legend.position="bottom"))
     pj <- cowplot::plot_grid((p+theme(legend.position="none")),leg,ncol=1,rel_heights=c(1,0.2))
-    cowplot::save_plot(file.path(normalizePath(projectPath),
-                                 "faustData",
-                                 "plotData",
-                                 "scoreLines.png"),
-                       pj,
-                       base_height=12,
-                       base_width=11)
+    fpNameOut <- file.path(normalizePath(projectPath),
+                           "faustData",
+                           "plotData",
+                           paste0("scoreLines.",plottingDevice))
+    cowplot::ggsave(
+                 filename=fpNameOut,
+                 plot=pj,
+                 units="in",
+                 height = 11,
+                 width = 10
+             )
+    
     return()
 }

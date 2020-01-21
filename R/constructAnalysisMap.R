@@ -3,7 +3,8 @@
                                   gspData,
                                   sampNames,
                                   experimentalUnit,
-                                  imputationHierarchy
+                                  imputationHierarchy,
+                                  debugFlag
                                   )
 {
     #construct the analysis map directly from gating set pData

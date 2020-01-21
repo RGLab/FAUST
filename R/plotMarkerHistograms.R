@@ -1,6 +1,9 @@
-.plotMarkerHistograms <- function(analysisMap,
+.plotMarkerHistograms <- function(
+                                  analysisMap,
                                   startingCellPop,
-                                  projectPath=".")
+                                  projectPath,
+                                  plottingDevice
+                                  )
 {
     resList <- readRDS(file.path(normalizePath(projectPath),
                                  "faustData",
@@ -40,13 +43,18 @@
         for (gateNum in seq(totalGateNum)) {
             gatesForPlotting <- unlist(lapply(gateData,function(x){x[gateNum]}))
             p <- .getHistogram(histData,channel,gatesForPlotting)
-            cowplot::save_plot(file.path(normalizePath(projectPath),
-                                         "faustData",
-                                         "plotData",
-                                         paste0("hist_",channel,"_ab_",gateNum,".png")),
-                               p,
-                               base_height = 7,
-                               base_width = 7)
+            fpNameOut <- file.path(normalizePath(projectPath),
+                                   "faustData",
+                                   "plotData",
+                                   paste0("hist_",channel,"_ab_",gateNum,".",plottingDevice))
+
+            ggplot2::ggsave(
+                         filename=fpNameOut,
+                         plot=p,
+                         units="in",
+                         height = 6,
+                         width = 6
+                     )
         }
     }
 }

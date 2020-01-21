@@ -10,9 +10,11 @@ faust(gatingSet, activeChannels, channelBounds = "", startingCellPop,
   experimentalUnit = "", imputationHierarchy = "", projectPath = ".",
   depthScoreThreshold = 0.01, selectionQuantile = 0.5,
   debugFlag = FALSE, threadNum = 1, seedValue = 123,
-  numForestIter = 1, numScampIter = 1, nameOccuranceNum = 1,
-  drawAnnotationHistograms = 1, supervisedList = NA,
-  annotationsApproved = FALSE)
+  numForestIter = 1, numScampIter = 1,
+  nameOccuranceNum = ceiling((0.1 * length(gatingSet))),
+  drawAnnotationHistograms = TRUE, supervisedList = NA,
+  annotationsApproved = FALSE, archDescriptionList = list(targetArch =
+  c("singleCPU")), plottingDevice = "pdf")
 }
 \arguments{
 \item{gatingSet}{The \code{faust} function requires that experimental cytometry data you wish to analyze
@@ -23,13 +25,24 @@ This data structure can be constructed available using the \code{flowWorkspace} 
 analysis. The markers listed in this parameter
 must \strong{exactly} match the \code{desc} field of the \code{parameters} of the \code{flowFrames} in the \code{GatingSet. }FAUST` will not run if they do not match exactly.}
 
-\item{channelBounds}{A 2 by \code{length(activeChannels)} numeric matriix,
+\item{channelBounds}{This parameter accepts three settings: an empty string, a matrix, and a list.
+
+The matrix setting: A 2 by \code{length(activeChannels)} numeric matrix,
 with \code{colnames(channelBounds) <- activeChannels} and \code{rownames(channelBounds) <- c("Low","High")}.
 Expression values in a channel less than or equal to the value in the "Low"
 row are treated as low, by default, and not actively considered when \code{FAUST} processes the data.
 Expression values in a channel greater than or equal to the value in the "High"
 row are treated as high, by default, and not actively considered when \code{FAUST} processes the data.
-If this parameter is not set by the user, it will be set empirically by heuristic, and printed to log.}
+
+If the user provides the empty string "", channel bounds will be determined empirically.
+
+When the user provides either the empty string "" or a single numeric matrix as the \code{channelBounds} setting,
+the same channel bounds matrix will apply to all samples in the experiment. However, if the user is analyzing
+a dataset whose analysis supports using the \code{imputationHierarchy} parameter, different levels of the imputation
+hierarchy can be assigned distinct channelBounds matrices. To do this, pass faust a list of 2 by
+\code{lenght(activeChannels)} matrices. The length of the list must equal the number of distinct levels in the imputation
+hierarchy. The name of each slot of the list must be a unique level of the imputation hierarchy.
+FAUST will then analyze all experimental units grouped by that level using the supplied channel bounds matrix.}
 
 \item{startingCellPop}{A character vector specifying the node from the manual gating strategy attached to
 the \code{gatingSet} to use for \code{faust} analysis. The node in the manual gating strategy is, at minimum,
@@ -97,6 +110,37 @@ user to review the proposed annotation boundaries. When set to TRUE, indicates t
 wants to use the proposed annotation boundaries to cluster and gate the experiment.
 If you want to run the FAUST method totally unsupervised, set this parameter to true
 before running the method.}
+
+\item{archDescriptionList}{list containing slot "targetArch".
+Default "singleCPU" indicates FAUST will run on a single processor.
+
+FAUST also has preliminary support for dispatching jobs across nodes of a cluster managed by slurm.
+This support assumes the "sbatch" command is available to launch jobs on the cluster.
+Also note that the current implementation does not dynamically restart jobs that fail to launch after sbatch is invoked.
+In the event a job fails to launch, the faust call must be interrupted and called again.
+\code{faust} attempts to check-point much of the intermediate progress in order to not perform redundant work.
+
+Set "targetArch" slot to "slurmCluster" to dispatch jobs across a cluster managed by slurm.
+When "targetArch" is set to "slurmCluster", the following slots must be set by the user.
+
+Slot "partitionID": Character string. The name of the partition on which jobs are run.
+
+Slot "jobPrefix": Character string. This string will prepend all jobs launched on the slurm cluster.
+When "squeue" is used to interrogate job state, this string can be used to identify jobs.
+
+Slot "jobTime"" Character string. This string sets the maximum time a job launched by faust on the slurm cluster
+can run. String format follows 'HH:MM:SS'.
+
+Slot "maxNodeNum": Numeric value. The maximum number of nodes you wish to request on the slurm cluster.
+
+Slot "maxTime": Numeric value. The total amount of time you want to run FAUST for. When exceeded, the job terminates.
+
+Slot "nodeThreadNum": Character string. The number of threads used by FAUST on each node.
+
+Slot "sbatchFlags": Character string. This string contains space-delimited command-line flags to pass to sbatch.}
+
+\item{plottingDevice}{string with device for saving graphical output.
+By default it is set to "pdf".}
 }
 \value{
 The FAUST method returns a null value on completion. The main output is the file

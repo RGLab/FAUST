@@ -11,13 +11,24 @@
 #' must **exactly** match the `desc` field of the `parameters` of the `flowFrames` in the `GatingSet.
 #' `FAUST` will not run if they do not match exactly.
 #'
-#' @param channelBounds A 2 by `length(activeChannels)` numeric matriix,
+#' @param channelBounds This parameter accepts three settings: an empty string, a matrix, and a list.
+#'
+#' The matrix setting: A 2 by `length(activeChannels)` numeric matrix,
 #' with `colnames(channelBounds) <- activeChannels` and `rownames(channelBounds) <- c("Low","High")`.
 #' Expression values in a channel less than or equal to the value in the "Low"
 #' row are treated as low, by default, and not actively considered when `FAUST` processes the data.
 #' Expression values in a channel greater than or equal to the value in the "High"
 #' row are treated as high, by default, and not actively considered when `FAUST` processes the data.
-#' If this parameter is not set by the user, it will be set empirically by heuristic, and printed to log.
+#'
+#' If the user provides the empty string "", channel bounds will be determined empirically. 
+#'
+#' When the user provides either the empty string "" or a single numeric matrix as the `channelBounds` setting,
+#' the same channel bounds matrix will apply to all samples in the experiment. However, if the user is analyzing
+#' a dataset whose analysis supports using the `imputationHierarchy` parameter, different levels of the imputation
+#' hierarchy can be assigned distinct channelBounds matrices. To do this, pass faust a list of 2 by
+#' `lenght(activeChannels)` matrices. The length of the list must equal the number of distinct levels in the imputation
+#' hierarchy. The name of each slot of the list must be a unique level of the imputation hierarchy. 
+#' FAUST will then analyze all experimental units grouped by that level using the supplied channel bounds matrix.
 #'
 #' @param startingCellPop A character vector specifying the node from the manual gating strategy attached to
 #' the `gatingSet` to use for `faust` analysis. The node in the manual gating strategy is, at minimum,
@@ -88,18 +99,40 @@
 #'
 #' @param archDescriptionList list containing slot "targetArch".
 #' Default "singleCPU" indicates FAUST will run on a single processor.
-#' Set "targetArch" slot to "slurmCluster" to dispatch jobs across a cluster managed by slurm.
-#' When "tagertArch" is set to "slurmCluster", several other slots must be set by the user.
-#' maxNodeNum: the maximum number of nodes you wish to request on the slurm cluster.
-#' maxTime: the total amount of time you want to run FAUST for. When exceeded, the job terminates.
-#' sbatchFlags: a character string containing the flags to pass to sbatch.
-#' nodeThreadNum: number of threads requested on each node.
 #'
+#' FAUST also has preliminary support for dispatching jobs across nodes of a cluster managed by slurm.
+#' This support assumes the "sbatch" command is available to launch jobs on the cluster.
+#' Also note that the current implementation does not dynamically restart jobs that fail to launch after sbatch is invoked.
+#' In the event a job fails to launch, the faust call must be interrupted and called again.
+#' `faust` attempts to check-point much of the intermediate progress in order to not perform redundant work.
+#'
+#' Set "targetArch" slot to "slurmCluster" to dispatch jobs across a cluster managed by slurm.
+#' When "targetArch" is set to "slurmCluster", the following slots must be set by the user.
+#'
+#' Slot "partitionID": Character string. The name of the partition on which jobs are run.
+#'
+#' Slot "jobPrefix": Character string. This string will prepend all jobs launched on the slurm cluster.
+#' When "squeue" is used to interrogate job state, this string can be used to identify jobs.
+#'
+#' Slot "jobTime"" Character string. This string sets the maximum time a job launched by faust on the slurm cluster
+#' can run. String format follows 'HH:MM:SS'.
+#'
+#' Slot "maxNodeNum": Numeric value. The maximum number of nodes you wish to request on the slurm cluster.
+#'
+#' Slot "maxTime": Numeric value. The total amount of time you want to run FAUST for. When exceeded, the job terminates.
+#'
+#' Slot "nodeThreadNum": Character string. The number of threads used by FAUST on each node.
+#'
+#' Slot "sbatchFlags": Character string. This string contains space-delimited command-line flags to pass to sbatch.
+#'
+#' @param plottingDevice string with device for saving graphical output.
+#' By default it is set to "pdf".
+#' 
 #' @return The FAUST method returns a null value on completion. The main output is the file
 #' "projectPath/faustData/faustCountMatrix.rds". The rownames are `sampleNames(gatingSet)]`
 #' and the column names are the cell populations discovered by the method. Note that the
 #' special cell population "0_0_0_0_0" counts unclassified cells in the experiment.
-#' @importFrom cowplot save_plot plot_grid ggdraw draw_label get_legend
+#' @importFrom cowplot save_plot plot_grid ggdraw draw_label get_legend 
 #' @importFrom tidyr gather
 #' @importFrom stats quantile runif mad median qt sd weighted.mean
 #' @importFrom flowWorkspace load_gs getData sampleNames
@@ -112,7 +145,7 @@
 #' @importFrom data.table fwrite
 #' @importFrom viridis magma viridis
 #' @importFrom grDevices nclass.FD
-#' @importFrom ggplot2 ggplot aes theme_bw geom_hex geom_vline geom_hline xlab ylab theme ggtitle scale_color_manual scale_linetype_manual geom_histogram geom_line
+#' @importFrom ggplot2 ggplot aes theme_bw geom_hex geom_vline geom_hline xlab ylab theme ggtitle scale_color_manual scale_linetype_manual geom_histogram geom_line ggsave
 #' @examples
 #'
 #' #Please see the vignette "faustIntro" for an introduction on using FAUST.
@@ -134,13 +167,14 @@ faust <- function(gatingSet,
                   numForestIter=1,
                   numScampIter=1,
                   nameOccuranceNum=ceiling((0.1*length(gatingSet))),
-                  drawAnnotationHistograms=1,
+                  drawAnnotationHistograms=TRUE,
                   supervisedList=NA,
                   annotationsApproved=FALSE,
                   archDescriptionList=
                       list(
                           targetArch=c("singleCPU")
-                      )
+                      ),
+                  plottingDevice="pdf"
                   )
 {
     #first, test parameters for validity. stop faust run if invalid settings detected.
@@ -157,17 +191,16 @@ faust <- function(gatingSet,
         numForestIter = numForestIter,
         numScampIter = numScampIter,
         supervisedList = supervisedList,
-        annotationsApproved = annotationsApproved
+        annotationsApproved = annotationsApproved,
+        archDescriptionList=archDescriptionList
     )
 
     #next, set up the faustData directory for check-pointing/metadata storage.
-    .initialzeFaustDataDir(
+    .initializeFaustDataDir(
         projectPath = projectPath,
         activeChannels=activeChannels,
         channelBounds = channelBounds,
-        startingCellPop = startingCellPop,
-        gspData=flowWorkspace::pData(gatingSet),
-        debugFlag=debugFlag,
+        startingCellPop = startingCellPop
     )
 
     #construct the analysis map using the metadata stored in the gating set.
@@ -178,7 +211,8 @@ faust <- function(gatingSet,
         gspData=flowWorkspace::pData(gatingSet),
         sampNames=flowWorkspace::sampleNames(gatingSet),
         experimentalUnit=experimentalUnit,
-        imputationHierarchy=imputationHierarchy
+        imputationHierarchy=imputationHierarchy,
+        debugFlag=debugFlag
     )
     
     #gspData <- pData(gatingSet)
@@ -213,8 +247,8 @@ faust <- function(gatingSet,
         debugFlag = debugFlag
     )
 
-    #accumulate data into the analysis levels.
-    if (debugFlag) print("Begin first analysis level prep.")
+    #accumulate data into the experimental units.
+    if (debugFlag) print("Collecting data into experimental units.")
     .prepareFirstAL(
         analysisMap = analysisMap,
         projectPath = projectPath
@@ -349,14 +383,16 @@ faust <- function(gatingSet,
         projectPath = projectPath,
         depthScoreThreshold = depthScoreThreshold,
         selectionQuantile = selectionQuantile,
-        forceList = forceList
+        forceList = forceList,
+        plottingDevice=plottingDevice
     )
 
     if (debugFlag) print("Generating marker boundary histograms.")
     .plotMarkerHistograms(
         analysisMap = analysisMap,
         startingCellPop = startingCellPop,
-        projectPath = projectPath
+        projectPath = projectPath,
+        plottingDevice=plottingDevice
     )
 
     if (drawAnnotationHistograms) {
@@ -366,7 +402,8 @@ faust <- function(gatingSet,
                 sampleName = sampleName,
                 analysisMap = analysisMap,
                 startingCellPop = startingCellPop,
-                projectPath = projectPath
+                projectPath = projectPath,
+                plottingDevice=plottingDevice
             )
         }
     }
@@ -398,7 +435,7 @@ faust <- function(gatingSet,
         return()
     }
 
-    if (debugFlag) print("Clustering analysis levels.")
+    if (debugFlag) print("Discovering phenotypes across experimental units.")
     selC <- readRDS(file.path(normalizePath(projectPath),
                               "faustData",
                               "gateData",
@@ -414,6 +451,12 @@ faust <- function(gatingSet,
         seedValue = seedValue,
         projectPath = projectPath,
         archDescriptionList=archDescriptionList
+    )
+    
+    .plotPhenotypeFilter(
+        projectPath=projectPath,
+        nameOccuranceNum=nameOccuranceNum,
+        plottingDevice=plottingDevice
     )
 
     if (debugFlag) print("Gating populations.")

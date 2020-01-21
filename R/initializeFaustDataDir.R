@@ -2,9 +2,7 @@
                                     projectPath,
                                     activeChannels,
                                     channelBounds,
-                                    startingCellPop,
-                                    gspData,
-                                    debugFlag,
+                                    startingCellPop
                                     )
 {
     #initialize pipeline directories. save metadata.

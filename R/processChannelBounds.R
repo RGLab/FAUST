@@ -9,7 +9,7 @@
     uniqueHierarchyNames <- names(table(analysisMap[,"impH",drop=TRUE]))
     uniqueHNum <- length(uniqueHierarchyNames)
     channelBoundsUsedByFAUST <- channelBounds
-    if (channelBounds=="") {
+    if ((is.character(channelBounds)) && (channelBounds=="")) {
         #the user did not set the channelBounds parameter.
         #set it empirically using the folloing hueristic.    
         firstSampleForCB <- TRUE
@@ -87,7 +87,7 @@
                                               "faustData",
                                               "metaData",
                                               "channelBoundsUsedByFAUST.rds"))
-        if ((!identical(oldChannelBounds,channelBounds)) &&
+        if ((!identical(oldChannelBounds,channelBoundsUsedByFAUST)) &&
             (file.exists(file.path(normalizePath(projectPath),
                                    "faustData",
                                    "metaData",
@@ -146,15 +146,15 @@
                                           "scampALevelComplete.rds"))
                 }
             }
-            if (file.exists(file.path(normalizePath(projectPath),
-                                      "faustData",
-                                      "metaData",
-                                      "parsedGS.rds"))) {
-                file.remove(file.path(normalizePath(projectPath),
-                                      "faustData",
-                                      "metaData",
-                                      "parsedGS.rds"))
-            }
+            #if (file.exists(file.path(normalizePath(projectPath),
+            #                          "faustData",
+            #                          "metaData",
+            #                          "parsedGS.rds"))) {
+            #    file.remove(file.path(normalizePath(projectPath),
+            #                          "faustData",
+            #                          "metaData",
+            #                          "parsedGS.rds"))
+            #}
             if (file.exists(file.path(normalizePath(projectPath),
                                       "faustData",
                                       "metaData",

@@ -1,7 +1,10 @@
-.plotSampleHistograms <- function(sampleName,
+.plotSampleHistograms <- function(
+                                  sampleName,
                                   analysisMap,
                                   startingCellPop,
-                                  projectPath=".")
+                                  projectPath,
+                                  plottingDevice
+                                  )
 {
     
     resList <- readRDS(file.path(normalizePath(projectPath),
@@ -52,40 +55,21 @@
         sanitizedChannel <- gsub("[[:punct:]]","",channel)
         sanitizedChannel <- gsub("[[:space:]]","",sanitizedChannel)
         sanitizedChannel <- gsub("[[:cntrl:]]","",sanitizedChannel)
+        fpNameOut <- file.path(normalizePath(projectPath),
+                               "faustData",
+                               "plotData",
+                               "histograms",
+                               sanitizedChannel,
+                               paste0(sampleName,".",plottingDevice))
         ggplot2::ggsave(
-                     filename=file.path(normalizePath(projectPath),
-                                        "faustData",
-                                        "plotData",
-                                        "histograms",
-                                        sanitizedChannel,
-                                        paste0(sampleName,".png")),
+                     filename=fpNameOut,
                      plot=p,
-                     device="png",
+                     #device=plottingDevice,
                      units="in",
                      height = 6,
                      width = 6
                  )
-        #cowplot::save_plot(file.path(normalizePath(projectPath),
-        #                             "faustData",
-        #                             "plotData",
-        #                             "histograms",
-        #                             channel,
-        #                             paste0(sampleName,".png")),
-        #                   p,
-        #                   base_height = 7,
-        #                   base_width = 7)
-
-        #plotList <- append(plotList,list(p))
     }
-    #pOut <- cowplot::plot_grid(plotlist=plotList)
-    #cowplot::save_plot(file.path(normalizePath(projectPath),
-    #                             "faustData",
-    #                             "plotData",
-    #                             "histograms",
-    #                             paste0(sampleName,".png")),
-    #          pOut,
-    #          base_height = (5*ceiling(sqrt(length(selC)))),
-    #          base_width = (5*ceiling(sqrt(length(selC)))))
     return()
 }
 
