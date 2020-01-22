@@ -47,16 +47,17 @@
       ) +
       xlab("Selection Quantile") +
       ylab("Channel Depth Score at Selection Quantile") +
-      theme_bw()
-    leg <- cowplot::get_legend(p+theme(legend.position="bottom"))
-    pj <- cowplot::plot_grid((p+theme(legend.position="none")),leg,ncol=1,rel_heights=c(1,0.2))
+        theme_bw()+
+        theme(legend.position="bottom")
+    #leg <- cowplot::get_legend(p+theme(legend.position="bottom"))
+    #pj <- cowplot::plot_grid((p+theme(legend.position="none")),leg,ncol=1,rel_heights=c(1,0.2))
     fpNameOut <- file.path(normalizePath(projectPath),
                            "faustData",
                            "plotData",
                            paste0("scoreLines.",plottingDevice))
-    cowplot::ggsave(
+    ggplot2::ggsave(
                  filename=fpNameOut,
-                 plot=pj,
+                 plot=p,
                  units="in",
                  height = 11,
                  width = 10

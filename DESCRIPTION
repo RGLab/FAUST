@@ -1,6 +1,6 @@
 Package: faust
-Title: Full Annotation using Shape-constrained Trees
-Version: 0.1.01
+Title: Full Annotation Using Shape-constrained Trees
+Version: 0.2.01
 Authors@R: c(person("Evan", "Greene", email = "egreene@fredhutch.org", role = c("aut", "cre")),
    	   person("Laurie", "Davies", role = c("ctb")),	       
 	   person("J.R.M.", "Hosking", role=c("ctb")),
