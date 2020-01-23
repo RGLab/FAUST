@@ -132,20 +132,20 @@
 #' "projectPath/faustData/faustCountMatrix.rds". The rownames are `sampleNames(gatingSet)]`
 #' and the column names are the cell populations discovered by the method. Note that the
 #' special cell population "0_0_0_0_0" counts unclassified cells in the experiment.
-#' @importFrom cowplot save_plot plot_grid ggdraw draw_label get_legend 
+#'
+#' @importFrom scamp scamp
+#' @importFrom Biobase AnnotatedDataFrame pData
+#' @importFrom flowCore exprs parameters
+#' @importFrom flowWorkspace getData sampleNames gh_pop_get_data
 #' @importFrom tidyr gather
 #' @importFrom stats quantile runif mad median qt sd weighted.mean
-#' @importFrom flowWorkspace load_gs getData sampleNames
-#' @importFrom flowCore exprs parameters
-#' @importFrom Biobase AnnotatedDataFrame
-#' @importFrom Biobase pData
-#' @importFrom scamp scamp
 #' @importFrom whisker whisker.render
 #' @importFrom utils read.table globalVariables
 #' @importFrom data.table fwrite
-#' @importFrom viridis magma viridis
 #' @importFrom grDevices nclass.FD
 #' @importFrom ggplot2 ggplot aes theme_bw geom_hex geom_vline geom_hline xlab ylab theme ggtitle scale_color_manual scale_linetype_manual geom_histogram geom_line ggsave
+#' @importFrom viridis magma viridis
+#'
 #' @examples
 #'
 #' #Please see the vignette "faustIntro" for an introduction on using FAUST.

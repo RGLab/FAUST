@@ -282,23 +282,6 @@
                       "faustData",
                       "metaData",
                       "scampClusterNames.rds"))
-    #nameSummaryPlotDF <- data.frame(x=seq(max(nameSummary)),
-    #                                y=sapply(seq(max(nameSummary)),function(x){
-    #                                    length(which(nameSummary >= x))}))
-    #nspOut <- ggplot(nameSummaryPlotDF,aes(x=x,y=y))+
-    #    geom_line()+
-    #    theme_bw()+
-    #    geom_vline(xintercept=nameOccuranceNum,col="red")+
-    #    xlab("Number of times a cluster name appears across SCAMP clusterings")+
-    #    ylab("Number of SCAMP clusters >= the appearance number")+
-    #    ggtitle("Red line is nameOccuranceNum setting in faust")
-    #cowplot::save_plot(file.path(normalizePath(projectPath),
-    #                             "faustData",
-    #                             "plotData",
-    #                             "scampNamesPlot.png"),
-    #                   nspOut,
-    #                   base_height=15,
-    #                   base_width=15)
     if (debugFlag) print("Cluster labels collected and saved.")
     return()
 }

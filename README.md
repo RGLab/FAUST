@@ -16,14 +16,19 @@ The most recent version can be installed from [github](https://github.com/FredHu
                 install.packages("BiocManager")
              })	
     library(BiocManager)
-    BiocManager::install("Biobase", update = FALSE)
+    if (BiocManager::version()!='3.10') {
+       BiocManager::install(version="3.10")
+    }
+
+    BiocManager::install("Biobase", update = FALSE, version = "3.10")
+    BiocManager::install("flowCore", update = FALSE, version = "3.10")
+    BiocManager::install("flowWorkspace", update = FALSE, version = "3.10")
 
     tryCatch(installed.packages()["devtools","Version"],
 	     error = function(e){
                 install.packages("devtools")
              })	
     library(devtools)
-    devtools::install_github("RGLab/cytoverse")
     devtools::install_github("RGLab/scamp")
 
 Once these preliminary libraries are installed, run the command:

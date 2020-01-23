@@ -1,6 +1,6 @@
 Package: faust
 Title: Full Annotation Using Shape-constrained Trees
-Version: 0.2.01
+Version: 0.2.02
 Authors@R: c(person("Evan", "Greene", email = "egreene@fredhutch.org", role = c("aut", "cre")),
    	   person("Laurie", "Davies", role = c("ctb")),	       
 	   person("J.R.M.", "Hosking", role=c("ctb")),
@@ -11,7 +11,7 @@ Authors@R: c(person("Evan", "Greene", email = "egreene@fredhutch.org", role = c(
 	   person("Greg", "Finak", role = c("ctb","rev")))
 Author: Evan Greene [aut, cre]
 Maintainer: Evan Greene <egreene@fredhutch.org>
-Description: FAUST implements an automated single-cell clustering, gating and annotation pipeline named Full Annotation using Shape-constrained Trees.
+Description: FAUST implements the cytometry analysis method Full Annotation Using Shape-constrained Trees.
     FAUST builds on the work of many others.
     Its source contains modified files (conveyances) from the following R packages:
     "Ckmeans.1d.dp", by Joe Song and Haizhou Wang;
@@ -19,8 +19,7 @@ Description: FAUST implements an automated single-cell clustering, gating and an
     "ftnonpar" by Laurie Davies and Arne Kovac.
     It also contains ports of functions from those packages.
     In addition, it ports a function from: "lmom" by J. R. M. Hosking.
-Imports: cowplot,
-    viridis,
+Imports:
     scamp,
     Biobase,
     flowCore,
@@ -31,14 +30,14 @@ Imports: cowplot,
     grDevices,
     stats,
     ggplot2,
-    ggridges,
     dplyr,
     whisker,
     data.table,
+    viridis,
     Rcpp
 VignetteBuilder: knitr
 LinkingTo: Rcpp    
-Depends: R (>= 3.3)
+Depends: R (>= 3.6.0)
 License: GPL (>= 3) + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -48,6 +47,8 @@ URL: https://github.com/FredHutch/faust
 BugReports: https://github.com/FredHutch/faust/issues
 SystemRequirements: C++11
 Suggests:
+    cowplot,
+    ggridges
     flowWorkspaceData,
     parallel,
     ggdendro,
