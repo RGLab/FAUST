@@ -48,7 +48,7 @@ BugReports: https://github.com/FredHutch/faust/issues
 SystemRequirements: C++11
 Suggests:
     cowplot,
-    ggridges
+    ggridges,
     flowWorkspaceData,
     parallel,
     ggdendro,
