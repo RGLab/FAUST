@@ -28,7 +28,7 @@
                           "faustData",
                           "gateData",
                           paste0(parentNode,"_rawGateList.rds")))
-        #hence the number of rows in the numGateMatrix is the number of rows.
+        #hence the number of rows in the numGateMatrix is the number of experimental units.
         numGateMatrix <- Reduce(rbind,
                                 lapply(gateList,
                                        function(x){unlist(lapply(x,
@@ -136,8 +136,9 @@
                 }
             }
             if (length(which(is.na(resListUpdate)))) {
-                #experimental units within a level of the imputation hierarchy do not have annotation boundaries.
-                #so, impute boundaries across all levels in the imputation hierarchy.
+                #experimental units within a level of the imputation hierarchy do not have 
+                #the standard gateNumber of annotation boundaries. 
+                #here, we standardize across the entire experiment
                 gateMatrix <- matrix(nrow=0,ncol=gateNumber)
                 for (level in names(which(!is.na(resListUpdate)))) {
                     gateData <- sort(resListUpdate[[level]])
@@ -145,10 +146,34 @@
                     rownames(gateMatrix)[nrow(gateMatrix)] <- level
                 }
                 finalVals <- apply(gateMatrix,2,stats::median)
+                mgMAD <- apply(gateMatrix,2,stats::mad)
+                if (any(mgMAD == 0)) {
+                    mgMAD <- Inf
+                }
+                lowVal <- finalVals - (stats::qt(0.975,df=1) * mgMAD)
+                highVal <- finalVals + (stats::qt(0.975,df=1) * mgMAD)
                 #map those still NA to the experiment wide medians.
                 naNames <- names(which(is.na(resListUpdate)))
                 for (changeName in naNames) {
-                    resListUpdate[[changeName]] <- sort(finalVals)
+                    modVals <- gateList[[changeName]][[channel]]
+                    if (!is.na(modVals)) {
+                        #there is empirical data for an experimental unit, so attempt to use it.
+                        #this can arise if the "Preference" setting of supervision leads to using 
+                        #a gateNumber that is absent from a level of the imputation hierarchy.
+                        if (gateNumber < length(modVals)) newModVals <- .upConvert(modVals,finalVals)
+                        else newModVals <- .downConvert(modVals,finalVals)
+                        newModVals <- sort(newModVals)
+                        for (mvNum in seq(length(newModVals))) {
+                            if ((newModVals[mvNum] <= lowVal[mvNum]) || (newModVals[mvNum] >= highVal[mvNum])) {
+                                newModVals[mvNum] <- finalVals[mvNum]
+                            }
+                        }
+                        resListUpdate[[changeName]] <- sort(newModVals)
+                    }
+                    else {
+                        #impute the values outright
+                        resListUpdate[[changeName]] <- sort(finalVals)
+                    }
                 }
             }
             resList[[channel]] <- resListUpdate
