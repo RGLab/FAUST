@@ -43,23 +43,24 @@
             projectPath=projectPath,
             debugFlag=debugFlag
         )
-        #resList is a container for the gates for all the markers.
+        #resList is a container for the annotation boundaries for all the markers.
         resList <- rep(list(NA),ncol(numGateMatrix))
         names(resList) <- colnames(numGateMatrix)
         for (channel in names(numSel)) {
             #for each marker, get a standard set of annotation boundaries.
             resListUpdate <- rep(list(NA),nrow(numGateMatrix))
             names(resListUpdate) <- rownames(numGateMatrix)
-            #gateNumber stores the standard number across the experiment.
+            #gateNumber stores the standard number of thresholds for the marker across the experiment.
             gateNumber <- as.numeric(numSel[channel])
             numLookup <- which(numGateMatrix[,channel]==gateNumber)
             matchLevels <- rownames(numGateMatrix)[numLookup]
             for (currentIH in uniqueIH) {
-                #by imputation hierarchy, attempt to standardize gating.
+                #for imputation hierarchy, standardize number of thresholds
                 levelsInIH <- sort(unique(analysisMap[which(analysisMap[,"impH"]==currentIH),"analysisLevel",drop=TRUE]))
                 mbLevels <- intersect(matchLevels,levelsInIH)
                 if (length(mbLevels)) {
-                    #there are levels in the imputation hierarchy that have the gateNumber. use them.
+                    #there are experimental units in the imputation hierarchy that have the gateNumber of thresholds. 
+                    #standardize other units in the ih to these boundaries.
                     gateMatrix <- matrix(nrow=0,ncol=gateNumber)
                     for (level in mbLevels) {
                         gateData <- sort(gateList[[level]][[channel]])
@@ -69,7 +70,7 @@
                     cbLookup <- which(rownames(numGateMatrix) %in% levelsInIH)
                     possibleGates <- as.numeric(names(table(numGateMatrix[cbLookup,channel])))
                     possibleGates <- setdiff(possibleGates,c(0,gateNumber))
-                    #update the resList
+                    #update the resList with the thresholds
                     for (level in rownames(gateMatrix)) {
                         resListUpdate[[level]] <- sort(gateMatrix[which(rownames(gateMatrix)==level),])
                     }
@@ -105,8 +106,9 @@
                         }
                     }
                     finalVals <- apply(gateMatrix,2,stats::median)
-                    #for levels of analysis with different numbers of gates than the selection,
-                    #map them to selected values.
+                    #for experimental units with different numbers of gates than the selection,
+                    #impute or delete boundaries across the imputation hierarchy 
+                    #so they adhere to the standard number
                     if (length(possibleGates)) {
                         for (gateNum in possibleGates) {
                             modLookup <- which(numGateMatrix[,channel]==gateNum)
@@ -126,7 +128,9 @@
                             }
                         }
                     }
-                    #finally deal with NA boundaries in the imputation hierarchy
+                    #finally deal with expermential units with NA thresholds
+                    #these are experimental units that did not produce any thresholds in the
+                    #annotation forest
                     naNames <- intersect(names(which(is.na(resListUpdate))),levelsInIH)
                     if (length(naNames)) {
                         for (changeName in naNames) {
@@ -136,9 +140,9 @@
                 }
             }
             if (length(which(is.na(resListUpdate)))) {
-                #experimental units within a level of the imputation hierarchy do not have 
-                #the standard gateNumber of annotation boundaries. 
-                #here, we standardize across the entire experiment
+                #for experimental units that still do not have
+                #the standard gateNumber of annotation boundaries for the marker, 
+                #we now standardize across the entire experiment
                 gateMatrix <- matrix(nrow=0,ncol=gateNumber)
                 for (level in names(which(!is.na(resListUpdate)))) {
                     gateData <- sort(resListUpdate[[level]])
