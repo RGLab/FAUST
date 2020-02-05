@@ -4,8 +4,13 @@
 \alias{mkAFPlotsForAlevel}
 \title{Fast Annotation Using Shape-constrained Trees}
 \usage{
-mkAFPlotsForAlevel(projectPath, aLevel, threadNum = 1,
-  debugFlag = FALSE, maxRidgesAtDepth = Inf)
+mkAFPlotsForAlevel(
+  projectPath,
+  aLevel,
+  threadNum = 1,
+  debugFlag = FALSE,
+  maxRidgesAtDepth = Inf
+)
 }
 \arguments{
 \item{projectPath}{An absolute path to a directory on your system. Output from the

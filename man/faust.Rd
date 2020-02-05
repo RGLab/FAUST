@@ -3,18 +3,30 @@
 \docType{package}
 \name{faust}
 \alias{faust}
-\alias{faust-package}
 \title{Full Annotation Using Shape-constrained Trees}
 \usage{
-faust(gatingSet, activeChannels, channelBounds = "", startingCellPop,
-  experimentalUnit = "", imputationHierarchy = "", projectPath = ".",
-  depthScoreThreshold = 0.01, selectionQuantile = 0.5,
-  debugFlag = FALSE, threadNum = 1, seedValue = 123,
-  numForestIter = 1, numScampIter = 1,
+faust(
+  gatingSet,
+  activeChannels,
+  channelBounds = "",
+  startingCellPop,
+  experimentalUnit = "",
+  imputationHierarchy = "",
+  projectPath = ".",
+  depthScoreThreshold = 0.01,
+  selectionQuantile = 0.5,
+  debugFlag = FALSE,
+  threadNum = 1,
+  seedValue = 123,
+  numForestIter = 1,
+  numScampIter = 1,
   nameOccuranceNum = ceiling((0.1 * length(gatingSet))),
-  drawAnnotationHistograms = TRUE, supervisedList = NA,
-  annotationsApproved = FALSE, archDescriptionList = list(targetArch =
-  c("singleCPU")), plottingDevice = "pdf")
+  drawAnnotationHistograms = TRUE,
+  supervisedList = NA,
+  annotationsApproved = FALSE,
+  archDescriptionList = list(targetArch = c("singleCPU")),
+  plottingDevice = "pdf"
+)
 }
 \arguments{
 \item{gatingSet}{The \code{faust} function requires that experimental cytometry data you wish to analyze
@@ -144,7 +156,7 @@ By default it is set to "pdf".}
 }
 \value{
 The FAUST method returns a null value on completion. The main output is the file
-"projectPath/faustData/faustCountMatrix.rds". The rownames are \code{sampleNames(gatingSet)]}
+"projectPath/faustData/faustCountMatrix.rds". The rownames are \verb{sampleNames(gatingSet)]}
 and the column names are the cell populations discovered by the method. Note that the
 special cell population "0_0_0_0_0" counts unclassified cells in the experiment.
 }

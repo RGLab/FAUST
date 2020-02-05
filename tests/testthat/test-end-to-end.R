@@ -11,26 +11,19 @@ test_that("faust runs end to end with multiple samples.", {
   
   gs <- GatingSet(flowSet(f))
   unlink(x = file.path(tempdir(),"faustData"),recursive = TRUE, force = TRUE)
-  channelBounds <- matrix(0,2,2)
-  colnames(channelBounds) <- c("A","B")
-  rownames(channelBounds) <- c("Low","High")
-  channelBounds["High",] <- 10
   #test faust end to end
   faust.output <- capture.output(expect_null(faust(
     gatingSet = gs,
-    pDataVar2ConcatenateSamples = "name",
+    experimentalUnit = "name",
     activeChannels = c("A", "B"),
-    channelBounds = channelBounds,
     startingCellPop = "root",
     projectPath = tempdir(),
     depthScoreThreshold = 0.01,
     selectionQuantile = 1.0,
-    threadNum = (parallel::detectCores()/2 + 1),
+    threadNum = 1,
     seedValue = 1234,
     debugFlag = FALSE,
-    minClusterSize = 25,
-    annotationsApproved = TRUE,
-    initSplitPval = 0.25
+    annotationsApproved = TRUE
   )))
   expect_true(file_test("-d",file.path(tempdir(),"faustData")))
   expect_true(file_test("-f",file.path(tempdir(),"faustData","faustCountMatrix.rds")))
@@ -49,26 +42,19 @@ test_that("faust runs on a single sample.", {
   
   gs <- GatingSet(flowSet(f))
   unlink(x = file.path(tempdir(),"faustData"),recursive = TRUE, force = TRUE)
-  channelBounds <- matrix(0,2,2)
-  colnames(channelBounds) <- c("A","B")
-  rownames(channelBounds) <- c("Low","High")
-  channelBounds["High",] <- 10
   #test faust end to end
   faust.output <- capture.output(expect_null(faust(
     gatingSet = gs,
-    pDataVar2ConcatenateSamples = "name",
+    experimentalUnit = "name",
     activeChannels = c("A", "B"),
-    channelBounds = channelBounds,
     startingCellPop = "root",
     projectPath = tempdir(),
     depthScoreThreshold = 0.01,
     selectionQuantile = 1.0,
-    threadNum = (parallel::detectCores()/2 + 1),
+    threadNum = 1,
     seedValue = 1234,
     debugFlag = FALSE,
-    minClusterSize = 25,
-    annotationsApproved = TRUE,
-    initSplitPval = 0.25
+    annotationsApproved = TRUE
   )))
   # read the counts (TODO should test that it exists)
   expect_true(file_test("-d",file.path(tempdir(),"faustData")))
