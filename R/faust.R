@@ -20,14 +20,14 @@
 #' Expression values in a channel greater than or equal to the value in the "High"
 #' row are treated as high, by default, and not actively considered when `FAUST` processes the data.
 #'
-#' If the user provides the empty string "", channel bounds will be determined empirically. 
+#' If the user provides the empty string "", channel bounds will be determined empirically.
 #'
 #' When the user provides either the empty string "" or a single numeric matrix as the `channelBounds` setting,
 #' the same channel bounds matrix will apply to all samples in the experiment. However, if the user is analyzing
 #' a dataset whose analysis supports using the `imputationHierarchy` parameter, different levels of the imputation
 #' hierarchy can be assigned distinct channelBounds matrices. To do this, pass faust a list of 2 by
 #' `lenght(activeChannels)` matrices. The length of the list must equal the number of distinct levels in the imputation
-#' hierarchy. The name of each slot of the list must be a unique level of the imputation hierarchy. 
+#' hierarchy. The name of each slot of the list must be a unique level of the imputation hierarchy.
 #' FAUST will then analyze all experimental units grouped by that level using the supplied channel bounds matrix.
 #'
 #' @param startingCellPop A character vector specifying the node from the manual gating strategy attached to
@@ -127,7 +127,7 @@
 #'
 #' @param plottingDevice string with device for saving graphical output.
 #' By default it is set to "pdf".
-#' 
+#'
 #' @return The FAUST method returns a null value on completion. The main output is the file
 #' "projectPath/faustData/faustCountMatrix.rds". The rownames are `sampleNames(gatingSet)]`
 #' and the column names are the cell populations discovered by the method. Note that the
@@ -143,8 +143,9 @@
 #' @importFrom utils read.table globalVariables
 #' @importFrom data.table fwrite
 #' @importFrom grDevices nclass.FD
-#' @importFrom ggplot2 ggplot aes theme_bw geom_hex geom_vline geom_hline xlab ylab theme ggtitle scale_color_manual scale_linetype_manual geom_histogram geom_line ggsave
+#' @importFrom ggplot2 ggplot aes theme_bw geom_hex geom_vline geom_hline xlab ylab theme ggtitle scale_color_manual scale_linetype_manual geom_histogram geom_line ggsave facet_wrap element_text
 #' @importFrom viridis magma viridis
+#' @importFrom ggridges geom_density_ridges position_points_jitter
 #'
 #' @examples
 #'
@@ -214,9 +215,6 @@ faust <- function(gatingSet,
         imputationHierarchy=imputationHierarchy,
         debugFlag=debugFlag
     )
-    
-    #gspData <- pData(gatingSet)
-
 
     #begin method processing. copy data to projectPath from gatingSet.
     if (debugFlag) print("Begin data extraction.")
@@ -452,7 +450,7 @@ faust <- function(gatingSet,
         projectPath = projectPath,
         archDescriptionList=archDescriptionList
     )
-    
+
     .plotPhenotypeFilter(
         projectPath=projectPath,
         nameOccuranceNum=nameOccuranceNum,

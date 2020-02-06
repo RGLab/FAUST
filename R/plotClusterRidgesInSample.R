@@ -1,12 +1,12 @@
 #' Fast Annotation using Shape-constrained Trees
 #'
-#' This function plots the 
+#' This function plots the
 #' strategy for a population found by the FAUST pipeline.
-#' 
+#'
 #' @param clusterPhenotype A text string corresponding to a cell population
 #' determined by FAUST. Must be taken from the
 #' projectPath/faustData/faustCountMatrix.rds column names.
-#' 
+#'
 #' @param sampleName A text string corresponding to the experimental
 #' sample in which you want to plot clusterPhenotype ridgelines.
 #' Must be a directory name in projectPath/faustData/sampleData.
@@ -14,7 +14,7 @@
 #' @param outputDirName A text string which will be create a directory
 #' to store plot output. The directory will be placed in
 #' projectPath/faustData/plotData/clusterRidges.
-#' 
+#'
 #' @param projectPath An absolute path to the directory where you
 #' ran the FAUST.
 #'
@@ -35,7 +35,7 @@
 #' allSnames <- list.files(file.path(myProjectPath,
 #'                                   "faustData",
 #'                                   "sampleData"))
-#' 
+#'
 #' plotClusterRidgesInSample(
 #'     clusterPhenotype=colnames(countMatrix)[1],
 #'     sampleName=allSnames[1],
@@ -134,7 +134,7 @@ plotClusterRidgesInSample <- function(
         plotLookup <- intersect(which(plotDFPrep2[,"Expression"] >= qs[1]),
                                 which(plotDFPrep2[,"Expression"] <= qs[2]))
         plotDF <- plotDFPrep2[plotLookup,,drop=FALSE]
-        pRidges <- ggplot(plotDF,aes(x=Expression,y=Source,fill=Source))+
+        pRidges <- ggplot(plotDF,aes_string(x="Expression",y="Source",fill="Source"))+
             geom_density_ridges(scale=1,jittered_points = TRUE, point_size = 1.75, point_shape = "|",
                                 position = position_points_jitter(width = 0.01, height = 0))+
             scale_fill_viridis(begin=0.25,end=0.75,discrete=TRUE)+

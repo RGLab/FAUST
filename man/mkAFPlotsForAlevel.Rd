@@ -21,6 +21,10 @@ FAUST pipeline is written to the directory "projectPath/faustData".}
 \item{threadNum}{Number of threads to use.}
 
 \item{debugFlag}{Boolean value. Set to TRUE to print status of plotting code.}
+
+\item{maxRidgesAtDepth}{Numeric value. Maximum number of ridgelines to plot at any depth.
+In very large annotation forest, this can be used to prevent overplotting in derived
+ridgeline plot.}
 }
 \description{
 mkAFPlotsForAlevel produces joyplot of marginal and conditional densities along with their gate locations

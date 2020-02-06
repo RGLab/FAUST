@@ -22,21 +22,18 @@
                                           "exprsMat.rds"))
             resMat <- matrix(0,nrow = nrow(exprsMat), ncol = ncol(exprsMat))
             colnames(resMat) <- colnames(exprsMat)
-            if (uniqueHNum > 1) {
-                currentHID <- analysisMap[which(analysisMap$sampleName ==sampleName),"impH"]
-                currentChannelBounds <- channelBoundsUsedByFAUST[[currentHID]]
-            }
-            else {
-                #we assume that the channel bounds are a matrix in the event there is only
-                #one imputation level.
-                currentChannelBounds <- channelBoundsUsedByFAUST
-            }
+
+            #Extract the channel bounds matrix associated with the level of the
+            #imputation hierarchy
+            currentHID <- analysisMap[which(analysisMap$sampleName ==sampleName),"impH"]
+            currentChannelBounds <- channelBoundsUsedByFAUST[[currentHID]]
             if (debugFlag) {
                 print("Extracting from sample: ")
                 print(sampleName)
                 print("Using restriction bounds: ")
                 print(currentChannelBounds)
             }
+            #Construct the restriction matrix using the channel bounds
             for (channel in colnames(currentChannelBounds)) {
                 lowLookup <- which(exprsMat[,channel] <= currentChannelBounds["Low",channel])#nolint
                 highLookup <- which(exprsMat[,channel] >= currentChannelBounds["High",channel])#nolint
@@ -62,4 +59,4 @@
                           "madeResMats.rds"))
     }
     return()
-}    
+}

@@ -11,7 +11,7 @@
     channelBoundsUsedByFAUST <- channelBounds
     if ((is.character(channelBounds)) && (channelBounds=="")) {
         #the user did not set the channelBounds parameter.
-        #set it empirically using the folloing hueristic.    
+        #set it empirically using the folloing hueristic.
         firstSampleForCB <- TRUE
         for (sampleName in samplesInExp) {
             #assumes that all exprsMat is in activeChannel column order.
@@ -22,14 +22,27 @@
                                           sampleName,
                                           "exprsMat.rds"))
             if (firstSampleForCB) {
-                quantileDataLow <- apply(exprsMat,2,function(x){quantile(x,probs=0.01)})
-                quantileDataHigh <- apply(exprsMat,2,function(x){quantile(x,probs=0.99)})
+                #initialize containers for channel bounds data
+
+                #first percentile matrix
+                quantileDataLowPrep <- apply(exprsMat,2,
+                                             function(x){quantile(x,probs=0.01)})
+                quantileDataLow <- matrix(quantileDataLowPrep,ncol=2)
+                colnames(quantileDataLow) <- names(quantileDataLowPrep)
+
+                #99th percentile matrix
+                quantileDataHighPrep <- apply(exprsMat,2,function(x){quantile(x,probs=0.99)})
+                quantileDataHigh <- matrix(quantileDataHighPrep,ncol=2)
+                colnames(quantileDataHigh) <- names(quantileDataHighPrep)
+
+                #container for empirical channel bounds
                 empiricalCB <- matrix(-Inf,nrow=2,ncol=ncol(exprsMat))
                 colnames(empiricalCB) <- colnames(exprsMat)
                 rownames(empiricalCB) <- c("Low","High")
                 firstSampleForCB <- FALSE
             }
             else {
+                #update percentile matrices with the new dataset
                 quantileDataLow <- rbind(quantileDataLow,
                                          apply(exprsMat,2,function(x){quantile(x,probs=0.01)}))
                 quantileDataHigh <- rbind(quantileDataHigh,
@@ -42,19 +55,20 @@
             print("Set the channelBounds parameter empirically. Resulted in the following matrix:")
             print(empiricalCB)
         }
-        if (uniqueHNum==1) {
-            channelBoundsUsedByFAUST <- empiricalCB
+        #if (uniqueHNum==1) {
+        #    channelBoundsUsedByFAUST <- empiricalCB
+        #}
+        #else {
+
+        #switch to always using a list.
+        internalCBList <- list()
+        for (hName in uniqueHierarchyNames) {
+            internalCBList <- append(internalCBList,list(empiricalCB))
+            names(internalCBList)[length(internalCBList)] <- hName
         }
-        else {
-            internalCBList <- list()
-            for (hName in uniqueHierarchyNames) {
-                internalCBList <- append(internalCBList,list(empiricalCB))
-                names(internalCBList)[length(internalCBList)] <- hName
-            }
-            channelBoundsUsedByFAUST <- internalCBList
-        }
+        channelBoundsUsedByFAUST <- internalCBList
     }
-    else if ((is.matrix(channelBounds)) && (uniqueHNum > 1)) {
+    else if (is.matrix(channelBounds)) { #&& (uniqueHNum > 1)) {
         internalCBList <- list()
         for (hName in uniqueHierarchyNames) {
             internalCBList <- append(internalCBList,list(channelBounds))
@@ -62,18 +76,12 @@
         }
         channelBoundsUsedByFAUST <- internalCBList
     }
-    #saveRDS(channelBoundsUsedByFAUST,
-    #        file.path(normalizePath(projectPath),
-    #                  "faustData",
-    #                  "metaData",
-    #                  "channelBoundsUsedByFAUST.rds"))
     #test to see if the channel bounds have changed.
     if (!file.exists(file.path(normalizePath(projectPath),
                                "faustData",
                                "metaData",
                                "channelBoundsUsedByFAUST.rds")))
     {
-#                               "channelBounds.rds"))) {
         #write the channel bounds provided at the faust call to disk.
         saveRDS(channelBoundsUsedByFAUST,file.path(normalizePath(projectPath),
                                                    "faustData",
@@ -146,15 +154,6 @@
                                           "scampALevelComplete.rds"))
                 }
             }
-            #if (file.exists(file.path(normalizePath(projectPath),
-            #                          "faustData",
-            #                          "metaData",
-            #                          "parsedGS.rds"))) {
-            #    file.remove(file.path(normalizePath(projectPath),
-            #                          "faustData",
-            #                          "metaData",
-            #                          "parsedGS.rds"))
-            #}
             if (file.exists(file.path(normalizePath(projectPath),
                                       "faustData",
                                       "metaData",
@@ -172,4 +171,4 @@
     }
     return()
 }
-    
+

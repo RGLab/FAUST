@@ -1,16 +1,20 @@
 #' Fast Annotation Using Shape-constrained Trees
 #'
 #' mkAFPlotsForAlevel produces joyplot of marginal and conditional densities along with their gate locations
-#' for the specified analysis level. 
+#' for the specified analysis level.
 #'
 #' @param projectPath An absolute path to a directory on your system. Output from the
-#' FAUST pipeline is written to the directory "projectPath/faustData". 
+#' FAUST pipeline is written to the directory "projectPath/faustData".
 #'
 #' @param aLevel The level of analysis you want to plot.
 #'
 #' @param threadNum Number of threads to use.
 #'
 #' @param debugFlag Boolean value. Set to TRUE to print status of plotting code.
+#'
+#' @param maxRidgesAtDepth Numeric value. Maximum number of ridgelines to plot at any depth.
+#' In very large annotation forest, this can be used to prevent overplotting in derived
+#' ridgeline plot.
 #'
 #' @export
 #' @md
@@ -22,7 +26,12 @@
 #' @importFrom dplyr group_by summarize left_join
 #' @importFrom stats density
 #' @import tidyr
-mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = FALSE,maxRidgesAtDepth=Inf) {
+mkAFPlotsForAlevel <- function(projectPath,
+                               aLevel,
+                               threadNum = 1,
+                               debugFlag = FALSE,
+                               maxRidgesAtDepth=Inf)
+{
     if (!dir.exists(file.path(projectPath,"faustData","plotData"))) {
         print(paste0("faustData/plotData directory not detected in ",projectPath))
         print("This indicates the FAUST pipeline has not been run.")
@@ -65,7 +74,7 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
                                        "metaData",
                                        "channelBounds.rds"))
     resFlag <- as.logical(max(apply(levelRes,2,max)))
-    annF <- growAnnotationForest(dataSet = levelExprs, 
+    annF <- growAnnotationForest(dataSet = levelExprs,
                                  numberIterations = 1,
                                  pValueThreshold = 0.25,
                                  minimumClusterSize = 25,
@@ -125,7 +134,7 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
             startI <- endI + 1
             endI <- startI + numObs - 1
         }
-        #add the margin 
+        #add the margin
         allExprs <- levelExprs[,channel]
         lowLookup <- which(allExprs <= max(lowBound,-Inf))
         highLookup <- which(allExprs >= min(highBound,Inf))
@@ -142,13 +151,15 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
         maxLen <- max(unlist(lapply(gateList,length)))
         for (gateNum in seq(length(gateList))) {
             cLen <- length(gateList[[gateNum]])
-            if (cLen < maxLen) 
+            if (cLen < maxLen)
                 gateList[[gateNum]] <- c(gateList[[gateNum]],rep(gateList[[gateNum]][1], maxLen - cLen))
         }
         gateDF <- as.data.frame(Reduce(rbind,gateList))
         colnames(gateDF) <- paste0("x",seq(ncol(gateDF)))
         keepNames <- colnames(gateDF)
-        gateDF$yData <- names(gateList)
+        #two-line to remove note in R CMD check
+        yData <- names(gateList)
+        gateDF$yData <- yData
         if (maxRidgesAtDepth < Inf) {
             #only save these files if we are limiting the number of ridges
             #assumes user wishes to generate plots with a requested sub-collection
@@ -212,12 +223,14 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
         }
         mhDF <- as.data.frame(group_by(plotDF,yData) %>% summarize(meanHeight = mean(hData)) )
         mhDF2 <- mhDF[order(mhDF[,"meanHeight"]),]
+        #assing y1 to NULL for R CMD check note
+        y1 <- NULL
         mhDF2$y1 <- seq(nrow(mhDF2))
         mhDF2$alphaScale <- seq(nrow(mhDF2))/nrow(mhDF2)
         plotDF2 <- left_join(plotDF,mhDF2,by="yData")
         gateDF2 <- left_join(gateDF,mhDF2,by="yData")
         gateDF2 <- gateDF2[,c(keepNames,"y1")]
-        gateDF3 <- gather(gateDF2,xName,x1,-y1)
+        gateDF3 <- gather(data=gateDF2,key="xName",value="x1",-y1)
         gateDF3$x2 <- gateDF3$x1
         gateDF3$y2 <- as.numeric(gateDF3$y1 + 1)
         saveRDS(plotDF2,
@@ -234,8 +247,8 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
                           "afPlots",
                           aLevel,
                           paste0(outChannel,"_gateDF3.rds")))
-        p <- ggplot(plotDF2,aes(x = xData, y = y1, height = hData,
-                                group = y1, fill = y1))+
+        p <- ggplot(plotDF2,aes_string(x = "xData", y = "y1", height = "hData",
+                                       group = "y1", fill = "y1"))+
             geom_density_ridges(data = plotDF2,
                                 scale = 10,
                                 alpha = plotDF2$alphaScale,
@@ -248,8 +261,8 @@ mkAFPlotsForAlevel <- function(projectPath, aLevel, threadNum = 1, debugFlag = F
             scale_fill_viridis() +
             ylab("") +
             theme_bw() +
-            theme(axis.ticks.y = element_blank(),        
-                  axis.text.y = element_blank(),         
+            theme(axis.ticks.y = element_blank(),
+                  axis.text.y = element_blank(),
                   legend.position = "none")
         pOut <- p + ggtitle(paste0(channel,": Annotation Forest with Gates")) + xlab("Expression Value")
         save_plot(file.path(normalizePath(projectPath),
