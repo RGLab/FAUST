@@ -9,6 +9,7 @@
                              "faustData",
                              "gateData"))
     }
+
     parentNode <- readRDS(file.path(normalizePath(projectPath),
                                     "faustData",
                                     "metaData",
@@ -23,16 +24,16 @@
                                           "faustData",
                                           "metaData",
                                           "initSelC.rds"))
+
     forceList <- readRDS(file.path(normalizePath(projectPath),
                                    "faustData",
                                    "metaData",
                                    "forceList.rds"))
 
-    selectionList <- readRDS(file.path(normalizePath(projectPath),
+    preferenceList <- readRDS(file.path(normalizePath(projectPath),
                                        "faustData",
                                        "metaData",
-                                       "selectionList.rds"))
-
+                                       "preferenceList.rds"))
 
     uniqueLevels <- unique(analysisMap[,"analysisLevel",drop=TRUE])
     uniqueIH <- unique(analysisMap[,"impH",drop=TRUE])

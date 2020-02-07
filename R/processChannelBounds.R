@@ -29,12 +29,14 @@
                 #first percentile matrix
                 quantileDataLowPrep <- apply(exprsMat,2,
                                              function(x){quantile(x,probs=0.01)})
-                quantileDataLow <- matrix(quantileDataLowPrep,ncol=2)
+                quantileDataLow <- matrix(quantileDataLowPrep,
+                                          ncol=length(quantileDataLowPrep))
                 colnames(quantileDataLow) <- names(quantileDataLowPrep)
 
                 #99th percentile matrix
                 quantileDataHighPrep <- apply(exprsMat,2,function(x){quantile(x,probs=0.99)})
-                quantileDataHigh <- matrix(quantileDataHighPrep,ncol=2)
+                quantileDataHigh <- matrix(quantileDataHighPrep,
+                                           ncol=length(quantileDataHighPrep))
                 colnames(quantileDataHigh) <- names(quantileDataHighPrep)
 
                 #container for empirical channel bounds

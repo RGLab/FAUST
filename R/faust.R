@@ -196,26 +196,34 @@ faust <- function(gatingSet,
         archDescriptionList=archDescriptionList
     )
 
-    generateAnnotationThresholds(gatingSet=gatingSet,
-                                 projectPath=projectPath,
-                                 experimentalUnit=experimentalUnit,
-                                 imputationHierarchy=imputationHierarchy,
-                                 activeChannels=activeChannels,
-                                 channelBounds=channelBounds,
-                                 startingCellPop=startingCellPop,
-                                 debugFlag=debugFlag,
-                                 supervisedList=supervisedList,
-                                 archDescriptionList=archDescriptionList,
-                                 annotationsApproved=annotationsApproved)
+    generateAnnotationThresholds(gatingSet = gatingSet,
+                                 projectPath = projectPath,
+                                 experimentalUnit = experimentalUnit,
+                                 imputationHierarchy = imputationHierarchy,
+                                 activeChannels = activeChannels,
+                                 channelBounds = channelBounds,
+                                 startingCellPop = startingCellPop,
+                                 numForestIter = numForestIter,
+                                 depthScoreThreshold = depthScoreThreshold,
+                                 selectionQuantile = selectionQuantile,
+                                 seedValue = seedValue,
+                                 threadNum = threadNum,
+                                 debugFlag = debugFlag,
+                                 supervisedList = supervisedList,
+                                 archDescriptionList = archDescriptionList,
+                                 annotationsApproved = annotationsApproved,
+                                 drawAnnotationHistograms=drawAnnotationHistograms,
+                                 plottingDevice = plottingDevice)
+
     if (annotationsApproved) {
-        discoverPhenotypes(projectPath=projectPath,
-                           numScampIter=numScampIter,
-                           nameOccuranceNum=nameOccuranceNum,
-                           debugFlag=debugFlag,
-                           threadNum=threadNum,
-                           seedValue=seedValue,
-                           archDescriptionList=archDescriptionList,
-                           plottingDevice=plottingDevice)
+        discoverPhenotypes(projectPath = projectPath,
+                           numScampIter = numScampIter,
+                           nameOccuranceNum = nameOccuranceNum,
+                           debugFlag = debugFlag,
+                           threadNum = threadNum,
+                           seedValue = seedValue,
+                           archDescriptionList = archDescriptionList,
+                           plottingDevice = plottingDevice)
     }
     return()
 }

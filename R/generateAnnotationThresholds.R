@@ -5,10 +5,17 @@ generateAnnotationThresholds <- function(gatingSet,
                                          activeChannels,
                                          channelBounds,
                                          startingCellPop,
+                                         numForestIter,
+                                         depthScoreThreshold,
+                                         selectionQuantile,
+                                         seedValue,
+                                         threadNum,
                                          debugFlag,
                                          supervisedList,
                                          archDescriptionList,
-                                         annotationsApproved)
+                                         annotationsApproved,
+                                         drawAnnotationHistograms,
+                                         plottingDevice)
 {
     #set up the faustData directory for check-pointing/metadata storage.
     .initializeFaustDataDir(
