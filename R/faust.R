@@ -178,7 +178,7 @@ faust <- function(gatingSet,
                   plottingDevice="pdf"
                   )
 {
-    #first, test parameters for validity. stop faust run if invalid settings detected.
+     #first, test parameters for validity. stop faust run if invalid settings detected.
     .validateParameters(
         activeChannels = activeChannels,
         channelBounds = channelBounds,
@@ -196,284 +196,27 @@ faust <- function(gatingSet,
         archDescriptionList=archDescriptionList
     )
 
-    #next, set up the faustData directory for check-pointing/metadata storage.
-    .initializeFaustDataDir(
-        projectPath = projectPath,
-        activeChannels=activeChannels,
-        channelBounds = channelBounds,
-        startingCellPop = startingCellPop
-    )
-
-    #construct the analysis map using the metadata stored in the gating set.
-    #the analysis map is a data frame that links samples to their experimental unit
-    #and their level in the imputation hierarchy.
-    analysisMap <- .constructAnalysisMap(
-        projectPath = projectPath,
-        gspData=flowWorkspace::pData(gatingSet),
-        sampNames=flowWorkspace::sampleNames(gatingSet),
-        experimentalUnit=experimentalUnit,
-        imputationHierarchy=imputationHierarchy,
-        debugFlag=debugFlag
-    )
-
-    #begin method processing. copy data to projectPath from gatingSet.
-    if (debugFlag) print("Begin data extraction.")
-    .extractDataFromGS(
-        gs = gatingSet,
-        activeChannels = activeChannels,
-        startingCellPop = startingCellPop,
-        projectPath = projectPath,
-        debugFlag = debugFlag
-    )
-
-    #make sure the channel bounds conform to internal requirements
-    #test to see if there have been changes between faust runs.
-    .processChannelBounds(
-        samplesInExp = flowWorkspace::sampleNames(gatingSet),
-        projectPath = projectPath,
-        channelBounds = channelBounds,
-        analysisMap = analysisMap,
-        debugFlag = debugFlag
-    )
-
-    if (debugFlag) print("Making restriction matrices.")
-    .makeRestrictionMatrices(
-        samplesInExp = flowWorkspace::sampleNames(gatingSet),
-        analysisMap = analysisMap,
-        channelBounds = channelBounds,
-        projectPath = projectPath,
-        debugFlag = debugFlag
-    )
-
-    #accumulate data into the experimental units.
-    if (debugFlag) print("Collecting data into experimental units.")
-    .prepareFirstAL(
-        analysisMap = analysisMap,
-        projectPath = projectPath
-    )
-
-    #sanitize the starting cell pop for problem characters.
-    startingCellPop <- gsub("[[:punct:]]","",startingCellPop)
-    startingCellPop <- gsub("[[:space:]]","",startingCellPop)
-    startingCellPop <- gsub("[[:cntrl:]]","",startingCellPop)
-
-    #start the annotation process
-    if (!file.exists(file.path(normalizePath(projectPath),
-                               "faustData",
-                               "metaData",
-                               "bigForestDone.rds"))) {
-        #in large experiments, this can be a costly step without sub-sampling.
-        #often we will want to supervise the results after growing the forest,
-        #so only grow it on an as-need basis
-        .growAnnForest(
-            rootPop = startingCellPop,
-            activeChannels = activeChannels,
-            analysisMap = analysisMap,
-            numIter = numForestIter,
-            debugFlag = debugFlag,
-            threadNum = threadNum,
-            seedValue = seedValue,
-            projectPath = projectPath,
-            archDescriptionList=archDescriptionList
-        )
-        bigForestDone <- TRUE
-        saveRDS(bigForestDone,
-                file.path(normalizePath(projectPath),
-                          "faustData",
-                          "metaData",
-                          "bigForestDone.rds"))
+    generateAnnotationThresholds(gatingSet=gatingSet,
+                                 projectPath=projectPath,
+                                 experimentalUnit=experimentalUnit,
+                                 imputationHierarchy=imputationHierarchy,
+                                 activeChannels=activeChannels,
+                                 channelBounds=channelBounds,
+                                 startingCellPop=startingCellPop,
+                                 debugFlag=debugFlag,
+                                 supervisedList=supervisedList,
+                                 archDescriptionList=archDescriptionList,
+                                 annotationsApproved=annotationsApproved)
+    if (annotationsApproved) {
+        discoverPhenotypes(projectPath=projectPath,
+                           numScampIter=numScampIter,
+                           nameOccuranceNum=nameOccuranceNum,
+                           debugFlag=debugFlag,
+                           threadNum=threadNum,
+                           seedValue=seedValue,
+                           archDescriptionList=archDescriptionList,
+                           plottingDevice=plottingDevice)
     }
-
-    if (debugFlag) print("Selecting standard set of channels across experiment using depth score.")
-    selC <- .selectChannels(
-        parentNode = startingCellPop,
-        analysisMap = analysisMap,
-        depthScoreThreshold = depthScoreThreshold,
-        selectionQuantile = selectionQuantile,
-        projectPath = projectPath
-    )
-    saveRDS(selC,
-            file.path(normalizePath(projectPath),
-                      "faustData",
-                      "metaData",
-                      "initSelC.rds"))
-
-    if (!length(selC)) {
-        print("No channels selected at current settings.")
-        print("Use plotData/scoreLines to modify faust parameters.")
-        stop("Incease selectionQuantile, decrease depthScoreThreshold.")
-    }
-
-    forceList <- selectionList <- preferenceList <- list()
-    if (!is.na(supervisedList)) {
-        #supervisedList is a named list of lists
-        #name of slot in list: marker
-        #list under marker slot 1: string describing type of supervision.
-        #list under marker slot 2: vector of ints dictating supervision action.
-        supervisedMarkers <- names(supervisedList)
-        for (markerNum in seq(length(supervisedMarkers))) {
-            marker <- supervisedMarkers[markerNum]
-            markerList <- supervisedList[[markerNum]]
-            actionType <- markerList[[1]]
-            action <- markerList[[2]]
-            if (actionType == "Preference")  {
-                preferenceList <- append(preferenceList,list(action))
-                names(preferenceList)[length(preferenceList)] <- marker
-            }
-            else if (actionType == "PostSelection")  {
-                selectionList <- append(selectionList,list(action))
-                names(selectionList)[length(selectionList)] <- marker
-            }
-            else if (actionType == "Force") {
-                forceList <- append(forceList,list(action))
-                names(forceList)[length(forceList)] <- marker
-            }
-            else {
-                print(paste0("Requested unsupported supervision type for marker ", marker))
-                print("Only 'Force', 'Preference' and 'PostSelection' supervision types are currently supported.")
-                print(paste0("Ignoring requested action: ",actionType))
-            }
-        }
-    }
-
-    if (debugFlag) print("Reconciling annotation boundaries across experiment.")
-    .reconcileAnnotationBoundaries(
-        selectedChannels = selC,
-        parentNode = startingCellPop,
-        analysisMap = analysisMap,
-        projectPath = projectPath,
-        debugFlag = debugFlag,
-        preferenceList = preferenceList,
-        forceList = forceList
-    )
-
-    if ((!is.na(supervisedList)) && (length(selectionList) > 0)){
-        if (debugFlag) print("Selection specific reconciled annotation boundaries.")
-        .superviseReconciliation(
-            supervisedList = selectionList,
-            parentNode = startingCellPop,
-            projectPath = projectPath
-        )
-    }
-    else {
-        file.copy(
-            from = file.path(normalizePath(projectPath),
-                             "faustData",
-                             "gateData",
-                             paste0(startingCellPop,"_resListPrep.rds")),
-            to = file.path(normalizePath(projectPath),
-                           "faustData",
-                           "gateData",
-                           paste0(startingCellPop,"_resList.rds")),
-            overwrite = TRUE
-        )
-    }
-
-    if (debugFlag) print("Writing annotation matrices to file.")
-    .mkAnnMats(
-        parentNode = startingCellPop,
-        analysisMap = analysisMap,
-        projectPath = projectPath
-    )
-
-    if (debugFlag) print("Generating depth score plot.")
-    .plotScoreLines(
-        projectPath = projectPath,
-        depthScoreThreshold = depthScoreThreshold,
-        selectionQuantile = selectionQuantile,
-        forceList = forceList,
-        plottingDevice=plottingDevice
-    )
-
-    if (debugFlag) print("Generating marker boundary histograms.")
-    .plotMarkerHistograms(
-        analysisMap = analysisMap,
-        startingCellPop = startingCellPop,
-        projectPath = projectPath,
-        plottingDevice=plottingDevice
-    )
-
-    if (drawAnnotationHistograms) {
-        if (debugFlag) print("Generating annotation boundary histograms.")
-        for (sampleName in analysisMap[,"sampleName"]) {
-            .plotSampleHistograms(
-                sampleName = sampleName,
-                analysisMap = analysisMap,
-                startingCellPop = startingCellPop,
-                projectPath = projectPath,
-                plottingDevice=plottingDevice
-            )
-        }
-    }
-
-    if (!annotationsApproved) {
-        print("********************************************************")
-        print("Channels have been selected on the basis of the depth score at the specified selection quantile.")
-        print("Annotation boundaries have been generated for all selected channels.")
-        print(paste0("Plots have been written to file in the directory ",
-                     projectPath,"/faustData/plotData"))
-        print("")
-        print("Review these plots to ensure all desired channels have been selected.")
-        print("If too many/too few channels have been selected, modify the parameters")
-        print("depthScoreThreshold and selectionQuantile.")
-        print("")
-        print(paste0("Also review the annotation boundaries displayed on the sample-level histograms in",
-                     projectPath,"/faustData/plotData/histograms"))
-        print("If you wish to modify the placement of the annotation boundaries,")
-        print("change the parameters supervisedList.")
-        print("")
-        print("Changing the Low/High values in the channelBounds matrix will also affect")
-        print("the placement of annotation boundaries. It is the most effective way to directly modify")
-        print("their placement. However, when you modify the Low/High values in the channelBounds matrix,")
-        print("the FAUST method will regrow the entire annotation forest.")
-        print("")
-        print("Once you are satisfied with the annotation boundary placement, set the parameter")
-        print("annotationsApproved=TRUE to cluster and then gate the experiment.")
-        print("********************************************************")
-        return()
-    }
-
-    if (debugFlag) print("Discovering phenotypes across experimental units.")
-    selC <- readRDS(file.path(normalizePath(projectPath),
-                              "faustData",
-                              "gateData",
-                              paste0(startingCellPop,"_selectedChannels.rds")))
-    .clusterLevelsWithScamp(
-        startingCellPop = startingCellPop,
-        selectedChannels = selC,
-        analysisMap = analysisMap,
-        numScampIter = numScampIter,
-        nameOccuranceNum = nameOccuranceNum,
-        debugFlag = debugFlag,
-        threadNum = threadNum,
-        seedValue = seedValue,
-        projectPath = projectPath,
-        archDescriptionList=archDescriptionList
-    )
-
-    .plotPhenotypeFilter(
-        projectPath=projectPath,
-        nameOccuranceNum=nameOccuranceNum,
-        plottingDevice=plottingDevice
-    )
-
-    if (debugFlag) print("Gating populations.")
-    .gateScampClusters(
-        startingCellPop = startingCellPop,
-        analysisMap = analysisMap,
-        selectedChannels = selC,
-        debugFlag = debugFlag,
-        projectPath = projectPath
-    )
-
-    if (debugFlag) print("Generating faust count matrix.")
-    .getFaustCountMatrix(
-        analysisMap = analysisMap,
-        selectedChannels = selC,
-        debugFlag = debugFlag,
-        projectPath = projectPath
-    )
-
     return()
 }
 

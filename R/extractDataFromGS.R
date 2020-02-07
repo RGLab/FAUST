@@ -1,9 +1,10 @@
 .extractDataFromGS <- function(gs,
                                activeChannels,
                                startingCellPop,
-                               projectPath=".",
+                               projectPath,
                                debugFlag
-                               ) {
+                               )
+{
     if (!file.exists(file.path(normalizePath(projectPath),
                                "faustData",
                                "metaData",
@@ -43,4 +44,4 @@
                           "parsedGS.rds"))
     }
     return()
-}    
+}

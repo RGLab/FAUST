@@ -1,13 +1,16 @@
 .makeRestrictionMatrices <- function(samplesInExp,
-                                     analysisMap,
-                                     channelBounds="",
-                                     projectPath=".",
-                                     debugFlag
-                                     ) {
+                                     channelBounds,
+                                     projectPath,
+                                     debugFlag)
+{
     if (!file.exists(file.path(normalizePath(projectPath),
                                "faustData",
                                "metaData",
                                "madeResMats.rds"))) {
+        analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "metaData",
+                                         "analysisMap.rds"))
         uniqueHierarchyNames <- names(table(analysisMap[,"impH",drop=TRUE]))
         uniqueHNum <- length(uniqueHierarchyNames)
         channelBoundsUsedByFAUST <- readRDS(file.path(normalizePath(projectPath),

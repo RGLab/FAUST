@@ -1,8 +1,20 @@
-.mkAnnMats <- function(parentNode,analysisMap,projectPath=".") {
+.mkAnnMats <- function(projectPath)
+{
+    parentNode <- readRDS(file.path(normalizePath(projectPath),
+                                    "faustData",
+                                    "metaData",
+                                    "sanitizedCellPopStr.rds"))
+
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
+
     resList <- readRDS(file.path(normalizePath(projectPath),
                                  "faustData",
                                  "gateData",
                                  paste0(parentNode,"_resList.rds")))
+
     selC <- readRDS(file.path(normalizePath(projectPath),
                               "faustData",
                               "gateData",

@@ -1,12 +1,27 @@
-.getFaustCountMatrix <- function(analysisMap,
-                                 selectedChannels,
-                                 debugFlag=FALSE,
-                                 projectPath=".")
+.getFaustCountMatrix <- function(projectPath,
+                                 debugFlag)
+
 {
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
+
+    startingCellPop <- readRDS(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "metaData",
+                                         "sanitizedCellPopStr.rds"))
+
+    selectedChannels <- readRDS(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "gateData",
+                                          paste0(startingCellPop,"_selectedChannels.rds")))
+
     faustClusterNames <- readRDS(file.path(normalizePath(projectPath),
                                            "faustData",
                                            "metaData",
                                            "scampClusterNames.rds"))
+
     faustClusterNames <- append(faustClusterNames,"0_0_0_0_0")
     activeSamples <- analysisMap[,"sampleName"]
     faustCountMatrix <- matrix(0,nrow=length(activeSamples),ncol=length(faustClusterNames))

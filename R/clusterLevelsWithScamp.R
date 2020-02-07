@@ -100,22 +100,34 @@
 }
 
 
-.clusterLevelsWithScamp <- function(startingCellPop,
-                                    selectedChannels,
-                                    analysisMap,
+.clusterLevelsWithScamp <- function(projectPath,
                                     numScampIter,
                                     nameOccuranceNum,
                                     debugFlag,
                                     threadNum,
                                     seedValue,
-                                    projectPath,
-                                    archDescriptionList
-                                    )
+                                    archDescriptionList)
 {
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
+
+    startingCellPop <- readRDS(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "metaData",
+                                         "sanitizedCellPopStr.rds"))
+
+    selectedChannels <- readRDS(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "gateData",
+                                          paste0(startingCellPop,"_selectedChannels.rds")))
+
     resList <- readRDS(file.path(normalizePath(projectPath),
                                  "faustData",
                                  "gateData",
                                  paste0(startingCellPop,"_resList.rds")))
+
     uniqueLevels <- sort(unique(analysisMap[,"analysisLevel"]))
     activeLevels <- c()
     #accumulate vector of levels without annotation forests.

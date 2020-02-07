@@ -1,9 +1,23 @@
-.gateScampClusters <- function(startingCellPop,
-                               analysisMap,
-                               selectedChannels,
-                               projectPath=".",
-                               debugFlag=FALSE)
+.gateScampClusters <- function(projectPath,
+                               debugFlag)
 {
+
+
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
+
+    startingCellPop <- readRDS(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "metaData",
+                                         "sanitizedCellPopStr.rds"))
+
+    selectedChannels <- readRDS(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "gateData",
+                                          paste0(startingCellPop,"_selectedChannels.rds")))
+
     resList <- readRDS(file.path(normalizePath(projectPath),
                                  "faustData",
                                  "gateData",
@@ -19,7 +33,7 @@
                                                    "sampleData",
                                                    sampleName,
                                                    "scampAnnotation.csv"),
-                                  header = FALSE, sep = "`", 
+                                  header = FALSE, sep = "`",
                                   stringsAsFactors = FALSE)[,1]
         annotationMatrix <- utils::read.table(file = file.path(normalizePath(projectPath),
                                                                "faustData",
@@ -42,7 +56,7 @@
         }
         gateNums <- unlist(lapply(scampAF,length)) + 1
         exactPartition <- gateSample(as.matrix(annotationMatrix), selectedChannels, gateNums, scampCellPops);
-        
+
         # exactPartition <- rep("0_0_0_0_0",nrow(annotationMatrix))
         # for (rowNum in seq(nrow(annotationMatrix))) {
         #     ep <- paste0(paste0(paste0(selectedChannels,"~",annotationMatrix[rowNum,]),"~",gateNums,"~"),collapse="")

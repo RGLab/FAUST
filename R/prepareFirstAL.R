@@ -1,4 +1,4 @@
-.prepareFirstAL <- function(analysisMap,projectPath) {
+.prepareFirstAL <- function(projectPath) {
     if (!dir.exists(file.path(normalizePath(projectPath),
                               "faustData",
                               "levelData")))
@@ -12,6 +12,10 @@
                                "metaData",
                                "firstALReady.rds")))
     {
+        analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "metaData",
+                                         "analysisMap.rds"))
         uniqueLevels <- unique(analysisMap[,"analysisLevel"])
         for (aLevel in uniqueLevels) {
             aData <- analysisMap[which(analysisMap[,"analysisLevel"]==aLevel),,drop=FALSE]

@@ -1,18 +1,28 @@
 .plotMarkerHistograms <- function(
-                                  analysisMap,
-                                  startingCellPop,
                                   projectPath,
                                   plottingDevice
                                   )
 {
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
+
+    startingCellPop <- readRDS(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "metaData",
+                                         "sanitizedCellPopStr.rds"))
+
     resList <- readRDS(file.path(normalizePath(projectPath),
                                  "faustData",
                                  "gateData",
                                  paste0(startingCellPop,"_resList.rds")))
+
     selC <- readRDS(file.path(normalizePath(projectPath),
                               "faustData",
                               "gateData",
                               paste0(startingCellPop,"_selectedChannels.rds")))
+
     uniqueLevels <- sort(unique(analysisMap[,"analysisLevel"]))
     firstALevel <- TRUE
     for (aLevel in uniqueLevels) {

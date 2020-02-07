@@ -58,5 +58,5 @@
             }
         }
     }
-    return(analysisMap)
+    return()
 }

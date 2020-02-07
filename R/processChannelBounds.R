@@ -1,11 +1,13 @@
-.processChannelBounds <- function(
-                                  samplesInExp,
+.processChannelBounds <- function(samplesInExp,
                                   projectPath,
                                   channelBounds,
-                                  analysisMap,
-                                  debugFlag
-                                  )
+                                  debugFlag)
 {
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
+
     uniqueHierarchyNames <- names(table(analysisMap[,"impH",drop=TRUE]))
     uniqueHNum <- length(uniqueHierarchyNames)
     channelBoundsUsedByFAUST <- channelBounds

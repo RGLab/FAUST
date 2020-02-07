@@ -2,10 +2,14 @@
                             projectPath,
                             depthScoreThreshold,
                             selectionQuantile,
-                            forceList,
                             plottingDevice
                             )
 {
+    forceList <- readRDS(file.path(normalizePath(projectPath),
+                                   "faustData",
+                                   "metaData",
+                                   "forceList.rds"))
+
     scoreDF <- as.data.frame(readRDS(file.path(normalizePath(projectPath),
                                                "faustData",
                                                "metaData",
@@ -60,6 +64,6 @@
                  height = 11,
                  width = 10
              )
-    
+
     return()
 }

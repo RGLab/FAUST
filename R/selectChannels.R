@@ -1,9 +1,17 @@
-.selectChannels <- function(parentNode,
-                            analysisMap,
-                            depthScoreThreshold,
+.selectChannels <- function(depthScoreThreshold,
                             selectionQuantile,
-                            projectPath) {
+                            projectPath)
+{
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
     uniqueLevels <- unique(analysisMap[,"analysisLevel"])
+    parentNode <- readRDS(file.path(normalizePath(projectPath),
+                                    "faustData",
+                                    "metaData",
+                                    "sanitizedCellPopStr.rds"))
+
     firstForest <- TRUE
     for (aLevel in uniqueLevels) {
         if (file.exists(file.path(normalizePath(projectPath),
@@ -43,7 +51,8 @@
         }
     }
     if (firstForest) {
-        return(c())
+        print("No annotation forest detected.")
+        stop("Re-start the FAUST process.")
     }
     else {
         for (column in colnames(scoreMat)) {
@@ -66,14 +75,24 @@
         scoreNames <- names(which(quantileScore >= depthScoreThreshold))
         quantileDepth <- apply(depthMat,2,function(x){as.numeric(quantile(x,probs=c((1-selectionQuantile))))})
         depthNames <- names(which(quantileDepth <= 2))
-        selectedNames <- scoreNames 
+        selectedNames <- scoreNames
         #outScore <- quantileScore[selectedNames]
         #
         #Order selected markers relative to their total depth score across the experiment.
         #
         outScore <- apply(scoreMat[,selectedNames,drop=FALSE],2,sum)
         outNames <- names(sort(outScore,decreasing=TRUE))
-        return(outNames)
+        if (!length(outNames)) {
+            print("No channels selected at current settings.")
+            print("Use plotData/scoreLines to modify faust parameters.")
+            stop("Incease selectionQuantile, decrease depthScoreThreshold.")
+        }
+        saveRDS(outNames,
+                file.path(normalizePath(projectPath),
+                          "faustData",
+                          "metaData",
+                          "initSelC.rds"))
+        return()
     }
 }
 

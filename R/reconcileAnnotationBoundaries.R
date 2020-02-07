@@ -1,10 +1,6 @@
-.reconcileAnnotationBoundaries <- function(selectedChannels,
-                                           parentNode,
-                                           analysisMap,
-                                           projectPath,
-                                           debugFlag,
-                                           preferenceList,
-                                           forceList){
+.reconcileAnnotationBoundaries <- function(projectPath,
+                                           debugFlag)
+{
     if (!dir.exists(file.path(normalizePath(projectPath),
                               "faustData",
                               "gateData")))
@@ -13,6 +9,31 @@
                              "faustData",
                              "gateData"))
     }
+    parentNode <- readRDS(file.path(normalizePath(projectPath),
+                                    "faustData",
+                                    "metaData",
+                                    "sanitizedCellPopStr.rds"))
+
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
+
+    selectedChannels <- readRDS(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "metaData",
+                                          "initSelC.rds"))
+    forceList <- readRDS(file.path(normalizePath(projectPath),
+                                   "faustData",
+                                   "metaData",
+                                   "forceList.rds"))
+
+    selectionList <- readRDS(file.path(normalizePath(projectPath),
+                                       "faustData",
+                                       "metaData",
+                                       "selectionList.rds"))
+
+
     uniqueLevels <- unique(analysisMap[,"analysisLevel",drop=TRUE])
     uniqueIH <- unique(analysisMap[,"impH",drop=TRUE])
     gateList <- .makeGateList(
@@ -59,7 +80,7 @@
                 levelsInIH <- sort(unique(analysisMap[which(analysisMap[,"impH"]==currentIH),"analysisLevel",drop=TRUE]))
                 mbLevels <- intersect(matchLevels,levelsInIH)
                 if (length(mbLevels)) {
-                    #there are experimental units in the imputation hierarchy that have the gateNumber of thresholds. 
+                    #there are experimental units in the imputation hierarchy that have the gateNumber of thresholds.
                     #standardize other units in the ih to these boundaries.
                     gateMatrix <- matrix(nrow=0,ncol=gateNumber)
                     for (level in mbLevels) {
@@ -79,7 +100,7 @@
                     mgMAD <- apply(gateMatrix,2,stats::mad)
                     #if we set the gate using only one example (via supervision, or due to sparsity in the
                     #level of the imputation hierarchy), the MAD is 0.
-                    #set to (-Inf,Inf) because want to keep what's found by annotation forest. 
+                    #set to (-Inf,Inf) because want to keep what's found by annotation forest.
                     if (any(mgMAD == 0)) {
                         mgMAD <- Inf
                     }
@@ -107,7 +128,7 @@
                     }
                     finalVals <- apply(gateMatrix,2,stats::median)
                     #for experimental units with different numbers of gates than the selection,
-                    #impute or delete boundaries across the imputation hierarchy 
+                    #impute or delete boundaries across the imputation hierarchy
                     #so they adhere to the standard number
                     if (length(possibleGates)) {
                         for (gateNum in possibleGates) {
@@ -141,7 +162,7 @@
             }
             if (length(which(is.na(resListUpdate)))) {
                 #for experimental units that still do not have
-                #the standard gateNumber of annotation boundaries for the marker, 
+                #the standard gateNumber of annotation boundaries for the marker,
                 #we now standardize across the entire experiment
                 gateMatrix <- matrix(nrow=0,ncol=gateNumber)
                 for (level in names(which(!is.na(resListUpdate)))) {
@@ -162,7 +183,7 @@
                     modVals <- gateList[[changeName]][[channel]]
                     if (!is.na(modVals)) {
                         #there is empirical data for an experimental unit, so attempt to use it.
-                        #this can arise if the "Preference" setting of supervision leads to using 
+                        #this can arise if the "Preference" setting of supervision leads to using
                         #a gateNumber that is absent from a level of the imputation hierarchy.
                         if (gateNumber < length(modVals)) newModVals <- .upConvert(modVals,finalVals)
                         else newModVals <- .downConvert(modVals,finalVals)
@@ -243,8 +264,8 @@
         names(possibilityList)[length(possibilityList)] <- columnName
         columnMax <- max(columnCounts)
         if ((length(preferenceList) > 0) && (columnName %in% preferredMarkers)) {
-            #user has requested a particular number of gates for this marker. 
-            #if there is empirical evidence for this choice, accommodate it. 
+            #user has requested a particular number of gates for this marker.
+            #if there is empirical evidence for this choice, accommodate it.
             #otherwise, defer to max choice.
             columnPreference <- preferenceList[[columnName]]
             preferenceLookup <- which(as.numeric(names(columnCounts)) == as.numeric(columnPreference))
@@ -331,7 +352,7 @@
     else {
         finalOG <- outGates
     }
-    #copy over indices which are not explained 
+    #copy over indices which are not explained
     #note length(uniqDrops)>0 since length(toGates) > length(fromGates)
     finalOG <- sort(unique(append(finalOG,toGates[-uniqDrops])))
     if (length(finalOG) != length(toGates)) {

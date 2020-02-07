@@ -75,9 +75,7 @@
 
 
 
-.growAnnForest <- function(rootPop,
-                           activeChannels,
-                           analysisMap,
+.growAnnForest <- function(activeChannels,
                            numIter,
                            debugFlag,
                            threadNum,
@@ -85,6 +83,16 @@
                            projectPath,
                            archDescriptionList)
 {
+    rootPop <- readRDS(file.path(normalizePath(projectPath),
+                                 "faustData",
+                                 "metaData",
+                                 "sanitizedCellPopStr.rds"))
+
+    analysisMap <- readRDS(file.path(normalizePath(projectPath),
+                                     "faustData",
+                                     "metaData",
+                                     "analysisMap.rds"))
+
     uniqueLevels <- sort(unique(analysisMap[,"analysisLevel"]))
     activeLevels <- c()
     #accumulate vector of levels without annotation forests.
