@@ -7,6 +7,15 @@ discoverPhenotypes <- function(projectPath,
                                archDescriptionList,
                                plottingDevice)
 {
+    #test parameters for validity. stop faust run if invalid settings detected.
+    .validateDiscoveryParameters(
+        projectPath = projectPath,
+        debugFlag = debugFlag,
+        threadNum = threadNum,
+        seedValue = seedValue,
+        archDescriptionList=archDescriptionList
+    )
+
     if (debugFlag) print("Discovering phenotypes across experimental units.")
     .clusterLevelsWithScamp(
         projectPath = projectPath,

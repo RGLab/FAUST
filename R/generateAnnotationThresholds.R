@@ -17,6 +17,23 @@ generateAnnotationThresholds <- function(gatingSet,
                                          drawAnnotationHistograms,
                                          plottingDevice)
 {
+    #first, test parameters for validity. stop faust run if invalid settings detected.
+    .validateForestParameters(
+        activeChannels = activeChannels,
+        channelBounds = channelBounds,
+        startingCellPop = startingCellPop,
+        projectPath = projectPath,
+        depthScoreThreshold = depthScoreThreshold,
+        selectionQuantile = selectionQuantile,
+        debugFlag = debugFlag,
+        threadNum = threadNum,
+        seedValue = seedValue,
+        supervisedList = supervisedList,
+        annotationsApproved = annotationsApproved,
+        archDescriptionList=archDescriptionList
+    )
+
+
     #set up the faustData directory for check-pointing/metadata storage.
     .initializeFaustDataDir(
         projectPath = projectPath,

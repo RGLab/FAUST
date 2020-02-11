@@ -178,24 +178,6 @@ faust <- function(gatingSet,
                   plottingDevice="pdf"
                   )
 {
-     #first, test parameters for validity. stop faust run if invalid settings detected.
-    .validateParameters(
-        activeChannels = activeChannels,
-        channelBounds = channelBounds,
-        startingCellPop = startingCellPop,
-        projectPath = projectPath,
-        depthScoreThreshold = depthScoreThreshold,
-        selectionQuantile = selectionQuantile,
-        debugFlag = debugFlag,
-        threadNum = threadNum,
-        seedValue = seedValue,
-        numForestIter = numForestIter,
-        numScampIter = numScampIter,
-        supervisedList = supervisedList,
-        annotationsApproved = annotationsApproved,
-        archDescriptionList=archDescriptionList
-    )
-
     generateAnnotationThresholds(gatingSet = gatingSet,
                                  projectPath = projectPath,
                                  experimentalUnit = experimentalUnit,

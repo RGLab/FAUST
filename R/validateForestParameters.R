@@ -1,17 +1,15 @@
-.validateParameters <- function(activeChannels,
-                                channelBounds,
-                                startingCellPop,
-                                projectPath,
-                                depthScoreThreshold,
-                                selectionQuantile,
-                                debugFlag,
-                                threadNum,
-                                seedValue,
-                                numForestIter,
-                                numScampIter,
-                                supervisedList,
-                                annotationsApproved,
-                                archDescriptionList)
+.validateForestParameters <- function(activeChannels,
+                                      channelBounds,
+                                      startingCellPop,
+                                      projectPath,
+                                      depthScoreThreshold,
+                                      selectionQuantile,
+                                      debugFlag,
+                                      threadNum,
+                                      seedValue,
+                                      supervisedList,
+                                      annotationsApproved,
+                                      archDescriptionList)
 {
     #check to make sure parameters are the expected length.
     if (length(annotationsApproved) != 1)
@@ -27,14 +25,6 @@
     {
         print("supervisedList is attempting to supervise more channels")
         stop("than those listed in the activeChannels vector.")
-    }
-    if (length(numForestIter) != 1)
-    {
-        stop("numForestIter must be a single integer value greater than 1.")
-    }
-    if (length(numScampIter) != 1)
-    {
-        stop("numScampIter must be a single integer value greater than 1.")
     }
     if (length(seedValue) != 1)
     {
@@ -129,14 +119,6 @@
     {
         stop("seedValue must be an integer value larger than 0.")
     }
-    if ((!is.numeric(numForestIter)) || (numForestIter < 1))
-    {
-        stop("numForestIter must be an integer value larger than 0.")
-    }
-    if ((!is.numeric(numScampIter)) || (numScampIter < 1))
-    {
-        stop("numScampIter must be an integer value larger than 0.")
-    }
     if ((!is.numeric(depthScoreThreshold)) ||
         (depthScoreThreshold < 0) ||
         (depthScoreThreshold > 1))
@@ -189,4 +171,4 @@
     return()
 }
 
-    
+
