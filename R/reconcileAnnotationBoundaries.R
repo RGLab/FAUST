@@ -361,10 +361,6 @@
     }
     return(finalOG)
 }
-#.upConvert(c(5),c(2.5,8)) == c(5,8)
-#.upConvert(c(5),c(2.5,7.5,10)) == c(5,7.5,10)
-#.upConvert(c(5,6),c(2.5,10,15)) == c(5,10,15)
-#.upConvert(c(5,6),c(2.5,8,15)) == c(5,6,15)
 
 .downConvert <- function(fromGates,toGates) {
     #toGates is assumed sorted in increasing order.
@@ -399,6 +395,3 @@
     }
     return(finalOG)
 }
-#.downConvert(c(1,2,3,4),c(5,10)) == c(4,10)
-#.downConvert(c(1,2,3,4),c(0,5,10)) == c(1,4,10)
-#.downConvert(c(-1,1,2,3,4),c(0,5,10)) == c(1,4,10)

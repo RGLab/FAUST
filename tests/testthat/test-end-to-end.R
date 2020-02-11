@@ -2,13 +2,13 @@ context("end-to-end")
 
 test_that("faust runs end to end with multiple samples.", {
   # Generate some fake data
-  library(flowCore)
-  library(flowWorkspace)
+  suppressWarnings(suppressMessages(library(flowCore)))
+  suppressWarnings(suppressMessages(library(flowWorkspace)))
   means <- c(1,5,1,1,5,5,1)
   mats <- replicate(2,matrix(rnorm(n = 100000, mean = means, sd = 0.75), ncol = 2, byrow = TRUE))
   colnames(mats) <- c("A","B")
   f <- sapply(1:(dim(mats)[3]),function(i)flowFrame(mats[,,i]))
-  
+
   gs <- GatingSet(flowSet(f))
   unlink(x = file.path(tempdir(),"faustData"),recursive = TRUE, force = TRUE)
   #test faust end to end
@@ -33,13 +33,13 @@ test_that("faust runs end to end with multiple samples.", {
 })
 
 test_that("faust runs on a single sample.", {
-  library(flowCore)
-  library(flowWorkspace)
+  suppressWarnings(suppressMessages(library(flowCore)))
+  suppressWarnings(suppressMessages(library(flowWorkspace)))
   means <- c(1,5,1,1,5,5,1)
   mats <- replicate(1,matrix(rnorm(n = 1000, mean = means, sd = 0.75), ncol = 2, byrow = TRUE))
   colnames(mats) <- c("A","B")
   f <- sapply(1:(dim(mats)[3]),function(i)flowFrame(mats[,,i]))
-  
+
   gs <- GatingSet(flowSet(f))
   unlink(x = file.path(tempdir(),"faustData"),recursive = TRUE, force = TRUE)
   #test faust end to end
