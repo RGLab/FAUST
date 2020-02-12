@@ -76,13 +76,18 @@
 
 
 .growAnnForest <- function(activeChannels,
-                           numIter,
                            debugFlag,
                            threadNum,
                            seedValue,
                            projectPath,
                            archDescriptionList)
 {
+    #removing numForestIter from interface for simplicity,
+    #since it is a rarely modified parameter that makes
+    #it harder to apply faust for a new user.
+    #if we end up wanting to add numForestIter back to the
+    #interface, exposed the numIter parameter here.
+    numIter <- 1
     rootPop <- readRDS(file.path(normalizePath(projectPath),
                                  "faustData",
                                  "metaData",

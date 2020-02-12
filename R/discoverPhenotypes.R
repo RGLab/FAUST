@@ -1,5 +1,4 @@
 discoverPhenotypes <- function(projectPath,
-                               numScampIter,
                                nameOccuranceNum,
                                debugFlag,
                                threadNum,
@@ -19,7 +18,6 @@ discoverPhenotypes <- function(projectPath,
     if (debugFlag) print("Discovering phenotypes across experimental units.")
     .clusterLevelsWithScamp(
         projectPath = projectPath,
-        numScampIter = numScampIter,
         nameOccuranceNum = nameOccuranceNum,
         debugFlag = debugFlag,
         threadNum = threadNum,

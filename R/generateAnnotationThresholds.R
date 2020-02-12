@@ -5,7 +5,6 @@ generateAnnotationThresholds <- function(gatingSet,
                                          activeChannels,
                                          channelBounds,
                                          startingCellPop,
-                                         numForestIter,
                                          depthScoreThreshold,
                                          selectionQuantile,
                                          seedValue,
@@ -100,7 +99,6 @@ generateAnnotationThresholds <- function(gatingSet,
         #so only grow it on an as-need basis
         .growAnnForest(
             activeChannels = activeChannels,
-            numIter = numForestIter,
             debugFlag = debugFlag,
             threadNum = threadNum,
             seedValue = seedValue,
@@ -163,45 +161,46 @@ generateAnnotationThresholds <- function(gatingSet,
         )
     }
 
-    print("********************************************************")
-    print("FAUST has selected a subset of the marker panel using")
-    print("the depth score at the specified selection quantile.")
-    print("Annotation thresholds have been generated for all selected markers.")
-    print(paste0("Plots have been written to file in the directory ",
-                 paste0(file.path(normalizePath(projectPath),
-                                  "faustData",
-                                  "plotData"))))
-    print("")
-    print("Review these plots to ensure all desired markers have been selected.")
-    print("If too many/too few markers have been selected, modify the parameters")
-    print("depthScoreThreshold and selectionQuantile.")
-    print("")
-    print(paste0("Also review the annotation thresholds displayed on the sample-level histograms in",
-                 paste0(file.path(normalizePath(projectPath),
-                                  "faustData",
-                                  "plotData"))))
-    print("If you wish to modify the placement of the annotation thresholds,")
-    print("change the parameters supervisedList.")
-    print("")
-    print("Changing the Low/High values in the channelBounds matrix will also affect")
-    print("the placement of annotation thresholds. It is the most effective way to directly modify")
-    print("their placement. However, when you modify the Low/High values in the channelBounds matrix,")
-    print("the FAUST method will regrow the entire annotation forest.")
-    print("")
-    print("Once you are satisfied with the annotation boundary")
-    print("placement, set the parameter")
-    print("annotationsApproved=TRUE in the faust R function.")
-    print("FAUST will then conduct phenotype discovery and ")
-    print("annotation on each experimental unit.")
-    print("********************************************************")
-    if (annotationsApproved)
-    {
+    if (!annotationsApproved) {
+        print("********************************************************")
+        print("FAUST has selected a subset of the marker panel using")
+        print("the depth score at the specified selection quantile.")
+        print("Annotation thresholds have been generated for all selected markers.")
+        print(paste0("Plots have been written to file in the directory ",
+                     paste0(file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "plotData"))))
+        print("")
+        print("Review these plots to ensure all desired markers have been selected.")
+        print("If too many/too few markers have been selected, modify the parameters")
+        print("depthScoreThreshold and selectionQuantile.")
+        print("")
+        print(paste0("Also review the annotation thresholds displayed on the sample-level histograms in",
+                     paste0(file.path(normalizePath(projectPath),
+                                      "faustData",
+                                      "plotData"))))
+        print("If you wish to modify the placement of the annotation thresholds,")
+        print("change the parameters supervisedList.")
+        print("")
+        print("Changing the Low/High values in the channelBounds matrix will also affect")
+        print("the placement of annotation thresholds. It is the most effective way to directly modify")
+        print("their placement. However, when you modify the Low/High values in the channelBounds matrix,")
+        print("the FAUST method will regrow the entire annotation forest.")
+        print("")
+        print("Once you are satisfied with the annotation boundary")
+        print("placement, set the parameter")
+        print("annotationsApproved=TRUE in the faust R function.")
+        print("FAUST will then conduct phenotype discovery and ")
+        print("annotation on each experimental unit.")
+        print("********************************************************")
+    }
+
+    else {
         saveRDS(annotationsApproved,
                 file.path(normalizePath(projectPath),
                           "faustData",
                           "metaData",
                           "annotationsApproved.rds"))
-
     }
     return()
 }

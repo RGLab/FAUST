@@ -6,6 +6,11 @@
 #' is stored in a `GatingSet` data structure.
 #' This data structure can be constructed available using the `flowWorkspace` Bioconductor package.
 #'
+#' @param startingCellPop A character vector specifying the node from the manual gating strategy attached to
+#' the `gatingSet` to use for `faust` analysis. The node in the manual gating strategy is, at minimum,
+#' asusmed by `faust` to have pre-gated debris and dead cells. For example, the node might identify live lymphocytes
+#' in each sample.
+#'
 #' @param activeChannels A character vector, each entry of which is a marker name to be used in the `faust`
 #' analysis. The markers listed in this parameter
 #' must **exactly** match the `desc` field of the `parameters` of the `flowFrames` in the `GatingSet.
@@ -29,11 +34,6 @@
 #' `lenght(activeChannels)` matrices. The length of the list must equal the number of distinct levels in the imputation
 #' hierarchy. The name of each slot of the list must be a unique level of the imputation hierarchy.
 #' FAUST will then analyze all experimental units grouped by that level using the supplied channel bounds matrix.
-#'
-#' @param startingCellPop A character vector specifying the node from the manual gating strategy attached to
-#' the `gatingSet` to use for `faust` analysis. The node in the manual gating strategy is, at minimum,
-#' asusmed by `faust` to have pre-gated debris and dead cells. For example, the node might identify live lymphocytes
-#' in each sample.
 #'
 #' @param experimentalUnit A character vector specifying the experimental unit of analysis of samples contained
 #' in the gating set. If left as its default value "", the "name" column in `pData(gatingSet)` will be used as
@@ -70,23 +70,19 @@
 #' All markers with empirical quantile above the depthScoreThreshold are used by `faust` to discover
 #' and annotate cell subsets in the experiment.
 #'
-#' @param debugFlag Boolean value. Set to TRUE to print method status information to the console or a log file.
-#'
-#' @param threadNum Integer value. Many components of the FAUST method support multi-threading on a single CPU.
-#' Set this parameter to the number of threads you wish to use.
-#'
-#' @param seedValue Integer value that determines the random seed. Used for reproducibility.
-#'
-#' @param numForestIter The number of annotation forest grown for each experimental unit. Set to 1 by default.
-#'
-#' @param numScampIter The number of SCAMP iterations run at the discovery stage. Set to 1 by default.
-#'
 #' @param nameOccuranceNum The number of times a name has to appear in distinct SCAMP clusterings to be
 #' gated out.
 #'
 #' @param supervisedList A list of lists.
 #' The names of list entries correspond to marker names in the active channels vector.
 #' Channels named in this list will have their gate locations modified. See Details.
+#'
+#' @param debugFlag Boolean value. Set to TRUE to print method status information to the console or a log file.
+#'
+#' @param threadNum Integer value. Many components of the FAUST method support multi-threading on a single CPU.
+#' Set this parameter to the number of threads you wish to use.
+#'
+#' @param seedValue Integer value that determines the random seed. Used for reproducibility.
 #'
 #' @param annotationsApproved Boolean value. FALSE by default to encourage the
 #' user to review the proposed annotation boundaries. When set to TRUE, indicates the user
@@ -154,22 +150,20 @@
 #' @export
 #' @md
 faust <- function(gatingSet,
-                  activeChannels,
-                  channelBounds="",
                   startingCellPop,
+                  activeChannels=flowWorkspace::markernames(gatingSet),
+                  channelBounds="",
                   experimentalUnit="",
                   imputationHierarchy="",
-                  projectPath=".",
+                  projectPath=normalizePath("."),
                   depthScoreThreshold=0.01,
                   selectionQuantile=0.50,
+                  nameOccuranceNum=ceiling((0.1*length(gatingSet))),
+                  supervisedList=NA,
                   debugFlag=FALSE,
                   threadNum=1,
                   seedValue=123,
-                  numForestIter=1,
-                  numScampIter=1,
-                  nameOccuranceNum=ceiling((0.1*length(gatingSet))),
                   drawAnnotationHistograms=TRUE,
-                  supervisedList=NA,
                   annotationsApproved=FALSE,
                   archDescriptionList=
                       list(
@@ -185,7 +179,6 @@ faust <- function(gatingSet,
                                  activeChannels = activeChannels,
                                  channelBounds = channelBounds,
                                  startingCellPop = startingCellPop,
-                                 numForestIter = numForestIter,
                                  depthScoreThreshold = depthScoreThreshold,
                                  selectionQuantile = selectionQuantile,
                                  seedValue = seedValue,
@@ -199,7 +192,6 @@ faust <- function(gatingSet,
 
     if (annotationsApproved) {
         discoverPhenotypes(projectPath = projectPath,
-                           numScampIter = numScampIter,
                            nameOccuranceNum = nameOccuranceNum,
                            debugFlag = debugFlag,
                            threadNum = threadNum,

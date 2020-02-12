@@ -7,22 +7,20 @@
 \usage{
 faust(
   gatingSet,
-  activeChannels,
-  channelBounds = "",
   startingCellPop,
+  activeChannels = flowWorkspace::markernames(gatingSet),
+  channelBounds = "",
   experimentalUnit = "",
   imputationHierarchy = "",
-  projectPath = ".",
+  projectPath = normalizePath("."),
   depthScoreThreshold = 0.01,
   selectionQuantile = 0.5,
+  nameOccuranceNum = ceiling((0.1 * length(gatingSet))),
+  supervisedList = NA,
   debugFlag = FALSE,
   threadNum = 1,
   seedValue = 123,
-  numForestIter = 1,
-  numScampIter = 1,
-  nameOccuranceNum = ceiling((0.1 * length(gatingSet))),
   drawAnnotationHistograms = TRUE,
-  supervisedList = NA,
   annotationsApproved = FALSE,
   archDescriptionList = list(targetArch = c("singleCPU")),
   plottingDevice = "pdf"
@@ -32,6 +30,11 @@ faust(
 \item{gatingSet}{The \code{faust} function requires that experimental cytometry data you wish to analyze
 is stored in a \code{GatingSet} data structure.
 This data structure can be constructed available using the \code{flowWorkspace} Bioconductor package.}
+
+\item{startingCellPop}{A character vector specifying the node from the manual gating strategy attached to
+the \code{gatingSet} to use for \code{faust} analysis. The node in the manual gating strategy is, at minimum,
+asusmed by \code{faust} to have pre-gated debris and dead cells. For example, the node might identify live lymphocytes
+in each sample.}
 
 \item{activeChannels}{A character vector, each entry of which is a marker name to be used in the \code{faust}
 analysis. The markers listed in this parameter
@@ -55,11 +58,6 @@ hierarchy can be assigned distinct channelBounds matrices. To do this, pass faus
 \code{lenght(activeChannels)} matrices. The length of the list must equal the number of distinct levels in the imputation
 hierarchy. The name of each slot of the list must be a unique level of the imputation hierarchy.
 FAUST will then analyze all experimental units grouped by that level using the supplied channel bounds matrix.}
-
-\item{startingCellPop}{A character vector specifying the node from the manual gating strategy attached to
-the \code{gatingSet} to use for \code{faust} analysis. The node in the manual gating strategy is, at minimum,
-asusmed by \code{faust} to have pre-gated debris and dead cells. For example, the node might identify live lymphocytes
-in each sample.}
 
 \item{experimentalUnit}{A character vector specifying the experimental unit of analysis of samples contained
 in the gating set. If left as its default value "", the "name" column in \code{pData(gatingSet)} will be used as
@@ -96,6 +94,13 @@ The empirical quantile is then compared to the depthScoreThreshold for each mark
 All markers with empirical quantile above the depthScoreThreshold are used by \code{faust} to discover
 and annotate cell subsets in the experiment.}
 
+\item{nameOccuranceNum}{The number of times a name has to appear in distinct SCAMP clusterings to be
+gated out.}
+
+\item{supervisedList}{A list of lists.
+The names of list entries correspond to marker names in the active channels vector.
+Channels named in this list will have their gate locations modified. See Details.}
+
 \item{debugFlag}{Boolean value. Set to TRUE to print method status information to the console or a log file.}
 
 \item{threadNum}{Integer value. Many components of the FAUST method support multi-threading on a single CPU.
@@ -103,19 +108,8 @@ Set this parameter to the number of threads you wish to use.}
 
 \item{seedValue}{Integer value that determines the random seed. Used for reproducibility.}
 
-\item{numForestIter}{The number of annotation forest grown for each experimental unit. Set to 1 by default.}
-
-\item{numScampIter}{The number of SCAMP iterations run at the discovery stage. Set to 1 by default.}
-
-\item{nameOccuranceNum}{The number of times a name has to appear in distinct SCAMP clusterings to be
-gated out.}
-
 \item{drawAnnotationHistograms}{Boolean. Set to 1 to draw the annotation boundary locations for selected markers
 for all samples and all markers. Set to 0 to forego the plotting.}
-
-\item{supervisedList}{A list of lists.
-The names of list entries correspond to marker names in the active channels vector.
-Channels named in this list will have their gate locations modified. See Details.}
 
 \item{annotationsApproved}{Boolean value. FALSE by default to encourage the
 user to review the proposed annotation boundaries. When set to TRUE, indicates the user

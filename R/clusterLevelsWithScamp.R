@@ -101,13 +101,20 @@
 
 
 .clusterLevelsWithScamp <- function(projectPath,
-                                    numScampIter,
                                     nameOccuranceNum,
                                     debugFlag,
                                     threadNum,
                                     seedValue,
                                     archDescriptionList)
 {
+    #removing numScampIter from interface for simplicity,
+    #since it is a rarely modified parameter that makes
+    #it harder to apply faust for a new user.
+    #if we end up wanting to add numScampIter back to the
+    #interface, expose numScampIter = numScampIter
+    #in this internal interface.
+    numScampIter <- 1
+
     analysisMap <- readRDS(file.path(normalizePath(projectPath),
                                      "faustData",
                                      "metaData",
