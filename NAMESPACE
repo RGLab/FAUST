@@ -2,7 +2,7 @@
 
 export(faust)
 export(growAnnotationForest)
-export(mkAFPlotsForAlevel)
+export(mkAFPlotsForExpUnit)
 export(plotClusterRidgesInSample)
 export(plotFaustGates)
 import(tidyr)
