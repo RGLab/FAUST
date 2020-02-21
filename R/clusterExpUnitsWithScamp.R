@@ -88,13 +88,13 @@
                                quote = FALSE)
         }
     }
-    scampALevelDone <- TRUE
-    saveRDS(scampALevelDone,
+    scampExpUnitDone <- TRUE
+    saveRDS(scampExpUnitDone,
             file.path(normalizePath(projectPath),
                       "faustData",
                       "expUnitData",
                       expUnit,
-                      "scampALevelComplete.rds"))
+                      "scampExpUnitComplete.rds"))
     if (debugFlag) print(paste0("SCAMP complete for: ",expUnit))
     return()
 }
@@ -143,7 +143,7 @@
                                    "faustData",
                                    "expUnitData",
                                    experimentalUnit,
-                                   "scampALevelComplete.rds"))) {
+                                   "scampExpUnitComplete.rds"))) {
             activeExpUnits <- append(activeExpUnits,experimentalUnit)
         }
     }
@@ -381,8 +381,8 @@ for (sampleName in names(table(expUnitToSampleLookup))) {
             quote = FALSE)
     }
 }
-scampALevelDone <- TRUE
-saveRDS(scampALevelDone,file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"scampALevelComplete.rds"))
+scampExpUnitDone <- TRUE
+saveRDS(scampExpUnitDone,file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"scampExpUnitComplete.rds"))
 slurmScampDone <- TRUE
 saveRDS(slurmScampDone,file.path(normalizePath({{projectPath}}),"faustData","slurmScampData",{{expUnit}},"slurmScampComplete.rds"))
 '

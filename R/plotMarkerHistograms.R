@@ -24,7 +24,7 @@
                               paste0(startingCellPop,"_selectedChannels.rds")))
 
     uniqueExpUnits <- sort(unique(analysisMap[,"experimentalUnit"]))
-    firstALevel <- TRUE
+    firstExpUnit <- TRUE
     for (expUnit in uniqueExpUnits) {
         expUnitExprs <- readRDS(file.path(normalizePath(projectPath),
                                         "faustData",
@@ -32,9 +32,9 @@
                                         expUnit,
                                         "expUnitExprs.rds"))
         rndLook <- sample(seq(nrow(expUnitExprs)),min(1000,nrow(expUnitExprs)))
-        if (firstALevel) {
+        if (firstExpUnit) {
             plotMat <- expUnitExprs[rndLook,selC,drop=FALSE]
-            firstALevel <- FALSE
+            firstExpUnit <- FALSE
         }
         else {
             plotMat <- rbind(plotMat,expUnitExprs[rndLook,selC,drop=FALSE])

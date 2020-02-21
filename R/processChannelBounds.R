@@ -151,12 +151,12 @@
                                           "faustData",
                                           "expUnitData",
                                           experimentalUnit,
-                                          "scampALevelComplete.rds"))) {
+                                          "scampExpUnitComplete.rds"))) {
                     file.remove(file.path(normalizePath(projectPath),
                                           "faustData",
                                           "expUnitData",
                                           experimentalUnit,
-                                          "scampALevelComplete.rds"))
+                                          "scampExpUnitComplete.rds"))
                 }
             }
             if (file.exists(file.path(normalizePath(projectPath),
