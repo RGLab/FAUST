@@ -23,21 +23,21 @@
                               "gateData",
                               paste0(startingCellPop,"_selectedChannels.rds")))
 
-    uniqueLevels <- sort(unique(analysisMap[,"analysisLevel"]))
+    uniqueExpUnits <- sort(unique(analysisMap[,"experimentalUnit"]))
     firstALevel <- TRUE
-    for (aLevel in uniqueLevels) {
-        levelExprs <- readRDS(file.path(normalizePath(projectPath),
+    for (expUnit in uniqueExpUnits) {
+        expUnitExprs <- readRDS(file.path(normalizePath(projectPath),
                                         "faustData",
-                                        "levelData",
-                                        aLevel,
-                                        "levelExprs.rds"))
-        rndLook <- sample(seq(nrow(levelExprs)),min(1000,nrow(levelExprs)))
+                                        "expUnitData",
+                                        expUnit,
+                                        "expUnitExprs.rds"))
+        rndLook <- sample(seq(nrow(expUnitExprs)),min(1000,nrow(expUnitExprs)))
         if (firstALevel) {
-            plotMat <- levelExprs[rndLook,selC,drop=FALSE]
+            plotMat <- expUnitExprs[rndLook,selC,drop=FALSE]
             firstALevel <- FALSE
         }
         else {
-            plotMat <- rbind(plotMat,levelExprs[rndLook,selC,drop=FALSE])
+            plotMat <- rbind(plotMat,expUnitExprs[rndLook,selC,drop=FALSE])
         }
     }
     for (channel in selC) {

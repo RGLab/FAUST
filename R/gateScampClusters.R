@@ -48,11 +48,11 @@
             print(paste0("Annotation matrix doesn't match scamp annotation in ", sampleName))
             stop("Investigate.")
         }
-        aLevel <- analysisMap[which(analysisMap[,"sampleName"] == sampleName), "analysisLevel"]
+        expUnit <- analysisMap[which(analysisMap[,"sampleName"] == sampleName), "experimentalUnit"]
         scampAF <- rep(list(NA),length(selectedChannels))
         names(scampAF) <- selectedChannels
         for (channel in selectedChannels) {
-            scampAF[[channel]] <- resList[[channel]][[aLevel]]
+            scampAF[[channel]] <- resList[[channel]][[expUnit]]
         }
         gateNums <- unlist(lapply(scampAF,length)) + 1
         exactPartition <- gateSample(as.matrix(annotationMatrix), selectedChannels, gateNums, scampCellPops);

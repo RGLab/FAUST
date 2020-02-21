@@ -131,30 +131,31 @@
                                   "faustData",
                                   "metaData",
                                   "madeResMats.rds"))
-            uniqueLevels <- unique(analysisMap[,"analysisLevel"])
-            #delete flags for levels with annotation forests in order to regrow them.
-            #also delete flags for scamp clsuterings to relabel data.
-            for (analysisLevel in uniqueLevels) {
+            uniqueExpUnits <- unique(analysisMap[,"experimentalUnit"])
+            #delete bools for experimental units that already have
+            #annotation forests in order to regrow them.
+            #also delete bools for scamp clusterings to relabel data.
+            for (experimentalUnit in uniqueExpUnits) {
                 if (file.exists(file.path(normalizePath(projectPath),
                                           "faustData",
-                                          "levelData",
-                                          analysisLevel,
-                                          "aLevelComplete.rds"))) {
+                                          "expUnitData",
+                                          experimentalUnit,
+                                          "expUnitComplete.rds"))) {
                     file.remove(file.path(normalizePath(projectPath),
                                           "faustData",
-                                          "levelData",
-                                          analysisLevel,
-                                          "aLevelComplete.rds"))
+                                          "expUnitData",
+                                          experimentalUnit,
+                                          "expUnitComplete.rds"))
                 }
                 if (file.exists(file.path(normalizePath(projectPath),
                                           "faustData",
-                                          "levelData",
-                                          analysisLevel,
+                                          "expUnitData",
+                                          experimentalUnit,
                                           "scampALevelComplete.rds"))) {
                     file.remove(file.path(normalizePath(projectPath),
                                           "faustData",
-                                          "levelData",
-                                          analysisLevel,
+                                          "expUnitData",
+                                          experimentalUnit,
                                           "scampALevelComplete.rds"))
                 }
             }

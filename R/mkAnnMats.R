@@ -21,7 +21,7 @@
                               paste0(parentNode,"_selectedChannels.rds")))
     for (sampleNum in seq(nrow(analysisMap))) {
         sampleName <- analysisMap[sampleNum,"sampleName"]
-        aLevel <- analysisMap[sampleNum,"analysisLevel"]
+        expUnit <- analysisMap[sampleNum,"experimentalUnit"]
         exprsMatIn <- readRDS(file.path(normalizePath(projectPath),
                                         "faustData",
                                         "sampleData",
@@ -32,7 +32,7 @@
         colnames(annotationMatrix) <- colnames(exprsMat)
         for (column in names(resList)) {
             annotationMatrix[,column] <- 1
-            gateVals <- resList[[column]][[aLevel]]
+            gateVals <- resList[[column]][[expUnit]]
             if (is.list(gateVals)) {
                 gateVals <- as.vector(unlist(gateVals))
             }

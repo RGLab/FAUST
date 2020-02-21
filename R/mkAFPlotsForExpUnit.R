@@ -1,12 +1,12 @@
 #' Fast Annotation Using Shape-constrained Trees
 #'
-#' mkAFPlotsForAlevel produces joyplot of marginal and conditional densities along with their gate locations
-#' for the specified analysis level.
+#' mkAFPlotsForExpUnit produces joyplot of marginal and conditional densities along with their gate locations
+#' for the specified experimental unit.
 #'
 #' @param projectPath An absolute path to a directory on your system. Output from the
 #' FAUST pipeline is written to the directory "projectPath/faustData".
 #'
-#' @param aLevel The level of analysis you want to plot.
+#' @param expUnit The experimental unit you want to plot.
 #'
 #' @param threadNum Number of threads to use.
 #'
@@ -26,11 +26,11 @@
 #' @importFrom dplyr group_by summarize left_join
 #' @importFrom stats density
 #' @import tidyr
-mkAFPlotsForAlevel <- function(projectPath,
-                               aLevel,
-                               threadNum = 1,
-                               debugFlag = FALSE,
-                               maxRidgesAtDepth=Inf)
+mkAFPlotsForExpUnit <- function(projectPath,
+                                expUnit,
+                                threadNum = 1,
+                                debugFlag = FALSE,
+                                maxRidgesAtDepth=Inf)
 {
     if (!dir.exists(file.path(projectPath,"faustData","plotData"))) {
         print(paste0("faustData/plotData directory not detected in ",projectPath))
@@ -52,29 +52,29 @@ mkAFPlotsForAlevel <- function(projectPath,
                               "faustData",
                               "plotData",
                               "afPlots",
-                              aLevel))) {
+                              expUnit))) {
         dir.create(file.path(normalizePath(projectPath),
                              "faustData",
                              "plotData",
                              "afPlots",
-                             aLevel))
+                             expUnit))
     }
-    levelExprs <- readRDS(file.path(normalizePath(projectPath),
+    expUnitExprs <- readRDS(file.path(normalizePath(projectPath),
                                     "faustData",
-                                    "levelData",
-                                    aLevel,
-                                    "levelExprs.rds"))
-    levelRes <- readRDS(file.path(normalizePath(projectPath),
+                                    "expUnitData",
+                                    expUnit,
+                                    "expUnitExprs.rds"))
+    expUnitRes <- readRDS(file.path(normalizePath(projectPath),
                                   "faustData",
-                                  "levelData",
-                                  aLevel,
-                                  "levelRes.rds"))
+                                  "expUnitData",
+                                  expUnit,
+                                  "expUnitRes.rds"))
     channelBounds <- readRDS(file.path(normalizePath(projectPath),
                                        "faustData",
                                        "metaData",
                                        "channelBounds.rds"))
-    resFlag <- as.logical(max(apply(levelRes,2,max)))
-    annF <- growAnnotationForest(dataSet = levelExprs,
+    resFlag <- as.logical(max(apply(expUnitRes,2,max)))
+    annF <- growAnnotationForest(dataSet = expUnitExprs,
                                  numberIterations = 1,
                                  pValueThreshold = 0.25,
                                  minimumClusterSize = 25,
@@ -83,7 +83,7 @@ mkAFPlotsForAlevel <- function(projectPath,
                                  numberOfThreads = threadNum,
                                  maximumGatingNum = 1e10,
                                  anyValueRestricted = resFlag,
-                                 resValMatrix = levelRes,
+                                 resValMatrix = expUnitRes,
                                  cutPointUpperBound = 2,
                                  getDebugInfo = debugFlag,
                                  randomSeed = 20180917,
@@ -98,7 +98,7 @@ mkAFPlotsForAlevel <- function(projectPath,
         highBound <- channelBounds["High",channel]
         allIndices <- annF[["indexData"]][[channel]]
         allDepths <- annF[["indexDepthData"]][[channel]]
-        numObs <- nrow(levelExprs)
+        numObs <- nrow(expUnitExprs)
         startI <- 1
         endI <- numObs
         endLength <- length(allIndices)
@@ -109,7 +109,7 @@ mkAFPlotsForAlevel <- function(projectPath,
         depthCtr <- c()
         while (startI < endLength) {
             currentLookup <- allIndices[startI:endI]
-            allExprs <- levelExprs[currentLookup,channel]
+            allExprs <- expUnitExprs[currentLookup,channel]
             lowLookup <- which(allExprs <= max(lowBound,-Inf))
             highLookup <- which(allExprs >= min(highBound,Inf))
             plotLookup <- setdiff(seq(length(allExprs)),c(sort(unique(lowLookup,highLookup))))
@@ -135,7 +135,7 @@ mkAFPlotsForAlevel <- function(projectPath,
             endI <- startI + numObs - 1
         }
         #add the margin
-        allExprs <- levelExprs[,channel]
+        allExprs <- expUnitExprs[,channel]
         lowLookup <- which(allExprs <= max(lowBound,-Inf))
         highLookup <- which(allExprs >= min(highBound,Inf))
         plotLookup <- setdiff(seq(length(allExprs)),c(sort(unique(lowLookup,highLookup))))
@@ -168,35 +168,35 @@ mkAFPlotsForAlevel <- function(projectPath,
                               "faustData",
                               "plotData",
                               "afPlots",
-                              aLevel,
+                              expUnit,
                               paste0(outChannel,"_indexCtr.rds")))
             saveRDS(indexLengths,
                     file.path(normalizePath(projectPath),
                               "faustData",
                               "plotData",
                               "afPlots",
-                              aLevel,
+                              expUnit,
                               paste0(outChannel,"_indexLengths.rds")))
             saveRDS(expressionData,
                     file.path(normalizePath(projectPath),
                               "faustData",
                               "plotData",
                               "afPlots",
-                              aLevel,
+                              expUnit,
                               paste0(outChannel,"_expressionData.rds")))
             saveRDS(expressionDepths,
                     file.path(normalizePath(projectPath),
                               "faustData",
                               "plotData",
                               "afPlots",
-                              aLevel,
+                              expUnit,
                               paste0(outChannel,"_expressionDepths.rds")))
             saveRDS(gateDF,
                     file.path(normalizePath(projectPath),
                               "faustData",
                               "plotData",
                               "afPlots",
-                              aLevel,
+                              expUnit,
                               paste0(outChannel,"_gateDF.rds")))
         }
         indexScaling <- c()
@@ -238,14 +238,14 @@ mkAFPlotsForAlevel <- function(projectPath,
                           "faustData",
                           "plotData",
                           "afPlots",
-                          aLevel,
+                          expUnit,
                           paste0(outChannel,"_plotDF2.rds")))
         saveRDS(gateDF3,
                 file.path(normalizePath(projectPath),
                           "faustData",
                           "plotData",
                           "afPlots",
-                          aLevel,
+                          expUnit,
                           paste0(outChannel,"_gateDF3.rds")))
         p <- ggplot(plotDF2,aes_string(x = "xData", y = "y1", height = "hData",
                                        group = "y1", fill = "y1"))+
@@ -269,7 +269,7 @@ mkAFPlotsForAlevel <- function(projectPath,
                             "faustData",
                             "plotData",
                             "afPlots",
-                            aLevel,
+                            expUnit,
                             paste0(outChannel,".png")),
                   pOut,
                   base_width = 15,

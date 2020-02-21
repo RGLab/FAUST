@@ -6,30 +6,30 @@
                                      "faustData",
                                      "metaData",
                                      "analysisMap.rds"))
-    uniqueLevels <- unique(analysisMap[,"analysisLevel"])
+    uniqueExpUnits <- unique(analysisMap[,"experimentalUnit"])
     parentNode <- readRDS(file.path(normalizePath(projectPath),
                                     "faustData",
                                     "metaData",
                                     "sanitizedCellPopStr.rds"))
 
     firstForest <- TRUE
-    for (aLevel in uniqueLevels) {
+    for (expUnit in uniqueExpUnits) {
         if (file.exists(file.path(normalizePath(projectPath),
                                   "faustData",
-                                  "levelData",
-                                  aLevel,
+                                  "expUnitData",
+                                  expUnit,
                                   paste0(parentNode,"_pAnnF.rds"))))
         {
             afIn <- readRDS(file.path(normalizePath(projectPath),
                                       "faustData",
-                                      "levelData",
-                                      aLevel,
+                                      "expUnitData",
+                                      expUnit,
                                       paste0(parentNode,"_pAnnF.rds")))
             forestScores <- unlist(lapply(afIn,function(x){x$channelScore}))
             rafIn <- readRDS(file.path(normalizePath(projectPath),
                                        "faustData",
-                                       "levelData",
-                                       aLevel,
+                                       "expUnitData",
+                                       expUnit,
                                        paste0(parentNode,"_annF.rds")))
             gd <- rafIn[["gateData"]]
             firstDepth <- unlist(lapply(seq(3,length(gd),by=5),
@@ -42,12 +42,12 @@
                 firstForest <- FALSE
             }
             scoreMat <- rbind(scoreMat,forestScores)
-            rownames(scoreMat)[length(rownames(scoreMat))] <- aLevel
+            rownames(scoreMat)[length(rownames(scoreMat))] <- expUnit
             depthMat <- rbind(depthMat,firstDepth)
-            rownames(depthMat)[length(rownames(depthMat))] <- aLevel
+            rownames(depthMat)[length(rownames(depthMat))] <- expUnit
         }
         else {
-            print(paste0("No parsed forest detected at aLevel: ",aLevel))
+            print(paste0("No parsed forest detected at expUnit: ",expUnit))
         }
     }
     if (firstForest) {

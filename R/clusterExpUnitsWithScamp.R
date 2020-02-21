@@ -1,4 +1,4 @@
-.clusterALevelWithScamp <- function(aLevel,
+.clusterExpUnitWithScamp <- function(expUnit,
                                     resList,
                                     selectedChannels,
                                     numScampIter,
@@ -8,39 +8,39 @@
                                     projectPath
                                     )
 {
-    if (debugFlag) print(paste0("Starting SCAMP for: ",aLevel))
-    levelExprs <- readRDS(file.path(normalizePath(projectPath),
+    if (debugFlag) print(paste0("Starting SCAMP for: ",expUnit))
+    expUnitExprs <- readRDS(file.path(normalizePath(projectPath),
                                     "faustData",
-                                    "levelData",
-                                    aLevel,
-                                    "levelExprs.rds"))
-    levelRes <- readRDS(file.path(normalizePath(projectPath),
+                                    "expUnitData",
+                                    expUnit,
+                                    "expUnitExprs.rds"))
+    expUnitRes <- readRDS(file.path(normalizePath(projectPath),
                                   "faustData",
-                                  "levelData",
-                                  aLevel,
-                                  "levelRes.rds"))
-    levelExprs <- levelExprs[,selectedChannels, drop = FALSE]
-    levelRes <- levelRes[,selectedChannels, drop = FALSE]
+                                  "expUnitData",
+                                  expUnit,
+                                  "expUnitRes.rds"))
+    expUnitExprs <- expUnitExprs[,selectedChannels, drop = FALSE]
+    expUnitRes <- expUnitRes[,selectedChannels, drop = FALSE]
     resFlag <- FALSE
-    for (colNum in seq(ncol(levelRes))) {
-        if (length(which(levelRes[,colNum] > 0))) {
+    for (colNum in seq(ncol(expUnitRes))) {
+        if (length(which(expUnitRes[,colNum] > 0))) {
             resFlag <- TRUE
             break
         }
     }
     #get the scamp annotation forest
-    scampAF <- rep(list(NA),ncol(levelExprs))
-    names(scampAF) <- colnames(levelExprs)
-    for (colName in colnames(levelExprs)) {
-        scampAF[[colName]] <- resList[[colName]][[aLevel]]
+    scampAF <- rep(list(NA),ncol(expUnitExprs))
+    names(scampAF) <- colnames(expUnitExprs)
+    for (colName in colnames(expUnitExprs)) {
+        scampAF[[colName]] <- resList[[colName]][[expUnit]]
     }
     scampClustering <- scamp(
-        dataSet = levelExprs,
+        dataSet = expUnitExprs,
         numberIterations = numScampIter,
         minimumClusterSize = 25,
         numberOfThreads = threadNum,
         anyValueRestricted = resFlag,
-        resValMatrix = levelRes,
+        resValMatrix = expUnitRes,
         useAnnForest = TRUE,
         annForestVals = scampAF,
         randomSeed=seedValue,
@@ -54,7 +54,7 @@
         outClustering[agreeIndex] <- maxClustering[agreeIndex]
     }
     else {
-        print(paste0("SCAMP reached no concensus for: ",aLevel))
+        print(paste0("SCAMP reached no concensus for: ",expUnit))
         print("This indicates high-amount of uncertainty in cluster labels.")
         print("Increase the numScampIter parameters until concensus reached")
         stop("killing job.")
@@ -62,17 +62,17 @@
     clusterNames <- setdiff(sort(unique(names(table(outClustering)))),"Uncertain")
     saveRDS(clusterNames,file.path(normalizePath(projectPath),
                                    "faustData",
-                                   "levelData",
-                                   aLevel,
+                                   "expUnitData",
+                                   expUnit,
                                    "scampClusterLabels.rds"))
-    #unwind the level to each sample
-    levelLookup <- readRDS(file.path(normalizePath(projectPath),
+    #unwind the experimental unit to each sample
+    expUnitToSampleLookup <- readRDS(file.path(normalizePath(projectPath),
                                      "faustData",
-                                     "levelData",
-                                     aLevel,
-                                     "levelLookup.rds"))
-    for (sampleName in names(table(levelLookup))) {
-        sampleLookup <- which(levelLookup == sampleName)
+                                     "expUnitData",
+                                     expUnit,
+                                     "expUnitToSampleLookup.rds"))
+    for (sampleName in names(table(expUnitToSampleLookup))) {
+        sampleLookup <- which(expUnitToSampleLookup == sampleName)
         if (length(sampleLookup)) {
             sampleClustering <- outClustering[sampleLookup]
             data.table::fwrite(list(sampleClustering),
@@ -92,20 +92,20 @@
     saveRDS(scampALevelDone,
             file.path(normalizePath(projectPath),
                       "faustData",
-                      "levelData",
-                      aLevel,
+                      "expUnitData",
+                      expUnit,
                       "scampALevelComplete.rds"))
-    if (debugFlag) print(paste0("SCAMP complete for: ",aLevel))
+    if (debugFlag) print(paste0("SCAMP complete for: ",expUnit))
     return()
 }
 
 
-.clusterLevelsWithScamp <- function(projectPath,
-                                    nameOccuranceNum,
-                                    debugFlag,
-                                    threadNum,
-                                    seedValue,
-                                    archDescriptionList)
+.clusterExpUnitsWithScamp <- function(projectPath,
+                                      nameOccuranceNum,
+                                      debugFlag,
+                                      threadNum,
+                                      seedValue,
+                                      archDescriptionList)
 {
     #removing numScampIter from interface for simplicity,
     #since it is a rarely modified parameter that makes
@@ -135,25 +135,25 @@
                                  "gateData",
                                  paste0(startingCellPop,"_resList.rds")))
 
-    uniqueLevels <- sort(unique(analysisMap[,"analysisLevel"]))
-    activeLevels <- c()
-    #accumulate vector of levels without annotation forests.
-    for (analysisLevel in uniqueLevels) {
+    uniqueExpUnits <- sort(unique(analysisMap[,"experimentalUnit"]))
+    activeExpUnits <- c()
+    #accumulate vector of experimental units without annotation forests.
+    for (experimentalUnit in uniqueExpUnits) {
         if (!file.exists(file.path(normalizePath(projectPath),
                                    "faustData",
-                                   "levelData",
-                                   analysisLevel,
+                                   "expUnitData",
+                                   experimentalUnit,
                                    "scampALevelComplete.rds"))) {
-            activeLevels <- append(activeLevels,analysisLevel)
+            activeExpUnits <- append(activeExpUnits,experimentalUnit)
         }
     }
-    #grow forests for levels that lack them
-    if ((length(activeLevels)) && (archDescriptionList$targetArch=="singleCPU")) {
-        while (length(activeLevels)) {
-            currentLevel <- activeLevels[1]
-            activeLevels <- activeLevels[-1]
-            .clusterALevelWithScamp(
-                aLevel=currentLevel,
+    #grow forests for experimental units that lack them
+    if ((length(activeExpUnits)) && (archDescriptionList$targetArch=="singleCPU")) {
+        while (length(activeExpUnits)) {
+            currentLevel <- activeExpUnits[1]
+            activeExpUnits <- activeExpUnits[-1]
+            .clusterExpUnitWithScamp(
+                expUnit=currentLevel,
                 resList=resList,
                 selectedChannels=selectedChannels,
                 numScampIter=numScampIter,
@@ -164,7 +164,7 @@
             )
         }
     }
-    else if ((length(activeLevels)) && (archDescriptionList$targetArch=="slurmCluster")) {
+    else if ((length(activeExpUnits)) && (archDescriptionList$targetArch=="slurmCluster")) {
         if (!dir.exists(file.path(normalizePath(projectPath),
                                   "faustData",
                                   "slurmScampData"))) {
@@ -181,10 +181,10 @@
         jobNum <- 0
         slurmLevels <- c()
         while (stillRunningSlurm) {
-            if ((currentJobs < maxNodeNum) && (length(activeLevels))) {
+            if ((currentJobs < maxNodeNum) && (length(activeExpUnits))) {
                 jobNum <- jobNum + 1
-                currentLevel <- activeLevels[1]
-                activeLevels <- activeLevels[-1]
+                currentLevel <- activeExpUnits[1]
+                activeExpUnits <- activeExpUnits[-1]
                 currentJobs <- (currentJobs + 1)
                 slurmLevels <- append(slurmLevels,currentLevel)
                 if (!dir.exists(file.path(
@@ -200,7 +200,7 @@
                                          currentLevel))
                 }
                 .prepareSlurmScampJob(
-                    aLevel=currentLevel,
+                    expUnit=currentLevel,
                     startingCellPop=startingCellPop,
                     selectedChannels=selectedChannels,
                     numScampIter=numScampIter,
@@ -257,36 +257,36 @@
                     }
                 }
                 slurmLevels <- activeSlurmLevels
-                if ((length(activeLevels)==0) && (currentJobs==0)) {
+                if ((length(activeExpUnits)==0) && (currentJobs==0)) {
                     stillRunningSlurm <- FALSE
                 }
             }
         }
     }
-    else if (length(activeLevels)) {
+    else if (length(activeExpUnits)) {
         print("Unsupported targetArch requested in archDescriptionList.")
         stop("Killing FAUST.")
     }
     #collect all labels from the scamp clusterings
     if (debugFlag) print("Accumulating cluster labels.")
     clusterNames <- c()
-    for (analysisLevel in uniqueLevels) {
+    for (experimentalUnit in uniqueExpUnits) {
         if (!file.exists(file.path(normalizePath(projectPath),
                                    "faustData",
-                                   "levelData",
-                                   analysisLevel,
+                                   "expUnitData",
+                                   experimentalUnit,
                                    "scampClusterLabels.rds"))) {
-            print(paste0("Labels not detected in analysisLevel ",analysisLevel))
-            print("This is a bug -- all analysis levels should have labels.")
-            stop("Killing FAUST. Check logs to determine which level is unlabeled.")
+            print(paste0("Labels not detected in experimental unit ",experimentalUnit))
+            print("This is a bug -- all experimental units should have labels.")
+            stop("Killing FAUST. Check logs to determine which experimental unit is unlabeled.")
         }
         else {
-            levelLabels <- readRDS(file.path(normalizePath(projectPath),
+            expUnitLabels <- readRDS(file.path(normalizePath(projectPath),
                                              "faustData",
-                                             "levelData",
-                                             analysisLevel,
+                                             "expUnitData",
+                                             experimentalUnit,
                                              "scampClusterLabels.rds"))
-            clusterNames <- append(clusterNames,levelLabels)
+            clusterNames <- append(clusterNames,expUnitLabels)
         }
     }
     nameSummary <- table(clusterNames)
@@ -305,7 +305,7 @@
     return()
 }
 
-.prepareSlurmScampJob <- function(aLevel,
+.prepareSlurmScampJob <- function(expUnit,
                                   startingCellPop,
                                   selectedChannels,
                                   numScampIter,
@@ -322,31 +322,31 @@
 {
     .programTemplate <-'library(scamp)
 library(data.table)
-levelExprs <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},"levelExprs.rds"))
-levelRes <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},"levelRes.rds"))
+expUnitExprs <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"expUnitExprs.rds"))
+expUnitRes <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"expUnitRes.rds"))
 resList <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","gateData",paste0({{startingCellPop}},"_resList.rds")))
-levelExprs <- levelExprs[,{{selectedChannels}}, drop = FALSE]
-levelRes <- levelRes[,{{selectedChannels}}, drop = FALSE]
+expUnitExprs <- expUnitExprs[,{{selectedChannels}}, drop = FALSE]
+expUnitRes <- expUnitRes[,{{selectedChannels}}, drop = FALSE]
 resFlag <- FALSE
-for (colNum in seq(ncol(levelRes))) {
-    if (length(which(levelRes[,colNum] > 0))) {
+for (colNum in seq(ncol(expUnitRes))) {
+    if (length(which(expUnitRes[,colNum] > 0))) {
         resFlag <- TRUE
         break
     }
 }
 #get the scamp annotation forest
-scampAF <- rep(list(NA),ncol(levelExprs))
-names(scampAF) <- colnames(levelExprs)
-for (colName in colnames(levelExprs)) {
-    scampAF[[colName]] <- resList[[colName]][[{{aLevel}}]]
+scampAF <- rep(list(NA),ncol(expUnitExprs))
+names(scampAF) <- colnames(expUnitExprs)
+for (colName in colnames(expUnitExprs)) {
+    scampAF[[colName]] <- resList[[colName]][[{{expUnit}}]]
 }
 scampClustering <- scamp::scamp(
-    dataSet = levelExprs,
+    dataSet = expUnitExprs,
     numberIterations = {{numScampIter}},
     minimumClusterSize = {{minClusterSize}},
     numberOfThreads = {{threadNum}},
     anyValueRestricted = resFlag,
-    resValMatrix = levelRes,
+    resValMatrix = expUnitRes,
     useAnnForest = TRUE,
     annForestVals = scampAF,
     randomSeed={{seedValue}},
@@ -357,18 +357,18 @@ maxClustering <- scampClustering[[2]]
 outClustering <- rep("Uncertain",length(maxClustering))
 agreeIndex <- which(runClustering==maxClustering)
 if (length(agreeIndex) == 0) {
-   print(paste0("SCAMP reached no concensus for: ",aLevel))
+   print(paste0("SCAMP reached no concensus for: ",expUnit))
    print("This indicates high-amount of uncertainty in cluster labels.")
    print("Increase the numScampIter parameters until concensus reached")
    stop("killing job.")
 }
 outClustering[agreeIndex] <- maxClustering[agreeIndex]
 clusterNames <- setdiff(sort(unique(names(table(outClustering)))),"Uncertain")
-saveRDS(clusterNames,file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},"scampClusterLabels.rds"))
-#unwind the level to each sample
-levelLookup <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},"levelLookup.rds"))
-for (sampleName in names(table(levelLookup))) {
-    sampleLookup <- which(levelLookup == sampleName)
+saveRDS(clusterNames,file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"scampClusterLabels.rds"))
+#unwind the experimental unit to each sample
+expUnitToSampleLookup <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"expUnitToSampleLookup.rds"))
+for (sampleName in names(table(expUnitToSampleLookup))) {
+    sampleLookup <- which(expUnitToSampleLookup == sampleName)
     if (length(sampleLookup)) {
         sampleClustering <- outClustering[sampleLookup]
         data.table::fwrite(
@@ -382,12 +382,12 @@ for (sampleName in names(table(levelLookup))) {
     }
 }
 scampALevelDone <- TRUE
-saveRDS(scampALevelDone,file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},"scampALevelComplete.rds"))
+saveRDS(scampALevelDone,file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"scampALevelComplete.rds"))
 slurmScampDone <- TRUE
-saveRDS(slurmScampDone,file.path(normalizePath({{projectPath}}),"faustData","slurmScampData",{{aLevel}},"slurmScampComplete.rds"))
+saveRDS(slurmScampDone,file.path(normalizePath({{projectPath}}),"faustData","slurmScampData",{{expUnit}},"slurmScampComplete.rds"))
 '
     programData <- list(
-        aLevel=paste0("'",aLevel,"'"),
+        expUnit=paste0("'",expUnit,"'"),
         startingCellPop=paste0("'",startingCellPop,"'"),
         selectedChannels=paste0("c('",paste0(selectedChannels,collapse="','"),"')"),
         numScampIter=numScampIter,
@@ -402,7 +402,7 @@ saveRDS(slurmScampDone,file.path(normalizePath({{projectPath}}),"faustData","slu
         file=file.path(normalizePath(projectPath),
                        "faustData",
                        "slurmScampData",
-                       aLevel,
+                       expUnit,
                        "slurmScampJob.R")
     )
     .controlTemplate <-'#!/bin/bash
@@ -428,14 +428,14 @@ echo "End of program at `date`"'
                          file.path(normalizePath(projectPath),
                                    "faustData",
                                    "slurmScampData",
-                                   aLevel,
+                                   expUnit,
                                    "slurmScampJob.R"),
                          "'"),
         logPath = paste0("'",
                          file.path(normalizePath(projectPath),
                                    "faustData",
                                    "slurmScampData",
-                                   aLevel,
+                                   expUnit,
                                    "sjLog"),
                          "'")
     )
@@ -445,7 +445,7 @@ echo "End of program at `date`"'
         file=file.path(normalizePath(projectPath),
                        "faustData",
                        "slurmScampData",
-                       aLevel,
+                       expUnit,
                        "slurmScampJob.sh")
     )
     return()

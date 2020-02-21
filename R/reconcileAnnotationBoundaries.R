@@ -35,10 +35,10 @@
                                        "metaData",
                                        "preferenceList.rds"))
 
-    uniqueLevels <- unique(analysisMap[,"analysisLevel",drop=TRUE])
+    uniqueExpUnits <- unique(analysisMap[,"experimentalUnit",drop=TRUE])
     uniqueIH <- unique(analysisMap[,"impH",drop=TRUE])
     gateList <- .makeGateList(
-        uniqueLevels=uniqueLevels,
+        uniqueExpUnits=uniqueExpUnits,
         projectPath=projectPath,
         parentNode=parentNode,
         selectedChannels=selectedChannels
@@ -75,26 +75,26 @@
             #gateNumber stores the standard number of thresholds for the marker across the experiment.
             gateNumber <- as.numeric(numSel[channel])
             numLookup <- which(numGateMatrix[,channel]==gateNumber)
-            matchLevels <- rownames(numGateMatrix)[numLookup]
+            matchingExpUnits <- rownames(numGateMatrix)[numLookup]
             for (currentIH in uniqueIH) {
                 #for imputation hierarchy, standardize number of thresholds
-                levelsInIH <- sort(unique(analysisMap[which(analysisMap[,"impH"]==currentIH),"analysisLevel",drop=TRUE]))
-                mbLevels <- intersect(matchLevels,levelsInIH)
-                if (length(mbLevels)) {
+                levelsInIH <- sort(unique(analysisMap[which(analysisMap[,"impH"]==currentIH),"experimentalUnit",drop=TRUE]))
+                matchingExpUnitsInIH <- intersect(matchingExpUnits,levelsInIH)
+                if (length(matchingExpUnitsInIH)) {
                     #there are experimental units in the imputation hierarchy that have the gateNumber of thresholds.
                     #standardize other units in the ih to these boundaries.
                     gateMatrix <- matrix(nrow=0,ncol=gateNumber)
-                    for (level in mbLevels) {
-                        gateData <- sort(gateList[[level]][[channel]])
+                    for (expUnit in matchingExpUnitsInIH) {
+                        gateData <- sort(gateList[[expUnit]][[channel]])
                         gateMatrix <- rbind(gateMatrix,gateData)
-                        rownames(gateMatrix)[nrow(gateMatrix)] <- level
+                        rownames(gateMatrix)[nrow(gateMatrix)] <- expUnit
                     }
                     cbLookup <- which(rownames(numGateMatrix) %in% levelsInIH)
                     possibleGates <- as.numeric(names(table(numGateMatrix[cbLookup,channel])))
                     possibleGates <- setdiff(possibleGates,c(0,gateNumber))
                     #update the resList with the thresholds
-                    for (level in rownames(gateMatrix)) {
-                        resListUpdate[[level]] <- sort(gateMatrix[which(rownames(gateMatrix)==level),])
+                    for (expUnit in rownames(gateMatrix)) {
+                        resListUpdate[[expUnit]] <- sort(gateMatrix[which(rownames(gateMatrix)==expUnit),])
                     }
                     #check for outliers
                     mgMed <- apply(gateMatrix,2,stats::median)
@@ -301,31 +301,31 @@
 }
 
 
-.makeGateList <- function(uniqueLevels,projectPath,parentNode,selectedChannels)
+.makeGateList <- function(uniqueExpUnits,projectPath,parentNode,selectedChannels)
 {
     gateList <- list()
-    for (aLevel in uniqueLevels) {
+    for (expUnit in uniqueExpUnits) {
         if (file.exists(file.path(normalizePath(projectPath),
                                   "faustData",
-                                  "levelData",
-                                  aLevel,
+                                  "expUnitData",
+                                  expUnit,
                                   paste0(parentNode,"_pAnnF.rds"))))
         {
             afIn <- readRDS(file.path(normalizePath(projectPath),
                                       "faustData",
-                                      "levelData",
-                                      aLevel,
+                                      "expUnitData",
+                                      expUnit,
                                       paste0(parentNode,"_pAnnF.rds")))
             gates <- lapply(selectedChannels,
                             function(x){eval(parse(text=paste0("afIn$`",x,"`$gates")))})
             if (length(gates) == length(selectedChannels)) {
                 names(gates) <- selectedChannels
                 gateList <- append(gateList,list(gates))
-                names(gateList)[length(gateList)] <- aLevel
+                names(gateList)[length(gateList)] <- expUnit
             }
         }
         else {
-            print(paste0(aLevel,": no parsed forest detected."))
+            print(paste0(expUnit,": no parsed forest detected."))
         }
     }
     return(gateList)

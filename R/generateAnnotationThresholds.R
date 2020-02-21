@@ -83,7 +83,7 @@ generateAnnotationThresholds <- function(gatingSet,
 
     #accumulate data into the experimental units.
     if (debugFlag) print("Collecting data into experimental units.")
-    .prepareFirstAL(projectPath = projectPath)
+    .prepareExperimentalUnits(projectPath = projectPath)
 
 
     #

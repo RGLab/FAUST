@@ -11,14 +11,14 @@
     if ((experimentalUnit == "") || (!(experimentalUnit %in% colnames(gspData)))) {
         analysisMap <- data.frame(
             sampleName = sampNames,
-            analysisLevel = sampNames,
+            experimentalUnit = sampNames,
             stringsAsFactors = FALSE
         )
     }
     else {
         analysisMap <- data.frame(
             sampleName = sampNames,
-            analysisLevel = gspData[,experimentalUnit,drop=TRUE],
+            experimentalUnit = gspData[,experimentalUnit,drop=TRUE],
             stringsAsFactors = FALSE
         )
     }

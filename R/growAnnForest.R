@@ -1,4 +1,4 @@
-.growForestForALevel <- function(aLevel,
+.growForestForExpUnit <- function(expUnit,
                                  rootPop,
                                  activeChannels,
                                  analysisMap,
@@ -9,28 +9,28 @@
                                  projectPath)
 {
     #function to
-    if (debugFlag) print(paste0("Growing annotation forest for: ",aLevel))
-    levelExprs <- readRDS(file.path(normalizePath(projectPath),
+    if (debugFlag) print(paste0("Growing annotation forest for: ",expUnit))
+    expUnitExprs <- readRDS(file.path(normalizePath(projectPath),
                                     "faustData",
-                                    "levelData",
-                                    aLevel,
-                                    "levelExprs.rds"))
-    levelRes <- readRDS(file.path(normalizePath(projectPath),
+                                    "expUnitData",
+                                    expUnit,
+                                    "expUnitExprs.rds"))
+    expUnitRes <- readRDS(file.path(normalizePath(projectPath),
                                   "faustData",
-                                  "levelData",
-                                  aLevel,
-                                  "levelRes.rds"))
-    levelExprs <- levelExprs[,activeChannels,drop=FALSE]
-    levelRes <- levelRes[,activeChannels,drop=FALSE]
+                                  "expUnitData",
+                                  expUnit,
+                                  "expUnitRes.rds"))
+    expUnitExprs <- expUnitExprs[,activeChannels,drop=FALSE]
+    expUnitRes <- expUnitRes[,activeChannels,drop=FALSE]
     resFlag <- FALSE
-    for (colNum in seq(ncol(levelRes))) {
-        if (length(which(levelRes[,colNum] > 0))) {
+    for (colNum in seq(ncol(expUnitRes))) {
+        if (length(which(expUnitRes[,colNum] > 0))) {
             resFlag <- TRUE
             break
         }
     }
     annF <- growAnnotationForest(
-        dataSet=levelExprs,
+        dataSet=expUnitExprs,
         numberIterations=numIter,
         pValueThreshold=0.25,
         minimumClusterSize=25,
@@ -39,7 +39,7 @@
         numberOfThreads=threadNum,
         maximumGatingNum=1e10,
         anyValueRestricted=resFlag,
-        resValMatrix=levelRes,
+        resValMatrix=expUnitRes,
         cutPointUpperBound=2,
         getDebugInfo=FALSE,
         randomSeed=seedValue,
@@ -49,27 +49,27 @@
     saveRDS(annF,
             file.path(normalizePath(projectPath),
                       "faustData",
-                      "levelData",
-                      aLevel,
+                      "expUnitData",
+                      expUnit,
                       paste0(rootPop,"_annF.rds")))
-    ePop <- apply(levelRes,2,function(x){length(which(x==0))})
-    names(ePop) <- colnames(levelExprs)
+    ePop <- apply(expUnitRes,2,function(x){length(which(x==0))})
+    names(ePop) <- colnames(expUnitExprs)
     af <- annF[["gateData"]]
     pAnnF <- .parseAnnotationForest(af,ePop)
     saveRDS(pAnnF,
             file.path(normalizePath(projectPath),
                       "faustData",
-                      "levelData",
-                      aLevel,
+                      "expUnitData",
+                      expUnit,
                       paste0(rootPop,"_pAnnF.rds")))
-    aLevelDone <- TRUE
-    saveRDS(aLevelDone,
+    expUnitDone <- TRUE
+    saveRDS(expUnitDone,
             file.path(normalizePath(projectPath),
                       "faustData",
-                      "levelData",
-                      aLevel,
-                      "aLevelComplete.rds"))
-    if (debugFlag) print(paste0("Annotation forest complete for: ",aLevel))
+                      "expUnitData",
+                      expUnit,
+                      "expUnitComplete.rds"))
+    if (debugFlag) print(paste0("Annotation forest complete for: ",expUnit))
     return()
 }
 
@@ -98,25 +98,25 @@
                                      "metaData",
                                      "analysisMap.rds"))
 
-    uniqueLevels <- sort(unique(analysisMap[,"analysisLevel"]))
-    activeLevels <- c()
-    #accumulate vector of levels without annotation forests.
-    for (analysisLevel in uniqueLevels) {
+    uniqueExpUnits <- sort(unique(analysisMap[,"experimentalUnit"]))
+    activeExpUnits <- c()
+    #accumulate vector of experimental units without annotation forests.
+    for (experimentalUnit in uniqueExpUnits) {
         if (!file.exists(file.path(normalizePath(projectPath),
                                    "faustData",
-                                   "levelData",
-                                   analysisLevel,
-                                   "aLevelComplete.rds"))) {
-            activeLevels <- append(activeLevels,analysisLevel)
+                                   "expUnitData",
+                                   experimentalUnit,
+                                   "expUnitComplete.rds"))) {
+            activeExpUnits <- append(activeExpUnits,experimentalUnit)
         }
     }
-    #grow forests for levels that lack them
-    if ((length(activeLevels)) && (archDescriptionList$targetArch=="singleCPU")) {
-        while (length(activeLevels)) {
-            currentLevel <- activeLevels[1]
-            activeLevels <- activeLevels[-1]
-            .growForestForALevel(
-                aLevel=currentLevel,
+    #grow forests for experimental units that lack them
+    if ((length(activeExpUnits)) && (archDescriptionList$targetArch=="singleCPU")) {
+        while (length(activeExpUnits)) {
+            currentLevel <- activeExpUnits[1]
+            activeExpUnits <- activeExpUnits[-1]
+            .growForestForExpUnit(
+                expUnit=currentLevel,
                 rootPop=rootPop,
                 activeChannels=activeChannels,
                 analysisMap=analysisMap,
@@ -128,7 +128,7 @@
             )
         }
     }
-    else if ((length(activeLevels)) && (archDescriptionList$targetArch=="slurmCluster")) {
+    else if ((length(activeExpUnits)) && (archDescriptionList$targetArch=="slurmCluster")) {
         if (!dir.exists(file.path(normalizePath(projectPath),
                                   "faustData",
                                   "slurmData"))) {
@@ -145,10 +145,10 @@
         jobNum <- 0
         slurmLevels <- c()
         while (stillRunningSlurm) {
-            if ((currentJobs < maxNodeNum) && (length(activeLevels))) {
+            if ((currentJobs < maxNodeNum) && (length(activeExpUnits))) {
                 jobNum <- jobNum + 1
-                currentLevel <- activeLevels[1]
-                activeLevels <- activeLevels[-1]
+                currentLevel <- activeExpUnits[1]
+                activeExpUnits <- activeExpUnits[-1]
                 currentJobs <- (currentJobs + 1)
                 slurmLevels <- append(slurmLevels,currentLevel)
                 if (!dir.exists(file.path(normalizePath(projectPath),
@@ -161,7 +161,7 @@
                                          currentLevel))
                 }
                 .prepareSlurmJob(
-                    aLevel=currentLevel,
+                    expUnit=currentLevel,
                     rootPop=rootPop,
                     activeChannels=activeChannels,
                     analysisMap=analysisMap,
@@ -223,20 +223,20 @@
                     }
                 }
                 slurmLevels <- activeSlurmLevels
-                if ((length(activeLevels)==0) && (currentJobs==0)) {
+                if ((length(activeExpUnits)==0) && (currentJobs==0)) {
                     stillRunningSlurm <- FALSE
                 }
             }
         }
     }
-    else if (length(activeLevels)) {
+    else if (length(activeExpUnits)) {
         print("Unsupported targetArch requested in archDescriptionList.")
         stop("Killing FAUST.")
     }
     return()
 }
 
-.prepareSlurmJob <- function(aLevel,
+.prepareSlurmJob <- function(expUnit,
                              rootPop,
                              activeChannels,
                              analysisMap,
@@ -250,19 +250,19 @@
                              jobPrefix)
 {
     .programTemplate <-'library(faust)
-levelExprs <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},"levelExprs.rds"))
-levelRes <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},"levelRes.rds"))
-levelExprs <- levelExprs[,{{activeChannels}},drop=FALSE]
-levelRes <- levelRes[,{{activeChannels}},drop=FALSE]
+expUnitExprs <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"expUnitExprs.rds"))
+expUnitRes <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"expUnitRes.rds"))
+expUnitExprs <- expUnitExprs[,{{activeChannels}},drop=FALSE]
+expUnitRes <- expUnitRes[,{{activeChannels}},drop=FALSE]
 resFlag <- FALSE
-for (colNum in seq(ncol(levelRes))) {
-if (length(which(levelRes[,colNum] > 0))) {
+for (colNum in seq(ncol(expUnitRes))) {
+if (length(which(expUnitRes[,colNum] > 0))) {
 resFlag <- TRUE
 break
 }
 }
 annF <- faust:::growAnnotationForest(
-dataSet=levelExprs,
+dataSet=expUnitExprs,
 numberIterations={{numIter}},
 pValueThreshold=0.25,
 minimumClusterSize=25,
@@ -271,26 +271,26 @@ maximumSearchDepth=2,
 numberOfThreads={{threadNum}},
 maximumGatingNum=1e10,
 anyValueRestricted=resFlag,
-resValMatrix=levelRes,
+resValMatrix=expUnitRes,
 cutPointUpperBound=2,
 getDebugInfo=FALSE,
 randomSeed={{seedValue}},
 recordCounts=FALSE,
 recordIndices=FALSE
 )
-saveRDS(annF,file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},paste0({{rootPop}},"_annF.rds")))
-ePop <- apply(levelRes,2,function(x){length(which(x==0))})
-names(ePop) <- colnames(levelExprs)
+saveRDS(annF,file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},paste0({{rootPop}},"_annF.rds")))
+ePop <- apply(expUnitRes,2,function(x){length(which(x==0))})
+names(ePop) <- colnames(expUnitExprs)
 af <- annF[["gateData"]]
 pAnnF <- faust:::.parseAnnotationForest(af,ePop)
-saveRDS(pAnnF,file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},paste0({{rootPop}},"_pAnnF.rds")))
-aLevelDone <- TRUE
-saveRDS(aLevelDone,file.path(normalizePath({{projectPath}}),"faustData","levelData",{{aLevel}},"aLevelComplete.rds"))
+saveRDS(pAnnF,file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},paste0({{rootPop}},"_pAnnF.rds")))
+expUnitDone <- TRUE
+saveRDS(expUnitDone,file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"expUnitComplete.rds"))
 slurmDone <- TRUE
-saveRDS(slurmDone,file.path(normalizePath({{projectPath}}),"faustData","slurmData",{{aLevel}},"slurmComplete.rds"))
+saveRDS(slurmDone,file.path(normalizePath({{projectPath}}),"faustData","slurmData",{{expUnit}},"slurmComplete.rds"))
 '
     programData <- list(
-        aLevel=paste0("'",aLevel,"'"),
+        expUnit=paste0("'",expUnit,"'"),
         rootPop=paste0("'",rootPop,"'"),
         activeChannels=paste0("c('",paste0(activeChannels,collapse="','"),"')"),
         numIter=numIter,
@@ -304,7 +304,7 @@ saveRDS(slurmDone,file.path(normalizePath({{projectPath}}),"faustData","slurmDat
         file=file.path(normalizePath(projectPath),
                        "faustData",
                        "slurmData",
-                       aLevel,
+                       expUnit,
                        "slurmJob.R")
     )
     .controlTemplate <-'#!/bin/bash
@@ -330,14 +330,14 @@ echo "End of program at `date`"'
                          file.path(normalizePath(projectPath),
                                    "faustData",
                                    "slurmData",
-                                   aLevel,
+                                   expUnit,
                                    "slurmJob.R"),
                          "'"),
         logPath = paste0("'",
                          file.path(normalizePath(projectPath),
                                    "faustData",
                                    "slurmData",
-                                   aLevel,
+                                   expUnit,
                                    "fjLog"),
                          "'")
     )
@@ -347,7 +347,7 @@ echo "End of program at `date`"'
         file=file.path(normalizePath(projectPath),
                        "faustData",
                        "slurmData",
-                       aLevel,
+                       expUnit,
                        "slurmJob.sh")
     )
     return()

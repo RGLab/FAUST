@@ -16,7 +16,7 @@ discoverPhenotypes <- function(projectPath,
     )
 
     if (debugFlag) print("Discovering phenotypes across experimental units.")
-    .clusterLevelsWithScamp(
+    .clusterExpUnitsWithScamp(
         projectPath = projectPath,
         nameOccuranceNum = nameOccuranceNum,
         debugFlag = debugFlag,

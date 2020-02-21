@@ -28,7 +28,7 @@
                                       "sampleData",
                                       sampleName,
                                       "exprsMat.rds"))
-        aLevel <- analysisMap[which(analysisMap[,"sampleName"]==sampleName),"analysisLevel"]
+        expUnit <- analysisMap[which(analysisMap[,"sampleName"]==sampleName),"experimentalUnit"]
         plotList <- list()
         #initialize directories for the selected channels
         for (channel in selC) {
@@ -52,7 +52,7 @@
         for (channel in selC) {
             channelData <- as.data.frame(exprsMat[,channel,drop=FALSE])
             colnames(channelData) <- "x"
-            gateData <- resList[[channel]][[aLevel]]
+            gateData <- resList[[channel]][[expUnit]]
             channelQs <- as.numeric(quantile(channelData$x,probs=c(0.01,0.99)))
             histLookupLow <- which(channelData$x >= channelQs[1])
             histLookupHigh <- which(channelData$x <= channelQs[2])

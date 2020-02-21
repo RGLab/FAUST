@@ -74,7 +74,7 @@
                                "metaData",
                                "channelBounds.rds")))
     {
-        saveRDS(startingCellPop,
+        saveRDS(channelBounds,
                 file.path(normalizePath(projectPath),
                           "faustData",
                           "metaData",

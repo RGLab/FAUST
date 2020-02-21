@@ -1,12 +1,12 @@
 #' Fast Annotation using Shape-constrained Trees
 #'
-#' This function plots the depth-score-order gating 
+#' This function plots the depth-score-order gating
 #' strategy for a population found by the FAUST pipeline.
-#' 
+#'
 #' @param cellPop A text string corresponding to a cell population
 #' determined by the FAUST pipeline. Must be taken from the
 #' projectPath/faustData/faustCountMatrix.rds column names.
-#' 
+#'
 #' @param sampleName A text string corresponding to the experimental
 #' sample in which you want to plot cellPop's gating strategy. Must be
 #' taken from the projectPath/faustData/faustCountMatrix.rds row names.
@@ -115,7 +115,7 @@ plotFaustGates <- function(cellPop,sampleName,projectPath=".") {
     staticPop <- cellPop
     snLookup <- which(analysisMap[,"sampleName"] == sampleName)
     if (length(snLookup)) {
-        aLevel <- analysisMap[snLookup,"analysisLevel"]
+        expUnit <- analysisMap[snLookup,"experimentalUnit"]
         exprsMat <- readRDS(file.path(normalizePath(projectPath),
                                       "faustData",
                                       "sampleData",
@@ -139,8 +139,8 @@ plotFaustGates <- function(cellPop,sampleName,projectPath=".") {
                 plotData <- as.data.frame(exprsMat[activeRows,c(nc1,nc2),drop=FALSE])
                 c1qs <- as.numeric(quantile(exprsMat[,nc1],probs=c(0.01,0.99)))
                 c2qs <- as.numeric(quantile(exprsMat[,nc2],probs=c(0.01,0.99)))
-                gv1 <- resList[[nc1]][[aLevel]]
-                gv2 <- resList[[nc2]][[aLevel]]
+                gv1 <- resList[[nc1]][[expUnit]]
+                gv2 <- resList[[nc2]][[expUnit]]
                 aMat <- matrix(1,nrow=nrow(plotData),ncol=ncol(plotData))
                 colnames(aMat) <- colnames(plotData)
                 for (gv in gv1) {
@@ -193,7 +193,7 @@ plotFaustGates <- function(cellPop,sampleName,projectPath=".") {
                 activeRows <- which(indexRows == TRUE)
                 plotData <- as.data.frame(exprsMat[activeRows,c(nc1),drop=FALSE])
                 c1qs <- as.numeric(quantile(exprsMat[,nc1],probs=c(0.01,0.99)))
-                gv1 <- resList[[nc1]][[aLevel]]
+                gv1 <- resList[[nc1]][[expUnit]]
                 aMat <- matrix(1,nrow=nrow(plotData),ncol=ncol(plotData))
                 colnames(aMat) <- colnames(plotData)
                 for (gv in gv1) {

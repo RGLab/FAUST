@@ -1,11 +1,11 @@
-.prepareFirstAL <- function(projectPath) {
+.prepareExperimentalUnits <- function(projectPath) {
     if (!dir.exists(file.path(normalizePath(projectPath),
                               "faustData",
-                              "levelData")))
+                              "expUnitData")))
     {
         dir.create(file.path(normalizePath(projectPath),
                              "faustData",
-                             "levelData"))
+                             "expUnitData"))
     }
     if (!file.exists(file.path(normalizePath(projectPath),
                                "faustData",
@@ -16,24 +16,24 @@
                                          "faustData",
                                          "metaData",
                                          "analysisMap.rds"))
-        uniqueLevels <- unique(analysisMap[,"analysisLevel"])
-        for (aLevel in uniqueLevels) {
-            aData <- analysisMap[which(analysisMap[,"analysisLevel"]==aLevel),,drop=FALSE]
+        uniqueExpUnits <- unique(analysisMap[,"experimentalUnit"])
+        for (expUnit in uniqueExpUnits) {
+            aData <- analysisMap[which(analysisMap[,"experimentalUnit"]==expUnit),,drop=FALSE]
             firstSample <- TRUE
             for (sampleNum in seq(nrow(aData))) {
                 sampleName <- aData[sampleNum,"sampleName"]
                 if (firstSample) {
-                    levelExprs <- readRDS(file.path(normalizePath(projectPath),
+                    expUnitExprs <- readRDS(file.path(normalizePath(projectPath),
                                                     "faustData",
                                                     "sampleData",
                                                     sampleName,
                                                     "exprsMat.rds"))
-                    levelRes <- readRDS(file.path(normalizePath(projectPath),
+                    expUnitRes <- readRDS(file.path(normalizePath(projectPath),
                                                   "faustData",
                                                   "sampleData",
                                                   sampleName,
                                                   "resMat.rds"))
-                    levelLookup <- rep(sampleName,nrow(levelExprs))
+                    expUnitToSampleLookup <- rep(sampleName,nrow(expUnitExprs))
                     firstSample <- FALSE
                 }
                 else {
@@ -42,45 +42,45 @@
                                                   "sampleData",
                                                   sampleName,
                                                   "exprsMat.rds"))
-                    levelExprs <- rbind(levelExprs,newExprs)
+                    expUnitExprs <- rbind(expUnitExprs,newExprs)
                     newRes <- readRDS(file.path(normalizePath(projectPath),
                                                 "faustData",
                                                 "sampleData",
                                                 sampleName,
                                                 "resMat.rds"))
-                    levelRes <- rbind(levelRes,newRes)
+                    expUnitRes <- rbind(expUnitRes,newRes)
                     newLookup <- rep(sampleName,nrow(newExprs))
-                    levelLookup <- append(levelLookup,newLookup)
+                    expUnitToSampleLookup <- append(expUnitToSampleLookup,newLookup)
                 }
             }
-            if (nrow(levelExprs)) { #there is data associated with the analysis level. record it.
+            if (nrow(expUnitExprs)) { #there is data associated with the experimental unit. record it.
                 if (!dir.exists(file.path(normalizePath(projectPath),
                                           "faustData",
-                                          "levelData",
-                                          aLevel))) {
+                                          "expUnitData",
+                                          expUnit))) {
                     dir.create(file.path(normalizePath(projectPath),
                                          "faustData",
-                                         "levelData",
-                                         aLevel))
+                                         "expUnitData",
+                                         expUnit))
                 }
-                saveRDS(levelExprs,
+                saveRDS(expUnitExprs,
                         file.path(normalizePath(projectPath),
                                   "faustData",
-                                  "levelData",
-                                  aLevel,
-                                  "levelExprs.rds"))
-                saveRDS(levelRes,
+                                  "expUnitData",
+                                  expUnit,
+                                  "expUnitExprs.rds"))
+                saveRDS(expUnitRes,
                         file.path(normalizePath(projectPath),
                                   "faustData",
-                                  "levelData",
-                                  aLevel,
-                                  "levelRes.rds"))
-                saveRDS(levelLookup,
+                                  "expUnitData",
+                                  expUnit,
+                                  "expUnitRes.rds"))
+                saveRDS(expUnitToSampleLookup,
                         file.path(normalizePath(projectPath),
                                   "faustData",
-                                  "levelData",
-                                  aLevel,
-                                  "levelLookup.rds"))
+                                  "expUnitData",
+                                  expUnit,
+                                  "expUnitToSampleLookup.rds"))
             }
         }
         firstALReady <- TRUE
