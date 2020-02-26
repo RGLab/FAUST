@@ -1,133 +1,173 @@
 #' Full Annotation Using Shape-constrained Trees
 #'
-#' This function discovers and annotated cell subsets in experimental cytometry data stored in a gating set.
+#' This function discovers and annotates cell subsets in experimental cytometry
+#' data stored in a gating set.
 #'
-#' @param gatingSet The `faust` function requires that experimental cytometry data you wish to analyze
-#' is stored in a `GatingSet` data structure.
-#' This data structure can be constructed available using the `flowWorkspace` Bioconductor package.
+#' @param gatingSet The FAUST method requires that experimental cytometry
+#' data you wish to analyze is stored in a `GatingSet` data structure. This data
+#' structure can be constructed available using the `flowWorkspace` Bioconductor
+#' package.
 #'
-#' @param startingCellPop A character vector specifying the node from the manual gating strategy attached to
-#' the `gatingSet` to use for `faust` analysis. The node in the manual gating strategy is, at minimum,
-#' asusmed by `faust` to have pre-gated debris and dead cells. For example, the node might identify live lymphocytes
-#' in each sample.
+#' @param startingCellPop A character vector specifying the node from the manual
+#' gating strategy attached to the `gatingSet` to use for `faust` analysis. The
+#' node in the manual gating strategy is, at minimum, asusmed by `faust` to have
+#' pre-gated debris and dead cells. For example, the node might identify live
+#' lymphocytes in each sample.
 #'
-#' @param activeChannels A character vector, each entry of which is a marker name to be used in the `faust`
-#' analysis. The markers listed in this parameter
-#' must **exactly** match the `desc` field of the `parameters` of the `flowFrames` in the `GatingSet.
-#' `FAUST` will not run if they do not match exactly.
+#' @param activeChannels A character vector, each entry of which is a marker name
+#' to be used in the `faust` analysis. The markers listed in this parameter must
+#' **exactly** match the `desc` field of the `parameters` of the `flowFrames` in
+#' the `GatingSet. `FAUST` will not run if they do not match exactly.
 #'
-#' @param channelBounds This parameter accepts three settings: an empty string, a matrix, and a list.
+#' @param channelBounds This parameter accepts three settings: an empty string,
+#' a matrix, and a list.
 #'
-#' The matrix setting: A 2 by `length(activeChannels)` numeric matrix,
-#' with `colnames(channelBounds) <- activeChannels` and `rownames(channelBounds) <- c("Low","High")`.
-#' Expression values in a channel less than or equal to the value in the "Low"
-#' row are treated as low, by default, and not actively considered when `FAUST` processes the data.
+#' The matrix setting: A 2 by `length(activeChannels)` numeric matrix, with
+#' `colnames(channelBounds) <- activeChannels` and
+#' `rownames(channelBounds) <- c("Low","High")`. Expression values in a channel
+#' less than or equal to the value in the "Low" row are treated as low, by
+#' default, and not actively considered when `FAUST` processes the data.
 #' Expression values in a channel greater than or equal to the value in the "High"
-#' row are treated as high, by default, and not actively considered when `FAUST` processes the data.
+#' row are treated as high, by default, and not actively considered when `FAUST`
+#' processes the data.
 #'
-#' If the user provides the empty string "", channel bounds will be determined empirically.
+#' If the user provides the empty string "", channel bounds will be determined
+#' empirically.
 #'
-#' When the user provides either the empty string "" or a single numeric matrix as the `channelBounds` setting,
-#' the same channel bounds matrix will apply to all samples in the experiment. However, if the user is analyzing
-#' a dataset whose analysis supports using the `imputationHierarchy` parameter, different levels of the imputation
-#' hierarchy can be assigned distinct channelBounds matrices. To do this, pass faust a list of 2 by
-#' `lenght(activeChannels)` matrices. The length of the list must equal the number of distinct levels in the imputation
-#' hierarchy. The name of each slot of the list must be a unique level of the imputation hierarchy.
-#' FAUST will then analyze all experimental units grouped by that level using the supplied channel bounds matrix.
+#' When the user provides either the empty string "" or a single numeric matrix
+#' as the `channelBounds` setting, the same channel bounds matrix will apply to
+#' all samples in the experiment. However, if the user is analyzing a dataset
+#' whose analysis supports using the `imputationHierarchy` parameter, different
+#' levels of the imputation hierarchy can be assigned distinct channelBounds
+#' matrices. To do this, pass faust a list of 2 by `length(activeChannels)`
+#' matrices. The length of the list must equal the number of distinct levels in
+#' the imputation hierarchy. The name of each slot of the list must be a unique
+#' level of the imputation hierarchy. FAUST will then analyze all experimental
+#' units grouped by that level using the supplied channel bounds matrix.
 #'
-#' @param experimentalUnit A character vector specifying the experimental unit of analysis of samples contained
-#' in the gating set. If left as its default value "", the "name" column in `pData(gatingSet)` will be used as
-#' the experimental unit, leading to `FAUST` analyzing each sample independently. If modified by the user, the
-#' value must match one of the strings in `colnames(pData(gatingSet))`; the corresponding column of the
-#' data frame `pData(gatingSet)` will be used to concatenate individual samples into experimental units for analysis
-#' by `FAUST`.
+#' @param experimentalUnit A character vector specifying the experimental unit
+#' of analysis of samples contained in the gating set. If left as its default
+#' value "", the "name" column in `pData(gatingSet)` will be used as the
+#' experimental unit, leading to `FAUST` analyzing each sample independently.
+#' If modified by the user, the value must match one of the strings in
+#' `colnames(pData(gatingSet))`; the corresponding column of the data frame
+#' `pData(gatingSet)` will be used to concatenate individual samples into
+#' experimental units for analysis by `FAUST`.
 #'
-#' @param imputationHierarchy A character vector specifying the imputation hierarchy for annotation boundaries computed
-#' by FAUST. If left as its default value "", `FAUST` will impose no hierarchy on the data.
-#' If modified by the user, the value must match one of the strings in `colnames(pData(gatingSet))`;
-#' the corresponding column of the data frame `pData(gatingSet)` will be used to impose the impose the imputation
-#' hierarchy: for each selected marker, experimental units that do not empirical support annotation bondaries for a marker
-#' will first attempt to use other experimental units with the same `imputationHierarchy` coding to impute boundaries.
-#' If this is not possible, annotation boundaries will be imputed usining boundaries from all experimental units.
+#' @param imputationHierarchy A character vector specifying the imputation
+#' hierarchy for annotation boundaries computed by FAUST. If left as its default
+#' value "", `FAUST` will impose no hierarchy on the data. If modified by the
+#' user, the value must match one of the strings in `colnames(pData(gatingSet))`;
+#' the corresponding column of the data frame `pData(gatingSet)` will
+#' be used to impose the impose the imputation hierarchy: for each selected
+#' marker, experimental units that do not empirical support annotation bondaries
+#' for a marker will first attempt to use other experimental units with the same
+#' `imputationHierarchy` coding to impute boundaries. If this is not possible,
+#' annotation boundaries will be imputed usining boundaries from all experimental
+#' units.
 #'
-#' @param projectPath An absolute path on your system that locates all intermediate data produced by faust.
-#' At the location specified by the projectPath, `faust` creates a directory called `faustData`, and subdirectories
-#' that contain intermediate data generated by the analysis. The final output of `faust`, an annotated matrix of
-#' counts, is produced at `projectPath/faustData/faustCountMatrix.rds`, and can be loaded into R using the `readRDS`
-#' function. Currently, `faust` only supports Mac OSX and Linux file systems.
+#' @param projectPath An absolute path on your system that locates all
+#' intermediate data produced by faust. At the location specified by the
+#' projectPath, `faust` creates a directory called `faustData`, and
+#' subdirectories that contain intermediate data generated by the analysis. The
+#' final output of `faust`, an annotated matrix of counts, is produced at
+#' `projectPath/faustData/faustCountMatrix.rds`, and can be loaded into R using
+#' the `readRDS` function.
 #'
-#' @param depthScoreThreshold A numeric value between 0 and 1 used for marker selection.
-#' `faust` uses this parameter in conjunction with the `selectionQuantile` parameter to determine which
-#' markers to use for discovery and annotation.
-#' `faust` automatically produces a plot "projectPath/faustData/plotData/scoreLines.pdf"
-#' that can be used to help set this threshold value for an experiment.
+#' @param depthScoreThreshold A numeric value between 0 and 1 used for marker
+#' selection. `faust` uses this parameter in conjunction with the
+#' `selectionQuantile` parameter to determine which markers to use for discovery
+#' and annotation. `faust` automatically produces a plot
+#' "projectPath/faustData/plotData/scoreLines.pdf" that can be used to help set
+#' this threshold value for an experiment.
 #'
-#' @param selectionQuantile A numeric value between 0 and 1 used for marker selection.
-#' Depth scores are computed for all experimental units in the experiment.
-#' FAUST computes the empirical selectionQuantile  across each channel:
-#' `quantile(channelDepthScores,probs=selectionQuantile)`.
-#' The empirical quantile is then compared to the depthScoreThreshold for each marker.
-#' All markers with empirical quantile above the depthScoreThreshold are used by `faust` to discover
-#' and annotate cell subsets in the experiment.
+#' @param selectionQuantile A numeric value between 0 and 1 used for marker
+#' selection. Depth scores are computed for all experimental units in the
+#' experiment. FAUST computes the empirical selectionQuantile  across each
+#' channel: `quantile(channelDepthScores,probs=selectionQuantile)`. The
+#' empirical quantile is then compared to the depthScoreThreshold for each
+#' marker. All markers with empirical quantile above the depthScoreThreshold
+#' are used by `faust` to discover and annotate cell subsets in the experiment.
 #'
-#' @param nameOccuranceNum The number of times a name has to appear in distinct SCAMP clusterings to be
-#' gated out.
+#' @param nameOccuranceNum The number of times a name has to appear in distinct
+#' SCAMP clusterings to be gated out.
 #'
-#' @param supervisedList A list of lists.
-#' The names of list entries correspond to marker names in the active channels vector.
-#' Channels named in this list will have their gate locations modified. See Details.
+#' @param supervisedList A list of lists. The names of list entries correspond
+#' to marker names in the active channels vector to which supervision is
+#' applied. Channels named in this list will have their gate locations modified.
+#' See Details.
 #'
-#' @param debugFlag Boolean value. Set to TRUE to print method status information to the console or a log file.
+#' @param debugFlag Boolean value. Set to TRUE to print method status information
+#' to the console or a log file.
 #'
-#' @param threadNum Integer value. Many components of the FAUST method support multi-threading on a single CPU.
-#' Set this parameter to the number of threads you wish to use.
+#' @param threadNum Integer value. Many components of the FAUST method support
+#' multi-threading on a single CPU. Set this parameter to the number of threads
+#' you wish to use.
 #'
-#' @param seedValue Integer value that determines the random seed. Used for reproducibility.
+#' @param seedValue Integer value that determines the random seed. Used for
+#' reproducibility.
 #'
 #' @param annotationsApproved Boolean value. FALSE by default to encourage the
-#' user to review the proposed annotation boundaries. When set to TRUE, indicates the user
-#' wants to use the proposed annotation boundaries to cluster and gate the experiment.
-#' If you want to run the FAUST method totally unsupervised, set this parameter to true
-#' before running the method.
+#' user to review the proposed annotation boundaries. When set to TRUE, indicates
+#' the user wants to use the proposed annotation boundaries to cluster and gate
+#' the experiment. If you want to run the FAUST method totally unsupervised,
+#' set this parameter to true before running the `faust` function.
 #'
-#' @param drawAnnotationHistograms Boolean. Set to 1 to draw the annotation boundary locations for selected markers
-#' for all samples and all markers. Set to 0 to forego the plotting.
+#' @param drawAnnotationHistograms Boolean. Set to TRUE to draw the annotation
+#' boundary locations for selected markers for all samples and all markers. Set
+#' to FALSE to forego the plotting.
 #'
 #' @param archDescriptionList list containing slot "targetArch".
 #' Default "singleCPU" indicates FAUST will run on a single processor.
 #'
-#' FAUST also has preliminary support for dispatching jobs across nodes of a cluster managed by slurm.
-#' This support assumes the "sbatch" command is available to launch jobs on the cluster.
-#' Also note that the current implementation does not dynamically restart jobs that fail to launch after sbatch is invoked.
-#' In the event a job fails to launch, the faust call must be interrupted and called again.
-#' `faust` attempts to check-point much of the intermediate progress in order to not perform redundant work.
+#' FAUST also has preliminary support for dispatching jobs across nodes of a
+#' cluster managed by slurm. This support assumes the "sbatch" command is
+#' available to launch jobs on the cluster.
 #'
-#' Set "targetArch" slot to "slurmCluster" to dispatch jobs across a cluster managed by slurm.
-#' When "targetArch" is set to "slurmCluster", the following slots must be set by the user.
+#' Also note that the current implementation does not dynamically restart jobs
+#' that fail to launch after sbatch is invoked. In the event a job fails to launch,
+#' the faust call must be interrupted and called again.
 #'
-#' Slot "partitionID": Character string. The name of the partition on which jobs are run.
+#' `faust` attempts to check-point much of the intermediate progress in order to
+#' avoid performing redundant computation.
 #'
-#' Slot "jobPrefix": Character string. This string will prepend all jobs launched on the slurm cluster.
-#' When "squeue" is used to interrogate job state, this string can be used to identify jobs.
+#' Set "targetArch" slot to "slurmCluster" to dispatch jobs across a cluster
+#' managed by slurm. When "targetArch" is set to "slurmCluster", the following
+#' slots must be set by the user.
 #'
-#' Slot "jobTime"" Character string. This string sets the maximum time a job launched by faust on the slurm cluster
-#' can run. String format follows 'HH:MM:SS'.
+#' Slot "partitionID": Character string. The name of the partition on which jobs
+#' are run.
 #'
-#' Slot "maxNodeNum": Numeric value. The maximum number of nodes you wish to request on the slurm cluster.
+#' Slot "jobPrefix": Character string. This string will prepend all jobs launched
+#' on the slurm cluster. When "squeue" is used to interrogate job state, this
+#' string can be used to identify jobs.
 #'
-#' Slot "maxTime": Numeric value. The total amount of time you want to run FAUST for. When exceeded, the job terminates.
+#' Slot "jobTime"" Character string. This string sets the maximum time a job
+#' launched by faust on the slurm cluster can run. String format follows
+#' 'HH:MM:SS'.
 #'
-#' Slot "nodeThreadNum": Character string. The number of threads used by FAUST on each node.
+#' Slot "maxNodeNum": Numeric value. The maximum number of nodes you wish to
+#' request on the slurm cluster.
 #'
-#' Slot "sbatchFlags": Character string. This string contains space-delimited command-line flags to pass to sbatch.
+#' Slot "maxTime": Numeric value. The total amount of time you want to run FAUST
+#' for. When exceeded, the job terminates.
+#'
+#' Slot "nodeThreadNum": Character string. The number of threads used by FAUST
+#' on each node.
+#'
+#' Slot "sbatchFlags": Character string. This string contains space-delimited
+#' command-line flags to pass to sbatch.
 #'
 #' @param plottingDevice string with device for saving graphical output.
 #' By default it is set to "pdf".
 #'
-#' @return The FAUST method returns a null value on completion. The main output is the file
-#' "projectPath/faustData/faustCountMatrix.rds". The rownames are `sampleNames(gatingSet)]`
-#' and the column names are the cell populations discovered by the method. Note that the
-#' special cell population "0_0_0_0_0" counts unclassified cells in the experiment.
+#' @return The `faust` function returns a null value on completion. The main
+#' output is the file "projectPath/faustData/faustCountMatrix.rds". The
+#' rownames are `sampleNames(gatingSet)]`
+#'
+#' and the column names are the cell populations discovered by the method.
+#' Note that the special cell population "0_0_0_0_0" counts unclassified
+#' cells in the experiment.
 #'
 #' @importFrom scamp scamp
 #' @importFrom Biobase AnnotatedDataFrame pData
@@ -158,7 +198,7 @@ faust <- function(gatingSet,
                   projectPath=normalizePath("."),
                   depthScoreThreshold=0.01,
                   selectionQuantile=0.50,
-                  nameOccuranceNum=ceiling((0.1*length(gatingSet))),
+                  nameOccuranceNum=ceiling((0.5*length(gatingSet))),
                   supervisedList=NA,
                   debugFlag=FALSE,
                   threadNum=1,
@@ -172,32 +212,37 @@ faust <- function(gatingSet,
                   plottingDevice="pdf"
                   )
 {
-    generateAnnotationThresholds(gatingSet = gatingSet,
-                                 projectPath = projectPath,
-                                 experimentalUnit = experimentalUnit,
-                                 imputationHierarchy = imputationHierarchy,
-                                 activeChannels = activeChannels,
-                                 channelBounds = channelBounds,
-                                 startingCellPop = startingCellPop,
-                                 depthScoreThreshold = depthScoreThreshold,
-                                 selectionQuantile = selectionQuantile,
-                                 seedValue = seedValue,
-                                 threadNum = threadNum,
-                                 debugFlag = debugFlag,
-                                 supervisedList = supervisedList,
-                                 archDescriptionList = archDescriptionList,
-                                 annotationsApproved = annotationsApproved,
-                                 drawAnnotationHistograms=drawAnnotationHistograms,
-                                 plottingDevice = plottingDevice)
+    generateAnnotationThresholds(
+        gatingSet = gatingSet,
+        startingCellPop = startingCellPop,
+        projectPath = projectPath,
+        experimentalUnit = experimentalUnit,
+        imputationHierarchy = imputationHierarchy,
+        activeChannels = activeChannels,
+        channelBounds = channelBounds,
+        depthScoreThreshold = depthScoreThreshold,
+        selectionQuantile = selectionQuantile,
+        seedValue = seedValue,
+        threadNum = threadNum,
+        debugFlag = debugFlag,
+        supervisedList = supervisedList,
+        archDescriptionList = archDescriptionList,
+        annotationsApproved = annotationsApproved,
+        drawAnnotationHistograms=drawAnnotationHistograms,
+        plottingDevice = plottingDevice
+    )
 
     if (annotationsApproved) {
-        discoverPhenotypes(projectPath = projectPath,
-                           nameOccuranceNum = nameOccuranceNum,
-                           debugFlag = debugFlag,
-                           threadNum = threadNum,
-                           seedValue = seedValue,
-                           archDescriptionList = archDescriptionList,
-                           plottingDevice = plottingDevice)
+        discoverPhenotypes(
+            gatingSet = gatingSet,
+            projectPath = projectPath,
+            nameOccuranceNum = nameOccuranceNum,
+            debugFlag = debugFlag,
+            threadNum = threadNum,
+            seedValue = seedValue,
+            archDescriptionList = archDescriptionList,
+            plottingDevice = plottingDevice
+        )
     }
     return()
 }
