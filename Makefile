@@ -4,4 +4,4 @@ perform_tests:
 
 perform_cran_check:
 	R -e "library('devtools')"
-	R -e "devtools::test()"
+	R -e "devtools::check()"
