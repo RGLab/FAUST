@@ -223,6 +223,8 @@ generateAnnotationThresholds <- function(gatingSet,
         archDescriptionList=archDescriptionList
     )
 
+    sampleNames <- flowWorkspace::sampleNames(gatingSet)
+    gatingSetPData <- flowWorkspace::pData(gatingSet)
 
     #set up the faustData directory for check-pointing/metadata storage.
     .initializeFaustDataDir(
@@ -238,8 +240,8 @@ generateAnnotationThresholds <- function(gatingSet,
     #and their level in the imputation hierarchy.
     .constructAnalysisMap(
         projectPath = projectPath,
-        gspData = flowWorkspace::pData(gatingSet),
-        sampNames = flowWorkspace::sampleNames(gatingSet),
+        gspData = gatingSetPData,
+        sampNames = sampleNames,
         experimentalUnit = experimentalUnit,
         imputationHierarchy = imputationHierarchy,
         debugFlag = debugFlag
@@ -258,7 +260,7 @@ generateAnnotationThresholds <- function(gatingSet,
     #make sure the channel bounds conform to internal requirements
     #test to see if there have been changes between faust runs.
     .processChannelBounds(
-        samplesInExp = flowWorkspace::sampleNames(gatingSet),
+        samplesInExp = sampleNames,
         projectPath = projectPath,
         channelBounds = channelBounds,
         debugFlag = debugFlag
