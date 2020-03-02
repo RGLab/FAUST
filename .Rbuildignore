@@ -1,3 +1,5 @@
 ^reproducibility$
 ^README.md$
 ^faust.Rproj$
+^.*\.Rproj$
+^\.Rproj\.user$
