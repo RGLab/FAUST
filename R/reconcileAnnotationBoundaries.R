@@ -78,8 +78,8 @@
             matchingExpUnits <- rownames(numGateMatrix)[numLookup]
             for (currentIH in uniqueIH) {
                 #for imputation hierarchy, standardize number of thresholds
-                levelsInIH <- sort(unique(analysisMap[which(analysisMap[,"impH"]==currentIH),"experimentalUnit",drop=TRUE]))
-                matchingExpUnitsInIH <- intersect(matchingExpUnits,levelsInIH)
+                allExpUnitsInIH <- sort(unique(analysisMap[which(analysisMap[,"impH"]==currentIH),"experimentalUnit",drop=TRUE]))
+                matchingExpUnitsInIH <- intersect(matchingExpUnits,allExpUnitsInIH)
                 if (length(matchingExpUnitsInIH)) {
                     #there are experimental units in the imputation hierarchy that have the gateNumber of thresholds.
                     #standardize other units in the ih to these boundaries.
@@ -89,7 +89,7 @@
                         gateMatrix <- rbind(gateMatrix,gateData)
                         rownames(gateMatrix)[nrow(gateMatrix)] <- expUnit
                     }
-                    cbLookup <- which(rownames(numGateMatrix) %in% levelsInIH)
+                    cbLookup <- which(rownames(numGateMatrix) %in% allExpUnitsInIH)
                     possibleGates <- as.numeric(names(table(numGateMatrix[cbLookup,channel])))
                     possibleGates <- setdiff(possibleGates,c(0,gateNumber))
                     #update the resList with the thresholds
@@ -135,17 +135,17 @@
                         for (gateNum in possibleGates) {
                             modLookup <- which(numGateMatrix[,channel]==gateNum)
                             allModSamples <- rownames(numGateMatrix)[modLookup]
-                            modSamples <- intersect(allModSamples,levelsInIH)
+                            modSamples <- intersect(allModSamples,allExpUnitsInIH)
                             for (modName in modSamples) {
                                 modVals <- gateList[[modName]][[channel]]
                                 if (gateNum < length(finalVals)) newModVals <- .upConvert(modVals,finalVals)
                                 else newModVals <- .downConvert(modVals,finalVals)
-                                newModVals <- sort(newModVals)
-                                for (mvNum in seq(length(newModVals))) {
-                                    if ((newModVals[mvNum] <= lowVal[mvNum]) || (newModVals[mvNum] >= highVal[mvNum])) {
-                                        newModVals[mvNum] <- finalVals[mvNum]
-                                    }
-                                }
+                                #newModVals <- sort(newModVals)
+                                #for (mvNum in seq(length(newModVals))) {
+                                #    if ((newModVals[mvNum] <= lowVal[mvNum]) || (newModVals[mvNum] >= highVal[mvNum])) {
+                                #        newModVals[mvNum] <- finalVals[mvNum]
+                                #    }
+                                #}
                                 resListUpdate[[modName]] <- sort(newModVals)
                             }
                         }
@@ -153,8 +153,17 @@
                     #finally deal with expermential units with NA thresholds
                     #these are experimental units that did not produce any thresholds in the
                     #annotation forest
-                    naNames <- intersect(names(which(is.na(resListUpdate))),levelsInIH)
+                    naNames <- intersect(names(which(is.na(resListUpdate))),allExpUnitsInIH)
                     if (length(naNames)) {
+                        standardizedExpUnits <- setdiff(allExpUnitsInIH,naNames)
+                        #recompute the gate matrix to account for expUnits that are now standard
+                        gateMatrix <- matrix(nrow=0,ncol=gateNumber)
+                        for (sExpUnit in standardizedExpUnits) {
+                            gateData <- sort(resListUpdate[[sExpUnit]])
+                            gateMatrix <- rbind(gateMatrix,gateData)
+                            rownames(gateMatrix)[nrow(gateMatrix)] <- sExpUnit
+                        }
+                        finalVals <- apply(gateMatrix,2,stats::median)
                         for (changeName in naNames) {
                             resListUpdate[[changeName]] <- sort(finalVals)
                         }
