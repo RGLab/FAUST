@@ -23,7 +23,12 @@
                                           "sampleData",
                                           sampleName,
                                           "exprsMat.rds"))
-            if (firstSampleForCB) {
+            if (nrow(exprsMat) <= 25) {
+                #sample falls below level of detection for a phenotype.
+                #this can occur if the samples are combined into an experimental unit >25.
+                next
+            }
+            else if (firstSampleForCB) {
                 #initialize containers for channel bounds data
 
                 #first percentile matrix

@@ -19,7 +19,7 @@
             exprsMatIn <- flowCore::exprs(dataSet)
             markers <- Biobase::pData(flowCore::parameters(dataSet))
             colnames(exprsMatIn) <- as.vector(markers[match(colnames(exprsMatIn),markers[,"name"], nomatch=0),]$desc)
-            exprsMat <- exprsMatIn[,activeChannels]
+            exprsMat <- exprsMatIn[,activeChannels,drop=FALSE]
             if (!dir.exists(file.path(normalizePath(projectPath),
                                       "faustData",
                                       "sampleData",

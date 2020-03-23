@@ -28,53 +28,58 @@
                                       "sampleData",
                                       sampleName,
                                       "exprsMat.rds"))
-        expUnit <- analysisMap[which(analysisMap[,"sampleName"]==sampleName),"experimentalUnit"]
-        plotList <- list()
-        #initialize directories for the selected channels
-        for (channel in selC) {
-            sanitizedChannel <- gsub("[[:punct:]]","",channel)
-            sanitizedChannel <- gsub("[[:space:]]","",sanitizedChannel)
-            sanitizedChannel <- gsub("[[:cntrl:]]","",sanitizedChannel)
-            if (!dir.exists(file.path(normalizePath(projectPath),
-                                      "faustData",
-                                      "plotData",
-                                      "histograms",
-                                      sanitizedChannel)))
-            {
-                dir.create(file.path(normalizePath(projectPath),
-                                     "faustData",
-                                     "plotData",
-                                     "histograms",
-                                     sanitizedChannel))
-            }
+        if (nrow(exprsMat) <= 25) {
+            next
         }
-        #plot marker histograms by sample
-        for (channel in selC) {
-            channelData <- as.data.frame(exprsMat[,channel,drop=FALSE])
-            colnames(channelData) <- "x"
-            gateData <- resList[[channel]][[expUnit]]
-            channelQs <- as.numeric(quantile(channelData$x,probs=c(0.01,0.99)))
-            histLookupLow <- which(channelData$x >= channelQs[1])
-            histLookupHigh <- which(channelData$x <= channelQs[2])
-            histLookup <- intersect(histLookupLow,histLookupHigh)
-            histData <- channelData[histLookup,"x",drop=FALSE]
-            p <- .getHistogram(histData,channel,gateData)
-            sanitizedChannel <- gsub("[[:punct:]]","",channel)
-            sanitizedChannel <- gsub("[[:space:]]","",sanitizedChannel)
-            sanitizedChannel <- gsub("[[:cntrl:]]","",sanitizedChannel)
-            fpNameOut <- file.path(normalizePath(projectPath),
-                                   "faustData",
-                                   "plotData",
-                                   "histograms",
-                                   sanitizedChannel,
-                                   paste0(sampleName,".",plottingDevice))
-            ggplot2::ggsave(
-                         filename=fpNameOut,
-                         plot=p,
-                         units="in",
-                         height = 6,
-                         width = 6
-                     )
+        else {
+            expUnit <- analysisMap[which(analysisMap[,"sampleName"]==sampleName),"experimentalUnit"]
+            plotList <- list()
+                                        #initialize directories for the selected channels
+            for (channel in selC) {
+                sanitizedChannel <- gsub("[[:punct:]]","",channel)
+                sanitizedChannel <- gsub("[[:space:]]","",sanitizedChannel)
+                sanitizedChannel <- gsub("[[:cntrl:]]","",sanitizedChannel)
+                if (!dir.exists(file.path(normalizePath(projectPath),
+                                          "faustData",
+                                          "plotData",
+                                          "histograms",
+                                          sanitizedChannel)))
+                {
+                    dir.create(file.path(normalizePath(projectPath),
+                                         "faustData",
+                                         "plotData",
+                                         "histograms",
+                                         sanitizedChannel))
+                }
+            }
+                                        #plot marker histograms by sample
+            for (channel in selC) {
+                channelData <- as.data.frame(exprsMat[,channel,drop=FALSE])
+                colnames(channelData) <- "x"
+                gateData <- resList[[channel]][[expUnit]]
+                channelQs <- as.numeric(quantile(channelData$x,probs=c(0.01,0.99)))
+                histLookupLow <- which(channelData$x >= channelQs[1])
+                histLookupHigh <- which(channelData$x <= channelQs[2])
+                histLookup <- intersect(histLookupLow,histLookupHigh)
+                histData <- channelData[histLookup,"x",drop=FALSE]
+                p <- .getHistogram(histData,channel,gateData)
+                sanitizedChannel <- gsub("[[:punct:]]","",channel)
+                sanitizedChannel <- gsub("[[:space:]]","",sanitizedChannel)
+                sanitizedChannel <- gsub("[[:cntrl:]]","",sanitizedChannel)
+                fpNameOut <- file.path(normalizePath(projectPath),
+                                       "faustData",
+                                       "plotData",
+                                       "histograms",
+                                       sanitizedChannel,
+                                       paste0(sampleName,".",plottingDevice))
+                ggplot2::ggsave(
+                             filename=fpNameOut,
+                             plot=p,
+                             units="in",
+                             height = 6,
+                             width = 6
+                         )
+            }
         }
     }
     return()
