@@ -24,6 +24,9 @@ growAnnotationForest(
   gaussianScaleParameter = 4,
   randomSeed = 0,
   allowRepeatedSplitting = FALSE,
+  subSamplingThreshold = 1e+06,
+  subSampleSize = 1e+06,
+  subSampleIter = 1,
   recordCounts = FALSE,
   recordIndices = FALSE
 )
@@ -135,6 +138,13 @@ induce modal clusters along the same column vector of dataSet multiple times thr
 the value of this parameter (TRUE OR FALSE), the search for candidate clusters is never allowed to induce modal clusters
 along the same column vector twice in a row: from the point of view of FAUST, this can only arise due to technical
 error.}
+
+\item{subSamplingThreshold}{Determines how large a data matrix needs to be in order to start sub-sampling for density
+estimation.}
+
+\item{subSampleSize}{Number of observations a conditional density will sample.}
+
+\item{subSampleIter}{Number of sub-sampling iterations.}
 
 \item{recordCounts}{Record counts of which observations are split at different levels of annotation forest.
 Memory intensive. In runs using multiple threads, each thread maintains a local copy of a count matrix with

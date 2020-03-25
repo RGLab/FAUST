@@ -6,7 +6,10 @@
                                  debugFlag,
                                  threadNum,
                                  seedValue,
-                                 projectPath)
+                                 projectPath,
+                                 densitySubSampleThreshold,
+                                 densitySubSampleSize,
+                                 densitySubSampleIterations)
 {
     #function to
     if (debugFlag) print(paste0("Growing annotation forest for: ",expUnit))
@@ -43,6 +46,9 @@
         cutPointUpperBound=2,
         getDebugInfo=FALSE,
         randomSeed=seedValue,
+        subSamplingThreshold=densitySubSampleThreshold,
+        subSampleSize=densitySubSampleSize,
+        subSampleIter=densitySubSampleIterations,
         recordCounts=FALSE,
         recordIndices=FALSE
     )
@@ -80,6 +86,9 @@
                            threadNum,
                            seedValue,
                            projectPath,
+                           densitySubSampleThreshold,
+                           densitySubSampleSize,
+                           densitySubSampleIterations,
                            archDescriptionList)
 {
     #removing numForestIter from interface for simplicity,
@@ -124,7 +133,10 @@
                 debugFlag=debugFlag,
                 threadNum=threadNum,
                 seedValue=seedValue,
-                projectPath=projectPath
+                projectPath=projectPath,
+                densitySubSampleThreshold=densitySubSampleThreshold,
+                densitySubSampleSize=densitySubSampleSize,
+                densitySubSampleIterations=densitySubSampleIterations
             )
         }
     }
@@ -161,18 +173,21 @@
                                          currentLevel))
                 }
                 .prepareSlurmJob(
-                    expUnit=currentLevel,
-                    rootPop=rootPop,
-                    activeChannels=activeChannels,
-                    analysisMap=analysisMap,
-                    numIter=numIter,
-                    threadNum=archDescriptionList$nodeThreadNum,
-                    seedValue=seedValue,
-                    projectPath=projectPath,
+                    expUnit = currentLevel,
+                    rootPop = rootPop,
+                    activeChannels = activeChannels,
+                    analysisMap = analysisMap,
+                    numIter = numIter,
+                    threadNum = archDescriptionList$nodeThreadNum,
+                    seedValue = seedValue,
+                    projectPath = projectPath,
                     jobNumber = jobNum,
-                    partitionID=archDescriptionList$partitionID,
-                    jobTime=archDescriptionList$jobTime,
-                    jobPrefix=archDescriptionList$jobPrefix
+                    partitionID = archDescriptionList$partitionID,
+                    jobTime = archDescriptionList$jobTime,
+                    jobPrefix = archDescriptionList$jobPrefix,
+                    densitySubSampleThreshold = densitySubSampleThreshold,
+                    densitySubSampleSize = densitySubSampleSize,
+                    densitySubSampleIterations = densitySubSampleIterations
                 )
                 print(paste0("Slurm annotation forest starting for ", currentLevel))
                 launchJob <- system2("sbatch",
@@ -247,7 +262,10 @@
                              jobNumber,
                              partitionID,
                              jobTime,
-                             jobPrefix)
+                             jobPrefix,
+                             densitySubSampleThreshold,
+                             densitySubSampleSize,
+                             densitySubSampleIterations)
 {
     .programTemplate <-'library(faust)
 expUnitExprs <- readRDS(file.path(normalizePath({{projectPath}}),"faustData","expUnitData",{{expUnit}},"expUnitExprs.rds"))
@@ -275,6 +293,9 @@ resValMatrix=expUnitRes,
 cutPointUpperBound=2,
 getDebugInfo=FALSE,
 randomSeed={{seedValue}},
+subSamplingThreshold={{densitySubSampleThreshold}},
+subSampleSize={{densitySubSampleSize}},
+subSampleIter={{densitySubSampleIterations}},
 recordCounts=FALSE,
 recordIndices=FALSE
 )
@@ -296,7 +317,10 @@ saveRDS(slurmDone,file.path(normalizePath({{projectPath}}),"faustData","slurmDat
         numIter=numIter,
         threadNum=threadNum,
         seedValue=seedValue,
-        projectPath=paste0("'",projectPath,"'")
+        projectPath=paste0("'",projectPath,"'"),
+        densitySubSampleThreshold=densitySubSampleThreshold,
+        densitySubSampleSize=densitySubSampleSize,
+        densitySubSampleIterations=densitySubSampleIterations
     )
     renderedProgram <- whisker.render(.programTemplate, programData)
     write(

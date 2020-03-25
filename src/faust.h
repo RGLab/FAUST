@@ -155,6 +155,9 @@ Rcpp::List cppGrowAnnotationForest(Rcpp::NumericMatrix&,
 				   double,
 				   double,
 				   unsigned long long,
+				   unsigned long,
+				   unsigned long,
+				   unsigned long,
 				   bool,
 				   bool);
 
@@ -188,6 +191,9 @@ searchResults findCandidateClusters(const std::vector<std::vector<double>>&,
 				    const bool&,
 				    unsigned long,
 				    unsigned long long&,
+				    unsigned long&,
+				    unsigned long&,
+				    unsigned long&,
 				    bool,
 				    bool); 
  
@@ -206,6 +212,9 @@ searchResults candidateClusterSearch(const std::vector<std::vector<double>>&,
 				     unsigned long long,
 				     bool,
 				     int,
+				     unsigned long,
+				     unsigned long,
+				     unsigned long,
 				     bool,
 				     bool);
 

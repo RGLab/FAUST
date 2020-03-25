@@ -109,6 +109,13 @@
 #' along the same column vector twice in a row: from the point of view of FAUST, this can only arise due to technical
 #' error.
 #' 
+#' @param subSamplingThreshold Determines how large a data matrix needs to be in order to start sub-sampling for density
+#' estimation.
+#'
+#' @param subSampleSize Number of observations a conditional density will sample.
+#'
+#' @param subSampleIter Number of sub-sampling iterations.
+#' 
 #' @param recordCounts Record counts of which observations are split at different levels of annotation forest.
 #' Memory intensive. In runs using multiple threads, each thread maintains a local copy of a count matrix with
 #' the same dimensions as the data set, and counts are copied to the master thread. 
@@ -147,6 +154,9 @@ growAnnotationForest <- function(dataSet,
                                  gaussianScaleParameter=4,
                                  randomSeed=0,
                                  allowRepeatedSplitting=FALSE,
+                                 subSamplingThreshold=1e6,
+                                 subSampleSize=1e6,
+                                 subSampleIter=1,
                                  recordCounts=FALSE,
                                  recordIndices=FALSE){
     if (!is.matrix(dataSet))
@@ -216,6 +226,9 @@ growAnnotationForest <- function(dataSet,
                                               maximumSearchTime,
                                               gaussianScaleParameter,
                                               seedVal,
+                                              subSamplingThreshold,
+                                              subSampleSize,
+                                              subSampleIter,
                                               recordCounts,
                                               recordIndices)
         if (firstIteration) {

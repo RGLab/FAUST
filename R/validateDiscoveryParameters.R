@@ -2,6 +2,9 @@
                                          debugFlag,
                                          threadNum,
                                          seedValue,
+                                         densitySubSampleThreshold,
+                                         densitySubSampleSize,
+                                         densitySubSampleIterations,
                                          archDescriptionList)
 {
     if (length(seedValue) != 1)
@@ -20,7 +23,39 @@
     {
         stop("projectPath must be a single character string.")
     }
+    if ((length(densitySubSampleThreshold) != 1) || (!is.numeric(densitySubSampleThreshold)))
+    {
+        stop("densitySubSampleThreshold must be a single integer value greater than 0.")
+    }
+    if ((length(densitySubSampleSize) != 1) || (!is.numeric(densitySubSampleSize)))
+    {
+        stop("densitySubSampleSize must be a single integer value greater than 0.")
+    }
+    if ((length(densitySubSampleIterations) != 1) || (!is.numeric(densitySubSampleIterations)))
+    {
+        stop("densitySubSampleIterations must be a single integer value greater than 0.")
+    }
     #check to make sure parameters conform to type and content expectations.
+    if (densitySubSampleIterations < 1)
+    {
+        stop("densitySubSampleIterations must be a single integer value greater than 0.")
+    }
+    if (densitySubSampleThreshold < 1)
+    {
+        stop("densitySubSampleThreshold must be a single integer value greater than 0.")
+    }
+    if (densitySubSampleSize < 1)
+    {
+        stop("densitySubSampleSize must be a single integer value greater than 0.")
+    }
+    if (densitySubSampleThreshold < densitySubSampleSize)
+    {
+        stop("densitySubSampleThreshold must be greater than or equal to densitySubSampleSize")
+    }
+    if (densitySubSampleThreshold < densitySubSampleSize)
+    {
+        stop("densitySubSampleThreshold must be greater than or equal to densitySubSampleSize")
+    }
     if (!is.logical(debugFlag))
     {
         stop("debugFlag must be set to TRUE xor FALSE.")

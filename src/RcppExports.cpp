@@ -19,8 +19,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // cppGrowAnnotationForest
-Rcpp::List cppGrowAnnotationForest(Rcpp::NumericMatrix& rawDataMatrix, double dipT, int clusterLB, bool repeatsAllowed, int maxSearchDepth, unsigned long long maxClusterNum, bool verboseForestRun, unsigned long long maxNumberOfGates, bool randomSearch, int numThreadsRequested, bool useRestrictedValue, Rcpp::NumericMatrix& restrictedValueMatrix, int numGateUB, double maxSearchTime, double gaussianScale, unsigned long long randomSeed, bool recordCounts, bool recordIndices);
-RcppExport SEXP _faust_cppGrowAnnotationForest(SEXP rawDataMatrixSEXP, SEXP dipTSEXP, SEXP clusterLBSEXP, SEXP repeatsAllowedSEXP, SEXP maxSearchDepthSEXP, SEXP maxClusterNumSEXP, SEXP verboseForestRunSEXP, SEXP maxNumberOfGatesSEXP, SEXP randomSearchSEXP, SEXP numThreadsRequestedSEXP, SEXP useRestrictedValueSEXP, SEXP restrictedValueMatrixSEXP, SEXP numGateUBSEXP, SEXP maxSearchTimeSEXP, SEXP gaussianScaleSEXP, SEXP randomSeedSEXP, SEXP recordCountsSEXP, SEXP recordIndicesSEXP) {
+Rcpp::List cppGrowAnnotationForest(Rcpp::NumericMatrix& rawDataMatrix, double dipT, int clusterLB, bool repeatsAllowed, int maxSearchDepth, unsigned long long maxClusterNum, bool verboseForestRun, unsigned long long maxNumberOfGates, bool randomSearch, int numThreadsRequested, bool useRestrictedValue, Rcpp::NumericMatrix& restrictedValueMatrix, int numGateUB, double maxSearchTime, double gaussianScale, unsigned long long randomSeed, unsigned long subSampleThreshold, unsigned long subSampleSize, unsigned long subSampleIterations, bool recordCounts, bool recordIndices);
+RcppExport SEXP _faust_cppGrowAnnotationForest(SEXP rawDataMatrixSEXP, SEXP dipTSEXP, SEXP clusterLBSEXP, SEXP repeatsAllowedSEXP, SEXP maxSearchDepthSEXP, SEXP maxClusterNumSEXP, SEXP verboseForestRunSEXP, SEXP maxNumberOfGatesSEXP, SEXP randomSearchSEXP, SEXP numThreadsRequestedSEXP, SEXP useRestrictedValueSEXP, SEXP restrictedValueMatrixSEXP, SEXP numGateUBSEXP, SEXP maxSearchTimeSEXP, SEXP gaussianScaleSEXP, SEXP randomSeedSEXP, SEXP subSampleThresholdSEXP, SEXP subSampleSizeSEXP, SEXP subSampleIterationsSEXP, SEXP recordCountsSEXP, SEXP recordIndicesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -40,9 +40,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type maxSearchTime(maxSearchTimeSEXP);
     Rcpp::traits::input_parameter< double >::type gaussianScale(gaussianScaleSEXP);
     Rcpp::traits::input_parameter< unsigned long long >::type randomSeed(randomSeedSEXP);
+    Rcpp::traits::input_parameter< unsigned long >::type subSampleThreshold(subSampleThresholdSEXP);
+    Rcpp::traits::input_parameter< unsigned long >::type subSampleSize(subSampleSizeSEXP);
+    Rcpp::traits::input_parameter< unsigned long >::type subSampleIterations(subSampleIterationsSEXP);
     Rcpp::traits::input_parameter< bool >::type recordCounts(recordCountsSEXP);
     Rcpp::traits::input_parameter< bool >::type recordIndices(recordIndicesSEXP);
-    rcpp_result_gen = Rcpp::wrap(cppGrowAnnotationForest(rawDataMatrix, dipT, clusterLB, repeatsAllowed, maxSearchDepth, maxClusterNum, verboseForestRun, maxNumberOfGates, randomSearch, numThreadsRequested, useRestrictedValue, restrictedValueMatrix, numGateUB, maxSearchTime, gaussianScale, randomSeed, recordCounts, recordIndices));
+    rcpp_result_gen = Rcpp::wrap(cppGrowAnnotationForest(rawDataMatrix, dipT, clusterLB, repeatsAllowed, maxSearchDepth, maxClusterNum, verboseForestRun, maxNumberOfGates, randomSearch, numThreadsRequested, useRestrictedValue, restrictedValueMatrix, numGateUB, maxSearchTime, gaussianScale, randomSeed, subSampleThreshold, subSampleSize, subSampleIterations, recordCounts, recordIndices));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -190,7 +193,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_faust_addNoiseToDataVector", (DL_FUNC) &_faust_addNoiseToDataVector, 3},
-    {"_faust_cppGrowAnnotationForest", (DL_FUNC) &_faust_cppGrowAnnotationForest, 18},
+    {"_faust_cppGrowAnnotationForest", (DL_FUNC) &_faust_cppGrowAnnotationForest, 21},
     {"_faust_doubleDip", (DL_FUNC) &_faust_doubleDip, 1},
     {"_faust_gateSample", (DL_FUNC) &_faust_gateSample, 4},
     {"_faust_getAnnotationStats", (DL_FUNC) &_faust_getAnnotationStats, 5},

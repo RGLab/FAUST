@@ -95,7 +95,15 @@
 #' @param supervisedList A list of lists. The names of list entries correspond
 #' to marker names in the active channels vector to which supervision is
 #' applied. Channels named in this list will have their gate locations modified.
-#' See Details.
+#'
+#' Supported supervision: 'Preference'. Asserts a preference for the number of
+#' annotation boundaries for a targeted marker. If this is selected, FAUST will
+#' attempt to standardize to the preferred number of boundaries across experimental
+#' units if there is empirical data to support the preference.
+#'
+#' Example syntax:
+#' 
+#' supervisedList <- list(`Target_Marker` = list(actionType = "Preference", action = c(2)))
 #'
 #' @param debugFlag Boolean value. Set to TRUE to print method status information
 #' to the console or a log file.
@@ -117,6 +125,22 @@
 #' boundary locations for selected markers for all samples and all markers. Set
 #' to FALSE to forego the plotting.
 #'
+#' @param densitySubSampleThreshold Integer value. 
+#' Sets the number of cells needed in a clustering collection to sub-sample for density estimation.
+#' NOTE: sub-sampling only occurs for density estimation. The dip test is computed on all cells
+#' in the clustering collection. 
+#' 
+#' @param densitySubSampleSize Integer value.
+#' The number of cells to sub-sample from a clustering collection for density estimation.
+#' NOTE: sub-sampling only occurs for density estimation. The dip test is computed on all cells
+#' in the clustering collection. 
+#' 
+#' @param densitySubSampleIterations Integer value.
+#' The number of distinct sub-sampled density estimates to compute. The final gate location is the median
+#' across the sub-sampled densities.
+#' NOTE: sub-sampling only occurs for density estimation. The dip test is computed on all cells
+#' in the clustering collection. 
+#' 
 #' @param archDescriptionList list containing slot "targetArch".
 #' Default "singleCPU" indicates FAUST will run on a single processor.
 #'
@@ -205,6 +229,9 @@ faust <- function(gatingSet,
                   seedValue=123,
                   drawAnnotationHistograms=TRUE,
                   annotationsApproved=FALSE,
+                  densitySubSampleThreshold=1e6,
+                  densitySubSampleSize=1e6,
+                  densitySubSampleIterations=1,
                   archDescriptionList=
                       list(
                           targetArch=c("singleCPU")
@@ -228,7 +255,10 @@ faust <- function(gatingSet,
         supervisedList = supervisedList,
         archDescriptionList = archDescriptionList,
         annotationsApproved = annotationsApproved,
-        drawAnnotationHistograms=drawAnnotationHistograms,
+        drawAnnotationHistograms = drawAnnotationHistograms,
+        densitySubSampleThreshold = densitySubSampleThreshold,
+        densitySubSampleSize = densitySubSampleSize,
+        densitySubSampleIterations = densitySubSampleIterations,
         plottingDevice = plottingDevice
     )
 
@@ -240,6 +270,9 @@ faust <- function(gatingSet,
             debugFlag = debugFlag,
             threadNum = threadNum,
             seedValue = seedValue,
+            densitySubSampleThreshold = densitySubSampleThreshold,
+            densitySubSampleSize = densitySubSampleSize,
+            densitySubSampleIterations = densitySubSampleIterations,
             archDescriptionList = archDescriptionList,
             plottingDevice = plottingDevice
         )

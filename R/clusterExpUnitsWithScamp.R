@@ -5,7 +5,10 @@
                                     debugFlag,
                                     threadNum,
                                     seedValue,
-                                    projectPath
+                                    projectPath,
+                                    densitySubSampleThreshold,
+                                    densitySubSampleSize,
+                                    densitySubSampleIterations
                                     )
 {
     if (debugFlag) print(paste0("Starting SCAMP for: ",expUnit))
@@ -44,7 +47,10 @@
         useAnnForest = TRUE,
         annForestVals = scampAF,
         randomSeed=seedValue,
-        getDebugInfo = FALSE
+        getDebugInfo = FALSE,
+        subSampleThreshold = densitySubSampleThreshold,
+        subSampleSize = densitySubSampleSize,
+        subSampleIterations = densitySubSampleIterations
     )
     runClustering <- scampClustering[[1]]
     maxClustering <- scampClustering[[2]]
@@ -105,6 +111,9 @@
                                       debugFlag,
                                       threadNum,
                                       seedValue,
+                                      densitySubSampleThreshold,
+                                      densitySubSampleSize,
+                                      densitySubSampleIterations,
                                       archDescriptionList)
 {
     #removing numScampIter from interface for simplicity,
@@ -160,6 +169,9 @@
                 debugFlag=debugFlag,
                 threadNum=threadNum,
                 seedValue=seedValue,
+                densitySubSampleThreshold=densitySubSampleThreshold,
+                densitySubSampleSize=densitySubSampleSize,
+                densitySubSampleIterations=densitySubSampleIterations,
                 projectPath=projectPath
             )
         }
@@ -200,18 +212,21 @@
                                          currentLevel))
                 }
                 .prepareSlurmScampJob(
-                    expUnit=currentLevel,
-                    startingCellPop=startingCellPop,
-                    selectedChannels=selectedChannels,
-                    numScampIter=numScampIter,
-                    minClusterSize=25,
-                    threadNum=archDescriptionList$nodeThreadNum,
-                    seedValue=seedValue,
-                    projectPath=projectPath,
+                    expUnit = currentLevel,
+                    startingCellPop = startingCellPop,
+                    selectedChannels = selectedChannels,
+                    numScampIter = numScampIter,
+                    minClusterSize = 25,
+                    threadNum = archDescriptionList$nodeThreadNum,
+                    seedValue = seedValue,
+                    projectPath = projectPath,
                     jobNumber = jobNum,
-                    partitionID=archDescriptionList$partitionID,
-                    jobTime=archDescriptionList$jobTime,
-                    jobPrefix=archDescriptionList$jobPrefix
+                    partitionID = archDescriptionList$partitionID,
+                    jobTime = archDescriptionList$jobTime,
+                    jobPrefix = archDescriptionList$jobPrefix,
+                    densitySubSampleThreshold = densitySubSampleThreshold,
+                    densitySubSampleSize = densitySubSampleSize,
+                    densitySubSampleIterations = densitySubSampleIterations
                 )
                 print(paste0("Slurm SCAMP clustering starting for ", currentLevel))
                 launchJob <- system2("sbatch",
@@ -317,7 +332,10 @@
                                   jobNumber,
                                   partitionID,
                                   jobTime,
-                                  jobPrefix
+                                  jobPrefix,
+                                  densitySubSampleThreshold,
+                                  densitySubSampleSize,
+                                  densitySubSampleIterations
                                   )
 {
     .programTemplate <-'library(scamp)
@@ -350,7 +368,10 @@ scampClustering <- scamp::scamp(
     useAnnForest = TRUE,
     annForestVals = scampAF,
     randomSeed={{seedValue}},
-    getDebugInfo = FALSE
+    getDebugInfo = FALSE,
+    subSampleThreshold = {{densitySubSampleThreshold}},
+    subSampleSize = {{densitySubSampleSize}},
+    subSampleIterations = {{densitySubSampleIterations}}
 )
 runClustering <- scampClustering[[1]]
 maxClustering <- scampClustering[[2]]
@@ -394,7 +415,10 @@ saveRDS(slurmScampDone,file.path(normalizePath({{projectPath}}),"faustData","slu
         minClusterSize=minClusterSize,
         threadNum=threadNum,
         seedValue=seedValue,
-        projectPath=paste0("'",projectPath,"'")
+        projectPath=paste0("'",projectPath,"'"),
+        densitySubSampleThreshold=densitySubSampleThreshold,
+        densitySubSampleSize=densitySubSampleSize,
+        densitySubSampleIterations=densitySubSampleIterations
     )
     renderedProgram <- whisker.render(.programTemplate, programData)
     write(

@@ -48,6 +48,9 @@ void ccSearchThread(const std::vector<std::vector<double>>& dmRef,
 		    int parExStartRoot,//also need to copy in, otherwise roots repeat.
 		    std::condition_variable& condRef,
 		    int& threadCounter,
+		    unsigned long& subSampleThreshold,
+		    unsigned long& subSampleSize,
+		    unsigned long& subSampleIterations,
 		    bool recordCounts,
 		    bool recordIndices)
 
@@ -67,6 +70,9 @@ void ccSearchThread(const std::vector<std::vector<double>>& dmRef,
 						    rSeed,
 						    searchParEx,
 						    parExStartRoot,
+						    subSampleThreshold,
+						    subSampleSize,
+						    subSampleIterations,
 						    recordCounts,
 						    recordIndices);
   
@@ -130,6 +136,9 @@ searchResults findCandidateClusters(const std::vector<std::vector<double>>& fDat
 				    const bool& annotationForestRun,
 				    unsigned long numThreadsTotal,
 				    unsigned long long& randomSeed,
+				    unsigned long& subSampleThreshold,
+				    unsigned long& subSampleSize,
+				    unsigned long& subSampleIterations,
 				    bool recordCounts,
 				    bool recordIndices)
 {
@@ -192,11 +201,25 @@ searchResults findCandidateClusters(const std::vector<std::vector<double>>& fDat
     if (allRootNum <= 1) {
       guardCandidateClusters.unlock();
       //in the case of no viable or a single viable root, pass to exhaustiveSearch.
-      fCandClusters =  candidateClusterSearch(fDataVals,fRestrictedVals,fDipT,fClusterLB,
-					      fRepeatsAllowed,fMaxSearchDepth,
-					      fMaxClusterNum,fMaxNumberOfGates,fRandomSearch,fUseRestrictedValue,
-					      annotationForestRun,(randomSeed+1),ccSearchParex,ccSearchParexRoot,
-					      recordCounts,recordIndices);
+      fCandClusters =  candidateClusterSearch(fDataVals,
+					      fRestrictedVals,
+					      fDipT,
+					      fClusterLB,
+					      fRepeatsAllowed,
+					      fMaxSearchDepth,
+					      fMaxClusterNum,
+					      fMaxNumberOfGates,
+					      fRandomSearch,
+					      fUseRestrictedValue,
+					      annotationForestRun,
+					      (randomSeed+1),
+					      ccSearchParex,
+					      ccSearchParexRoot,
+					      subSampleThreshold,
+					      subSampleSize,
+					      subSampleIterations,
+					      recordCounts,
+					      recordIndices);
     }
     else {
       ccSearchParex = true;
@@ -245,6 +268,9 @@ searchResults findCandidateClusters(const std::vector<std::vector<double>>& fDat
 					 ccSearchParexRoot,
 					 std::ref(searchCompleteCV),
 					 std::ref(activeThreads),
+					 std::ref(subSampleThreshold),
+					 std::ref(subSampleSize),
+					 std::ref(subSampleIterations),
 					 recordCounts,
 					 recordIndices));
 	if (printDebugInfo) {
@@ -332,6 +358,9 @@ searchResults findCandidateClusters(const std::vector<std::vector<double>>& fDat
 					  ccSearchParexRoot,
 					  std::ref(searchCompleteCV),
 					  std::ref(activeThreads),
+					  std::ref(subSampleThreshold),
+					  std::ref(subSampleSize),
+					  std::ref(subSampleIterations),
 					  recordCounts,
 					  recordIndices);
 	      if (printDebugInfo) {
@@ -401,10 +430,23 @@ searchResults findCandidateClusters(const std::vector<std::vector<double>>& fDat
   }
   else {
     //pass in the random seed directly in this event -- it won't be used.
-    fCandClusters =  candidateClusterSearch(fDataVals,fRestrictedVals,fDipT,fClusterLB,
-					    fRepeatsAllowed,fMaxSearchDepth,
-					    fMaxClusterNum,fMaxNumberOfGates,fRandomSearch,fUseRestrictedValue,
-					    annotationForestRun,(randomSeed+1),ccSearchParex,ccSearchParexRoot,
+    fCandClusters =  candidateClusterSearch(fDataVals,
+					    fRestrictedVals,
+					    fDipT,
+					    fClusterLB,
+					    fRepeatsAllowed,
+					    fMaxSearchDepth,
+					    fMaxClusterNum,
+					    fMaxNumberOfGates,
+					    fRandomSearch,
+					    fUseRestrictedValue,
+					    annotationForestRun,
+					    (randomSeed+1),
+					    ccSearchParex,
+					    ccSearchParexRoot,
+					    subSampleThreshold,
+					    subSampleSize,
+					    subSampleIterations,
 					    recordCounts,
 					    recordIndices);
 

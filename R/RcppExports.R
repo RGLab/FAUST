@@ -5,8 +5,8 @@ addNoiseToDataVector <- function(dataVector, scaleGaussian, rSeed) {
     .Call(`_faust_addNoiseToDataVector`, dataVector, scaleGaussian, rSeed)
 }
 
-cppGrowAnnotationForest <- function(rawDataMatrix, dipT, clusterLB, repeatsAllowed, maxSearchDepth, maxClusterNum, verboseForestRun, maxNumberOfGates, randomSearch, numThreadsRequested, useRestrictedValue, restrictedValueMatrix, numGateUB, maxSearchTime, gaussianScale, randomSeed, recordCounts, recordIndices) {
-    .Call(`_faust_cppGrowAnnotationForest`, rawDataMatrix, dipT, clusterLB, repeatsAllowed, maxSearchDepth, maxClusterNum, verboseForestRun, maxNumberOfGates, randomSearch, numThreadsRequested, useRestrictedValue, restrictedValueMatrix, numGateUB, maxSearchTime, gaussianScale, randomSeed, recordCounts, recordIndices)
+cppGrowAnnotationForest <- function(rawDataMatrix, dipT, clusterLB, repeatsAllowed, maxSearchDepth, maxClusterNum, verboseForestRun, maxNumberOfGates, randomSearch, numThreadsRequested, useRestrictedValue, restrictedValueMatrix, numGateUB, maxSearchTime, gaussianScale, randomSeed, subSampleThreshold, subSampleSize, subSampleIterations, recordCounts, recordIndices) {
+    .Call(`_faust_cppGrowAnnotationForest`, rawDataMatrix, dipT, clusterLB, repeatsAllowed, maxSearchDepth, maxClusterNum, verboseForestRun, maxNumberOfGates, randomSearch, numThreadsRequested, useRestrictedValue, restrictedValueMatrix, numGateUB, maxSearchTime, gaussianScale, randomSeed, subSampleThreshold, subSampleSize, subSampleIterations, recordCounts, recordIndices)
 }
 
 doubleDip <- function(x) {

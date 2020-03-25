@@ -223,9 +223,117 @@ viableColumnData getViableColumns(const std::vector<std::vector<double>>& sorted
   return vcInfo;
 }
 
+//structure to hold subsampling information
+struct subSampledGateData {
+  std::vector<double> gateLocations;
+  unsigned int numGates;
+};
+
+//perform the sub-sampling
+std::vector<double> subSampleTsGates(const std::vector<double>& sortedData,
+				     unsigned long subSampleSize,
+				     unsigned long subSampleIterations,
+				     std::mt19937& twRef) {
+  std::vector<double> subSortedData;
+  std::vector<double> subCutPoints;
+  long numIter = subSampleIterations;
+  unsigned int numSubCuts;
+  std::vector<subSampledGateData> subSampledGates;
+
+  //check the difference between the observed data size and the subsample size
+  double dataDiff = (std::log10(sortedData.size()) - std::log10(subSampleSize));
+  double dataDiffThreshold = 0.5; // decides how to subsample based on relative magnitudes -- tune it to preference
+  //if we are trying to subsample similarly sized amounts
+  //directly shuffle the data vector
+  std::vector<long> possibleIndices,indicesToShuffle,selectedIndices;
+  if (dataDiff < dataDiffThreshold) {
+    for (auto i = 0; i != sortedData.size(); ++i)
+      possibleIndices.push_back(i);
+  }
+
+  //on the other hand, if the difference between the subsample size and
+  //observed data size exceeds an order of magnitude, randomly select indices
+  std::uniform_int_distribution<> pickIndex(0, (sortedData.size()-1));
+  std::set<unsigned long> selectedIndexSet;
+
+  while (numIter) {
+    subSortedData.clear();
+    if (dataDiff < dataDiffThreshold) {
+      indicesToShuffle = possibleIndices;
+      selectedIndices.clear();
+      //shuffle the indices
+      std::shuffle(indicesToShuffle.begin(),indicesToShuffle.end(),twRef);
+      //grab the selection
+      for (auto i = 0; i != subSampleSize; ++i)
+	selectedIndices.push_back(indicesToShuffle[i]);
+      //sort the subsample indices
+      std::sort(selectedIndices.begin(),selectedIndices.end());
+      //select it
+      for (auto v : selectedIndices)
+	subSortedData.push_back(sortedData[v]);
+    }
+    else {
+      //randomly select the indices
+      selectedIndexSet.clear();
+      while (selectedIndexSet.size() < subSampleSize)
+	selectedIndexSet.insert(pickIndex(twRef));
+      for (auto v : selectedIndexSet) {
+	//if (numIter == 726) {
+	//  std::cout << v << ": " << sortedData[v] << std::endl;
+	//}
+	subSortedData.push_back(sortedData[v]);
+      }
+    }
+    //gate the subsampled data and record
+    subCutPoints = tsGates(subSortedData,0);
+    //std::cout << numIter << std::endl;
+    numSubCuts = static_cast<unsigned int>(subCutPoints.size());
+    subSampledGateData newCuts = {subCutPoints,numSubCuts};
+    subSampledGates.push_back(newCuts);
+    --numIter;
+  }
+
+  //figure out which subsample appears most frequently
+  std::map<unsigned int, unsigned long> gateCounter;
+  for (auto v : subSampledGates) 
+    ++gateCounter[v.numGates];
+
+  unsigned long maxAppearingGate = 0;
+  int selGateNum = 0;
+  for (auto p : gateCounter) {
+    if (p.second > maxAppearingGate) {
+      maxAppearingGate = p.second;
+      selGateNum = p.first;
+    }
+  }
+  
+  //for the selection, get median gate by number of gates found
+  double minVal = sortedData[0];
+  double maxVal = sortedData[(sortedData.size()-1)];
+  std::vector<double> selectedGates,cGateValues,cGateQs;
+  std::vector<double> quantileVec = {0.5};
+  selectedGates.push_back(minVal);
+  for (auto gn = 1; gn != (selGateNum - 1); ++gn) {
+    cGateValues.clear();
+    cGateQs.clear();
+    for (auto v : subSampledGates) 
+      if (v.numGates == selGateNum)
+	cGateValues.push_back(v.gateLocations[gn]);
+    cGateQs = rQuantile(cGateValues,quantileVec);
+    selectedGates.push_back(cGateQs[0]);
+  }
+  selectedGates.push_back(maxVal);
+  return selectedGates;
+}
+
 std::vector<double> getCutPointsForViableColumn(int currentColumn,
 						const std::vector<std::vector<double>>& sdMat,
-						double singleDipThreshold){
+						double singleDipThreshold,
+						unsigned long subSampleThreshold,
+						unsigned long subSampleSize,
+						unsigned long subSampleIterations,
+						std::mt19937& twRef)
+{
   int modeEst = 0;
   std::vector<double> sortedData = sdMat[currentColumn];
   double ddPval, tdPval;
@@ -251,7 +359,12 @@ std::vector<double> getCutPointsForViableColumn(int currentColumn,
     }
   }
   std::vector<double> cutPoints;
-  cutPoints = tsGates(sortedData,modeEst);
+  if (sortedData.size() < subSampleThreshold) {
+    cutPoints = tsGates(sortedData,modeEst);
+  }
+  else {
+    cutPoints = subSampleTsGates(sortedData,subSampleSize,subSampleIterations,twRef);
+  }
   return cutPoints;
 }
 
@@ -285,6 +398,10 @@ void updateStackWithViableCols(const std::vector<int>& vCols,
 			       const std::vector<double>& vColScores,
 			       double pPathScore,
 			       const std::vector<long>& nodePopCounts,
+			       unsigned long subSampleThreshold,
+			       unsigned long subSampleSize,
+			       unsigned long subSampleIterations,
+			       std::mt19937& twRef,
 			       bool recordIndices) 
 {
   struct subsetInfo pushNode;
@@ -298,7 +415,8 @@ void updateStackWithViableCols(const std::vector<int>& vCols,
   for (auto i = 0; i != vCols.size(); ++i) {
     currentDataVector = currentDataMat[vCols[i]];
     //std::cout << "Getting cut points." << std::endl;
-    cutPoints = getCutPointsForViableColumn(vCols[i],sortedDataMat,dThreshold);
+    cutPoints = getCutPointsForViableColumn(vCols[i],sortedDataMat,dThreshold,
+					    subSampleThreshold,subSampleSize,subSampleIterations,twRef);
     rCols = activeColumnsInSubset;
     if (repeatedSplittingAllowed) {
       //the user has indicated that a candidate cluster search can search a long a column vector multiple times.
@@ -365,6 +483,10 @@ void restrictedStackUpdate(const std::vector<int>& vCols,
 			   const std::vector<double>& vColScores,
 			   double pPathScore,
 			   const std::vector<long>& nodePopCounts,
+			   unsigned long subSampleThreshold,
+			   unsigned long subSampleSize,
+			   unsigned long subSampleIterations,
+			   std::mt19937& twRef,
 			   bool recordIndices) 
 {
   struct subsetInfo pushNode;
@@ -378,7 +500,10 @@ void restrictedStackUpdate(const std::vector<int>& vCols,
   //at least one column is viable. continue search for each viable column.
   for (auto i = 0; i != vCols.size(); ++i) {
     currentDataVector = currentDataMat[vCols[i]];
-    cutPoints = getCutPointsForViableColumn(vCols[i],sortedDataMat,dThreshold);
+    cutPoints = getCutPointsForViableColumn(vCols[i],sortedDataMat,dThreshold,
+					    subSampleThreshold,subSampleSize,
+					    subSampleIterations,twRef);	
+
     rCols = activeColumnsInSubset;
     if (repeatedSplittingAllowed) {
       //the user has indicated that a candidate cluster search can search a long a column vector multiple times.
@@ -465,6 +590,9 @@ searchResults candidateClusterSearch(const std::vector<std::vector<double>>& dat
 				     unsigned long long rndSeed,
 				     bool parallelEx,
 				     int startingParexRoot,
+				     unsigned long subSampleThreshold,
+				     unsigned long subSampleSize,
+				     unsigned long subSampleIterations,
 				     bool recordCounts,
 				     bool recordIndices) 
 
@@ -659,13 +787,17 @@ searchResults candidateClusterSearch(const std::vector<std::vector<double>>& dat
 	restrictedStackUpdate(viableCols,aCols,aRows,activeDataSubset,sortedAdmissibleSubset,baseIndex,
 			      gateDetails,searchStack,dipThreshold,maxGateNum,(currentDepth+1),
 			      lowRestrictionVec,highRestrictionVec,repeatedSplitting,
-			      viableColumnScores, currentPathScore, unresDataCounts,recordIndices);
+			      viableColumnScores, currentPathScore, unresDataCounts,
+			      subSampleThreshold,subSampleSize,subSampleIterations,mtRCCS,
+			      recordIndices);
       }
       else {
 	//note we pass the admissibleDataSubset
 	updateStackWithViableCols(viableCols,aCols,aRows,admissibleDataSubset,sortedAdmissibleSubset,baseIndex,
 				  gateDetails,searchStack,dipThreshold,maxGateNum,(currentDepth+1),repeatedSplitting,
-				  viableColumnScores,currentPathScore, unresDataCounts,recordIndices);
+				  viableColumnScores,currentPathScore, unresDataCounts,
+				  subSampleThreshold,subSampleSize,subSampleIterations,mtRCCS,
+				  recordIndices);
       }
     }
     if (annotationForestSearch) {

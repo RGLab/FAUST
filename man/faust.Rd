@@ -22,6 +22,9 @@ faust(
   seedValue = 123,
   drawAnnotationHistograms = TRUE,
   annotationsApproved = FALSE,
+  densitySubSampleThreshold = 1e+06,
+  densitySubSampleSize = 1e+06,
+  densitySubSampleIterations = 1,
   archDescriptionList = list(targetArch = c("singleCPU")),
   plottingDevice = "pdf"
 )
@@ -119,7 +122,15 @@ SCAMP clusterings to be gated out.}
 \item{supervisedList}{A list of lists. The names of list entries correspond
 to marker names in the active channels vector to which supervision is
 applied. Channels named in this list will have their gate locations modified.
-See Details.}
+
+Supported supervision: 'Preference'. Asserts a preference for the number of
+annotation boundaries for a targeted marker. If this is selected, FAUST will
+attempt to standardize to the preferred number of boundaries across experimental
+units if there is empirical data to support the preference.
+
+Example syntax:
+
+supervisedList <- list(\code{Target_Marker} = list(actionType = "Preference", action = c(2)))}
 
 \item{debugFlag}{Boolean value. Set to TRUE to print method status information
 to the console or a log file.}
@@ -140,6 +151,22 @@ user to review the proposed annotation boundaries. When set to TRUE, indicates
 the user wants to use the proposed annotation boundaries to cluster and gate
 the experiment. If you want to run the FAUST method totally unsupervised,
 set this parameter to true before running the \code{faust} function.}
+
+\item{densitySubSampleThreshold}{Integer value.
+Sets the number of cells needed in a clustering collection to sub-sample for density estimation.
+NOTE: sub-sampling only occurs for density estimation. The dip test is computed on all cells
+in the clustering collection.}
+
+\item{densitySubSampleSize}{Integer value.
+The number of cells to sub-sample from a clustering collection for density estimation.
+NOTE: sub-sampling only occurs for density estimation. The dip test is computed on all cells
+in the clustering collection.}
+
+\item{densitySubSampleIterations}{Integer value.
+The number of distinct sub-sampled density estimates to compute. The final gate location is the median
+across the sub-sampled densities.
+NOTE: sub-sampling only occurs for density estimation. The dip test is computed on all cells
+in the clustering collection.}
 
 \item{archDescriptionList}{list containing slot "targetArch".
 Default "singleCPU" indicates FAUST will run on a single processor.

@@ -46,6 +46,9 @@ Rcpp::List cppGrowAnnotationForest(Rcpp::NumericMatrix& rawDataMatrix,
 				   double maxSearchTime,
 				   double gaussianScale,
 				   unsigned long long randomSeed,
+				   unsigned long subSampleThreshold,
+				   unsigned long subSampleSize,
+				   unsigned long subSampleIterations,
 				   bool recordCounts,
 				   bool recordIndices)
 
@@ -138,6 +141,9 @@ Rcpp::List cppGrowAnnotationForest(Rcpp::NumericMatrix& rawDataMatrix,
 						     runningAnnotationForest,
 						     numThreadsToUse,
 						     currentRandomSeed,
+						     subSampleThreshold,
+						     subSampleSize,
+						     subSampleIterations,
 						     recordCounts,
 						     recordIndices);
 

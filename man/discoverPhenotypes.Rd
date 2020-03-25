@@ -11,6 +11,9 @@ discoverPhenotypes(
   debugFlag = FALSE,
   threadNum = 1,
   seedValue = 123,
+  densitySubSampleThreshold = 1e+06,
+  densitySubSampleSize = 1e+06,
+  densitySubSampleIterations = 1,
   archDescriptionList = list(targetArch = c("singleCPU")),
   plottingDevice = "pdf"
 )
@@ -41,6 +44,22 @@ you wish to use.}
 
 \item{seedValue}{Integer value that determines the random seed. Used for
 reproducibility.}
+
+\item{densitySubSampleThreshold}{Integer value.
+Sets the number of cells needed in a clustering collection to sub-sample for density estimation.
+NOTE: sub-sampling only occurs for density estimation. The dip test is computed on all cells
+in the clustering collection.}
+
+\item{densitySubSampleSize}{Integer value.
+The number of cells to sub-sample from a clustering collection for density estimation.
+NOTE: sub-sampling only occurs for density estimation. The dip test is computed on all cells
+in the clustering collection.}
+
+\item{densitySubSampleIterations}{Integer value.
+The number of distinct sub-sampled density estimates to compute. The final gate location is the median
+across the sub-sampled densities.
+NOTE: sub-sampling only occurs for density estimation. The dip test is computed on all cells
+in the clustering collection.}
 
 \item{archDescriptionList}{list containing slot "targetArch".
 Default "singleCPU" indicates FAUST will run on a single processor.
