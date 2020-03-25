@@ -3,6 +3,7 @@
 export(discoverPhenotypes)
 export(faust)
 export(generateAnnotationThresholds)
+export(getMMIForTargetMarker)
 export(growAnnotationForest)
 export(mkAFPlotsForExpUnit)
 export(plotClusterRidgesInSample)
