@@ -81,13 +81,10 @@ std::vector<double> tsGates(const std::vector<double> &xVec, int modePrior) {
     for (auto i = 1; i != (localMins.size()-1); ++i) {
       localMins[i] = isLocalMinTS(yvals[i],yvals[(i-1)],yvals[(i+1)]);
     }
-    
     std::vector<double> cutValues;
     for (auto i = 0; i != yvals.size(); ++i) 
       if (localMins[i] == true)
 	cutValues.push_back(yvals[i]);
-
-    std::vector<double> newGates;
     std::vector<decltype(ys.size())> gateIndices;
     std::vector<decltype(ys.size())> yInds;
     decltype(ys.size()) cutIndex;
@@ -103,13 +100,30 @@ std::vector<double> tsGates(const std::vector<double> &xVec, int modePrior) {
       for (auto indexVal : yInds)
 	indexSum += indexVal;
       cutIndex = indexSum/yInds.size();
-      gateIndices.push_back(cutIndex);
+      //reject thresholds that are point-masses arising from local squeezing in large samples
+      if ((yInds.size() > 5) || (xVec.size() < 5000)) {
+	gateIndices.push_back(cutIndex);
+      }
     }
-    newGates.push_back(*std::min_element(xVec.begin(),xVec.end()));
-    for (auto ci : gateIndices)
-      newGates.push_back(xVec[ci]);
-    newGates.push_back(*std::max_element(xVec.begin(),xVec.end()));
-    std::sort(newGates.begin(),newGates.end()); //ensure newGates are returned in ascending order
-    return newGates;
+    if ((gateIndices.size()) == 0) {
+      //can arise if all thresholds that are point-masses arising from local squeezing.
+      //once again, use kmedoid in this case.
+      //std::cout << "taut-string only found point-massses." << std::endl;
+      if (modePrior == 0) numCenters = 2; 
+      else numCenters = modePrior;
+      std::vector<int> kClusters =  kMedDP(xVec,numCenters);
+      int kEstimate = *std::max_element(kClusters.begin(),kClusters.end());
+      std::vector<double> newGates = findKmedGates(xVec,kClusters,kEstimate);
+      return newGates;
+    }
+    else {
+      std::vector<double> newGates;
+      newGates.push_back(*std::min_element(xVec.begin(),xVec.end()));  
+      for (auto ci : gateIndices)
+	newGates.push_back(xVec[ci]);
+      newGates.push_back(*std::max_element(xVec.begin(),xVec.end()));
+      std::sort(newGates.begin(),newGates.end()); //ensure newGates are returned in ascending order
+      return newGates;
+    }
   }
 }
