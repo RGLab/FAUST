@@ -1,4 +1,4 @@
-.gateScampClusters <- function(projectPath,
+.gateAllScampClusters <- function(projectPath,
                                debugFlag)
 {
 
@@ -26,7 +26,7 @@
     scampCellPops <- readRDS(file.path(normalizePath(projectPath),
                                        "faustData",
                                        "metaData",
-                                       "scampClusterNames.rds"))
+                                       "allScampClusterNames.rds"))
     for (sampleName in activeSamples) {
         sAnn <- utils::read.table(file = file.path(normalizePath(projectPath),
                                                    "faustData",
@@ -61,7 +61,7 @@
                                             "faustData",
                                             "sampleData",
                                             sampleName,
-                                            "faustAnnotation.csv"),
+                                            "exhaustiveFaustAnnotation.csv"),
                            sep = "~",
                            append = FALSE,
                            row.names = FALSE,

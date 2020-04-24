@@ -105,6 +105,40 @@
     return()
 }
 
+.computeElbow <- function(phenoDF) {
+    if (nrow(phenoDF) < 4) {
+        #if a dataset has 3 or fewer samples, default to using all
+        #phenotypes from the scamp clusterings.
+        elbowLocation <- 1
+    }
+    else {
+        #dynamically estimate the elbow by projecting knots of the GCM 
+        #of the distribution of phenotypes onto the line of 
+        #observed phenotypes at 5th and 95th rows of the phenoDF
+        #trim the extremes to moderate the slopes.
+        lowerIndex <- max(2,ceiling(0.05*nrow(phenoDF)))
+        upperIndex <- min((nrow(phenoDF)-1),floor(0.95*nrow(phenoDF)))
+        elbowDF <- phenoDF[seq(lowerIndex,upperIndex),,drop=FALSE]
+        elbX2 <- elbowDF[nrow(elbowDF),"x"]
+        elbX1 <- elbowDF[1,"x"]
+        elbY2 <- elbowDF[nrow(elbowDF),"y"]
+        elbY1 <- elbowDF[1,"y"]
+        elbM <- (elbY2-elbY1)/(elbX2-elbX1)
+        elbC <- elbY1-(elbM * elbX1)
+        lineMin <- function(pt){
+            return(abs(pt[2] - elbM*pt[1] - elbC)/sqrt(1+(elbM^2)))
+        }
+        gcmEst <- fdrtool::gcmlcm(
+                               x=elbowDF$x,
+                               y=elbowDF$y,
+                               type="gcm"
+                           )
+        candElbow <- apply(cbind(gcmEst$x.knots,gcmEst$y.knots),1,lineMin)
+        elbowLocation <- gcmEst$x.knots[which(candElbow==max(candElbow))[1]]
+    }
+    return(elbowLocation)
+}
+
 
 .clusterExpUnitsWithScamp <- function(projectPath,
                                       nameOccuranceNum,
@@ -310,15 +344,51 @@
                       "faustData",
                       "metaData",
                       "scampNameSummary.rds"))
-    clusterNames <- names(nameSummary[which(nameSummary >= nameOccuranceNum)])
+    nameSummaryPlotDF <- data.frame(x=seq(max(nameSummary)),
+                                    y=sapply(seq(max(nameSummary)),function(x){
+                                        length(which(nameSummary >= x))}))
+    
+    elbowLoc <- .computeElbow(nameSummaryPlotDF)
+    if (nameOccuranceNum > 0) {
+        #the user has set this value
+        clusterNames <- names(nameSummary[which(nameSummary >= nameOccuranceNum)])
+        saveRDS(
+            nameOccuranceNum,
+            file.path(normalizePath(projectPath),
+                      "faustData",
+                      "metaData",
+                      "phenotypeElbowValue.rds")
+        )
+    }
+    else {
+        #use the automatic value.
+        clusterNames <- names(nameSummary[which(nameSummary >= elbowLoc)])
+        saveRDS(
+            elbowLoc,
+            file.path(normalizePath(projectPath),
+                      "faustData",
+                      "metaData",
+                      "phenotypeElbowValue.rds")
+        )
+    }
     saveRDS(clusterNames,
             file.path(normalizePath(projectPath),
                       "faustData",
                       "metaData",
                       "scampClusterNames.rds"))
+
+    allClusterNames <- names(nameSummary[which(nameSummary >= 1)])
+    saveRDS(allClusterNames,
+            file.path(normalizePath(projectPath),
+                      "faustData",
+                      "metaData",
+                      "allScampClusterNames.rds"))
+    
     if (debugFlag) print("Cluster labels collected and saved.")
     return()
 }
+
+
 
 .prepareSlurmScampJob <- function(expUnit,
                                   startingCellPop,

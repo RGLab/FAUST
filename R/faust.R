@@ -206,6 +206,7 @@
 #' @importFrom ggplot2 ggplot aes theme_bw geom_hex geom_vline geom_hline xlab ylab theme ggtitle scale_color_manual scale_linetype_manual geom_histogram geom_line ggsave facet_wrap element_text
 #' @importFrom viridis magma viridis
 #' @importFrom ggridges geom_density_ridges position_points_jitter
+#' @importFrom fdrtool gcmlcm
 #'
 #' @examples
 #'
@@ -222,7 +223,7 @@ faust <- function(gatingSet,
                   projectPath=normalizePath("."),
                   depthScoreThreshold=0.01,
                   selectionQuantile=0.50,
-                  nameOccuranceNum=ceiling((0.5*length(gatingSet))),
+                  nameOccuranceNum=0,
                   supervisedList=NA,
                   debugFlag=FALSE,
                   threadNum=1,

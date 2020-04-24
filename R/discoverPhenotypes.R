@@ -109,7 +109,8 @@
 #' @importFrom ggplot2 ggplot aes theme_bw geom_hex geom_vline geom_hline xlab ylab theme ggtitle scale_color_manual scale_linetype_manual geom_histogram geom_line ggsave facet_wrap element_text
 #' @importFrom viridis magma viridis
 #' @importFrom ggridges geom_density_ridges position_points_jitter
-#'
+#' @importFrom fdrtool gcmlcm
+#' 
 #' @examples
 #'
 #' #Please see the vignette "discoverPhenotypes" for an introduction on using FAUST.
@@ -118,7 +119,7 @@
 #' @md
 discoverPhenotypes <- function(gatingSet,
                                projectPath=normalizePath("."),
-                               nameOccuranceNum=ceiling((0.5*length(gatingSet))),
+                               nameOccuranceNum=0,
                                debugFlag=FALSE,
                                threadNum=1,
                                seedValue=123,
@@ -181,5 +182,18 @@ discoverPhenotypes <- function(gatingSet,
         projectPath = projectPath,
         debugFlag = debugFlag
     )
+
+    if (debugFlag) print("Gating all populations.")
+    .gateAllScampClusters(
+        projectPath = projectPath,
+        debugFlag = debugFlag
+    )
+
+    if (debugFlag) print("Generating exhaustive faust count matrix.")
+    .getExhaustiveFaustCountMatrix(
+        projectPath = projectPath,
+        debugFlag = debugFlag
+    )
+
     return()
 }
