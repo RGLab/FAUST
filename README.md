@@ -5,9 +5,11 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
--   [Installation](#installation)
--   [Citation](#citation)
--   [Additional Documentation](#additional-documentation)
+
+- [FAUST - Full Annotation Using Shape-constrained Trees](#faust---full-annotation-using-shape-constrained-trees)
+- [Installation](#installation)
+- [Citation](#citation)
+- [Additional Documentation](#additional-documentation)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
