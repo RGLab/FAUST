@@ -1,11 +1,5 @@
 ![faust_logo](documentation/images/logos/faust_logo.png)
 
-# FAUST - Full Annotation Using Shape-constrained Trees
-
-The `FAUST` package implements the FAUST method described in [New interpretable machine learning method for single-cell data reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v2).
-
-The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is available.
-
 # Table of Contents
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -16,6 +10,12 @@ The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is
 -   [Additional Documentation](#additional-documentation)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+# FAUST - Full Annotation Using Shape-constrained Trees
+
+The `FAUST` package implements the FAUST method described in [New interpretable machine learning method for single-cell data reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v2).
+
+The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is available.
 
 # Installation
 
