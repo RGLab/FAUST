@@ -16,28 +16,39 @@
             -   [Using a Legacy FlowWorkspace Gating Set](#using-a-legacy-flowworkspace-gating-set)
             -   [Using a FlowWorkspace Gating Set](#using-a-flowworkspace-gating-set)
     -   [startingCellPop](#startingcellpop)
+        -   [Examples](#examples)
+            -   [Manual Creation](#manual-creation)
 -   [Optional Inputs](#optional-inputs)
     -   [activeChannels](#activechannels)
-        -   [Manual Creation](#manual-creation)
-        -   [Loading From a File](#loading-from-a-file)
+        -   [Examples](#examples-1)
+            -   [Manual Creation](#manual-creation-1)
+            -   [Loading From a File](#loading-from-a-file)
     -   [channelBounds](#channelbounds)
-    -   [imputationHierarchy](#imputationhierarchy)
-    -   [experimentalUnit](#experimentalunit)
-    -   [projectPath](#projectpath)
-    -   [depthScoreThreshold](#depthscorethreshold)
-    -   [selectionQuantile](#selectionquantile)
-    -   [nameOccuranceNum](#nameoccurancenum)
     -   [supervisedList](#supervisedlist)
+    -   [imputationHierarchy](#imputationhierarchy)
+        -   [Examples](#examples-2)
+            -   [Manual Creation](#manual-creation-2)
+    -   [experimentalUnit](#experimentalunit)
+        -   [Examples](#examples-3)
+            -   [Manual Creation](#manual-creation-3)
+    -   [depthScoreThreshold](#depthscorethreshold)
+        -   [Examples](#examples-4)
+            -   [Manual Creation](#manual-creation-4)
+    -   [selectionQuantile](#selectionquantile)
+        -   [Examples](#examples-5)
+            -   [Manual Creation](#manual-creation-5)
+    -   [nameOccuranceNum](#nameoccurancenum)
+    -   [densitySubSampleIterations](#densitysubsampleiterations)
+    -   [densitySubSampleThreshold](#densitysubsamplethreshold)
+    -   [densitySubSampleSize](#densitysubsamplesize)
+    -   [annotationsApproved](#annotationsapproved)
+    -   [drawAnnotationHistograms](#drawannotationhistograms)
+    -   [archDescriptionList](#archdescriptionlist)
+    -   [plottingDevice](#plottingdevice)
+    -   [projectPath](#projectpath)
     -   [debugFlag](#debugflag)
     -   [threadNum](#threadnum)
     -   [seedValue](#seedvalue)
-    -   [drawAnnotationHistograms](#drawannotationhistograms)
-    -   [annotationsApproved](#annotationsapproved)
-    -   [densitySubSampleThreshold](#densitysubsamplethreshold)
-    -   [densitySubSampleSize](#densitysubsamplesize)
-    -   [densitySubSampleIterations](#densitysubsampleiterations)
-    -   [archDescriptionList](#archdescriptionlist)
-    -   [plottingDevice Optional Inputs](#plottingdevice-optional-inputs)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -103,6 +114,7 @@ Please see the [Cytoverse Example Page](https://cytoverse.org/examples/index.htm
 #### Using a Legacy FlowWorkspace Gating Set
 
 ```R
+library(faust)
 library(flowWorkspace)
 
 path_to_gating_set = file.path("/", "Users", "example_username", "Desktop", "example_gating_set")
@@ -118,6 +130,7 @@ faust <- function(gating_set_to_use, ...)
 #### Using a FlowWorkspace Gating Set
 
 ```R
+library(faust)
 library(flowWorkspace)
 
 path_to_gating_set = file.path("/", "Users", "example_username", "Desktop", "example_gating_set")
@@ -131,6 +144,18 @@ faust <- function(gating_set_to_use, ...)
 
 This is the `gate` that `FAUST` should start at. If you're unsure set this to be `root` gate
 
+### Examples
+
+#### Manual Creation
+
+```R
+library(faust)
+
+starting_cell_population_to_use <- "root"
+
+faust <- function(starting_cell_population_to_use, ...)
+```
+
 # Optional Inputs
 
 ## activeChannels
@@ -139,17 +164,23 @@ This is a file that specifies the active channels of the gating set to use when 
 
 ⚠️**Warning**⚠️ - This MUST be the same length as the `channelBounds` that are provided as well.
 
-### Manual Creation
+### Examples
+
+#### Manual Creation
 
 ```R
+library(faust)
+
 active_channels_to_use <- c("CD14", "CD3E", "CD4", "IL2RA", "NCAM1", "CCR7", "CD19", "PTPRC", "CD8A")
 
 faust <- function(active_channels_to_use, ...)
 ```
 
-### Loading From a File
+#### Loading From a File
 
 ```R
+library(faust)
+
 active_channels_to_use <- c("CD14", "CD3E", "CD4", "IL2RA", "NCAM1", "CCR7", "CD19", "PTPRC", "CD8A")
 active_channels_file_path <- file.path("/", "Users", "example_username", "Desktop", "example_active_channels.rds")
 
@@ -164,36 +195,128 @@ faust <- function(loaded_active_channels_file_path, ...)
 
 ⚠️**Warning**⚠️ - This MUST be the same length as the `activeChannels` that are provided as well.
 
+## supervisedList
+
 ## imputationHierarchy
+
+This is the imputation heirarchy to use.
+
+If you're not sure what this is see the [FAUST Concepts and Terminology README](FAUST_CONCEPTS_AND_TERMINOLOGY.md)
+
+### Examples
+
+#### Manual Creation
+
+```R
+library(faust)
+
+imputation_heirarchy_to_use <- "cluster"
+
+faust <- function(imputation_heirarchy_to_use, ...)
+```
 
 ## experimentalUnit
 
-## projectPath
+This is the experimental unit to use.
+
+If you're not sure what this is see the [FAUST Concepts and Terminology README](FAUST_CONCEPTS_AND_TERMINOLOGY.md)
+
+### Examples
+
+#### Manual Creation
+
+```R
+library(faust)
+
+experimental_unit_to_use <- "name"
+
+faust <- function(experimental_unit_to_use, ...)
+```
 
 ## depthScoreThreshold
 
+This is the `depth score threshold` to use.
+
+If you're not sure what this is see the [FAUST Concepts and Terminology README](FAUST_CONCEPTS_AND_TERMINOLOGY.md)
+
+⚠️**Warning**⚠️ - This MUST be between `0` and `1`
+
+### Examples
+
+#### Manual Creation
+
+```R
+library(faust)
+
+depth_score_threshold_to_use <- "0.01"
+
+faust <- function(depth_score_threshold_to_use, ...)
+```
+
 ## selectionQuantile
+
+This is the `selection quantile` to use.
+
+If you're not sure what this is see the [FAUST Concepts and Terminology README](FAUST_CONCEPTS_AND_TERMINOLOGY.md)
+
+⚠️**Warning**⚠️ - This MUST be between `0` and `1`
+
+### Examples
+
+#### Manual Creation
+
+```R
+library(faust)
+
+selection_quantile_to_use <- "0.01"
+
+faust <- function(selection_quantile_to_use, ...)
+```
 
 ## nameOccuranceNum
 
-## supervisedList
-
-## debugFlag
-
-## threadNum
-
-## seedValue
-
-## drawAnnotationHistograms
-
-## annotationsApproved
-
-## densitySubSampleThreshold
-
-## densitySubSampleSize
+TODO
 
 ## densitySubSampleIterations
 
+TODO
+
+## densitySubSampleThreshold
+
+TODO
+
+## densitySubSampleSize
+
+TODO
+
+## annotationsApproved
+
+TODO
+
+## drawAnnotationHistograms
+
+TODO
+
 ## archDescriptionList
 
-## plottingDevice Optional Inputs
+TODO
+
+## plottingDevice
+
+TODO
+
+## projectPath
+
+TODO
+
+## debugFlag
+
+TODO
+
+## threadNum
+
+TODO
+
+## seedValue
+
+TODO
