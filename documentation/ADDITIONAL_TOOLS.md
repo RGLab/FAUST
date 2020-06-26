@@ -1,14 +1,13 @@
-![faust_logo](documentation/images/logos/faust_logo.png)
+![faust_logo](images/logos/faust_logo.png)
 
 # Table of Contents
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
-- [Additional Tools](#additional-tools)
-- [FAUST Nextflow](#faust-nextflow)
-- [FAUST Tools](#faust-tools)
+-   [Additional Tools](#additional-tools)
+-   [FAUST Nextflow](#faust-nextflow)
+-   [FAUST Tools](#faust-tools)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
