@@ -16,9 +16,10 @@
             -   [Using a Legacy FlowWorkspace Gating Set](#using-a-legacy-flowworkspace-gating-set)
             -   [Using a FlowWorkspace Gating Set](#using-a-flowworkspace-gating-set)
     -   [startingCellPop](#startingcellpop)
-        -   [activeChannels](#activechannels)
-            -   [Manual Creation](#manual-creation)
-            -   [Loading From a File](#loading-from-a-file)
+-   [Optional Inputs](#optional-inputs)
+    -   [activeChannels](#activechannels)
+        -   [Manual Creation](#manual-creation)
+        -   [Loading From a File](#loading-from-a-file)
     -   [channelBounds](#channelbounds)
     -   [imputationHierarchy](#imputationhierarchy)
     -   [experimentalUnit](#experimentalunit)
@@ -130,13 +131,15 @@ faust <- function(gating_set_to_use, ...)
 
 This is the `gate` that `FAUST` should start at. If you're unsure set this to be `root` gate
 
-### activeChannels
+# Optional Inputs
+
+## activeChannels
 
 This is a file that specifies the active channels of the gating set to use when running `FAUST`.
 
 ⚠️**Warning**⚠️ - This MUST be the same length as the `channelBounds` that are provided as well.
 
-#### Manual Creation
+### Manual Creation
 
 ```R
 active_channels_to_use <- c("CD14", "CD3E", "CD4", "IL2RA", "NCAM1", "CCR7", "CD19", "PTPRC", "CD8A")
@@ -144,7 +147,7 @@ active_channels_to_use <- c("CD14", "CD3E", "CD4", "IL2RA", "NCAM1", "CCR7", "CD
 faust <- function(active_channels_to_use, ...)
 ```
 
-#### Loading From a File
+### Loading From a File
 
 ```R
 active_channels_to_use <- c("CD14", "CD3E", "CD4", "IL2RA", "NCAM1", "CCR7", "CD19", "PTPRC", "CD8A")
