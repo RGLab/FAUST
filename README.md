@@ -5,10 +5,11 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
--   [FAUST - Full Annotation Using Shape-constrained Trees](#faust---full-annotation-using-shape-constrained-trees)
--   [Installation](#installation)
--   [Citation](#citation)
--   [Additional Documentation](#additional-documentation)
+
+- [FAUST - Full Annotation Using Shape-constrained Trees](#faust---full-annotation-using-shape-constrained-trees)
+- [Installation](#installation)
+- [Citation](#citation)
+- [Additional Documentation](#additional-documentation)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -84,11 +85,11 @@ If you end up using `FAUST` to analyze cytometry datasets, please consider citin
 
 # Additional Documentation
 
-| Document                                                        | Description                                                  |
-| --------------------------------------------------------------- | ------------------------------------------------------------ |
-| [Additional Tools](documentation/ADDITIONAL_TOOLS.md)           | Find tools built using this library.                         |
-| [FAUST Entry Points](documentation/ENTRY_POINTS.md)             | Understand where this library's execution starts.            |
-| [FAUST Execution Workflow](documentation/EXECUTION_WORKFLOW.md) | Understand each processing step of this library.             |
-| [FAUST Execution Data](documentation/EXECUTION_DATA.md)         | Understand how this library manages data during run time.    |
-| [FAUST Inputs](documentation/FAUST_INPUTS.md)                   | Understand what this library needs as input in order to run. |
-| [FAUST Outputs](documentation/FAUST_OUTPUTS.md)                 | Understand what this library returns as output.              |
+| Document                                                              | Description                                                  |
+| --------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [Additional Tools](documentation/ADDITIONAL_FAUST_TOOLS.md)           | Find tools built using this library.                         |
+| [FAUST Entry Points](documentation/FAUST_ENTRY_POINTS.md)             | Understand where this library's execution starts.            |
+| [FAUST Execution Workflow](documentation/FAUST_EXECUTION_WORKFLOW.md) | Understand each processing step of this library.             |
+| [FAUST Execution Data](documentation/FAUST_EXECUTION_DATA.md)         | Understand how this library manages data during run time.    |
+| [FAUST Inputs](documentation/FAUST_INPUTS.md)                         | Understand what this library needs as input in order to run. |
+| [FAUST Outputs](documentation/FAUST_OUTPUTS.md)                       | Understand what this library returns as output.              |
