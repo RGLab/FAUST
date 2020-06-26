@@ -5,13 +5,12 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
-- [FAUST Concepts and Terminology](#faust-concepts-and-terminology)
-- [Terminology](#terminology)
-- [Concepts](#concepts)
-- [Depth Score Threshold](#depth-score-threshold)
-- [Experimental Unit](#experimental-unit)
-- [Imputation Heirarchy](#imputation-heirarchy)
+-   [FAUST Concepts and Terminology](#faust-concepts-and-terminology)
+-   [Terminology](#terminology)
+-   [Concepts](#concepts)
+-   [Depth Score Threshold](#depth-score-threshold)
+-   [Experimental Unit](#experimental-unit)
+-   [Imputation Heirarchy](#imputation-heirarchy)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

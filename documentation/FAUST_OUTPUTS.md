@@ -5,12 +5,11 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
-- [FAUST Outputs](#faust-outputs)
-- [Working Directory AKA `faustData`](#working-directory-aka-faustdata)
-  - [Using `projectPath` Argument to Change `faustData`'s Location](#using-projectpath-argument-to-change-faustdatas-location)
-- [Outputs](#outputs)
-  - [A Count Matrix](#a-count-matrix)
+-   [FAUST Outputs](#faust-outputs)
+-   [Working Directory AKA `faustData`](#working-directory-aka-faustdata)
+    -   [Using `projectPath` Argument to Change `faustData`'s Location](#using-projectpath-argument-to-change-faustdatas-location)
+-   [Outputs](#outputs)
+    -   [A Count Matrix](#a-count-matrix)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
