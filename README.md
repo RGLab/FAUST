@@ -91,4 +91,4 @@ If you end up using `FAUST` to analyze cytometry datasets, please consider citin
 | [FAUST Execution Workflow](documentation/EXECUTION_WORKFLOW.md) | Understand each processing step of this library.             |
 | [FAUST Execution Data](documentation/EXECUTION_DATA.md)         | Understand how this library manages data during run time.    |
 | [FAUST Inputs](documentation/FAUST_INPUTS.md)                   | Understand what this library needs as input in order to run. |
-| [FAUST Inputs](documentation/FAUST_OUTPUTS.md)                  | Understand what this library returns as output.              |
+| [FAUST Outputs](documentation/FAUST_OUTPUTS.md)                 | Understand what this library returns as output.              |
