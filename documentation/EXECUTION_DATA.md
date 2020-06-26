@@ -5,7 +5,7 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
--   [FAUST Outputs](#faust-outputs)
+-   [Execution Data](#execution-data)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

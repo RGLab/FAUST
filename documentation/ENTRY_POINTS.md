@@ -18,10 +18,10 @@ This is where you can find information about the entry points of this FAUST impl
 
 If you're using R, the easiest way to access FAUST for usage are these commands
 
-| Entry Point                              | Source Code                                                                |
-| ---------------------------------------- | -------------------------------------------------------------------------- |
-| faust::faust(...)                        | [faust.R](../R/faust.R#L217)                                               |
-| faust::generateAnnotationThresholds(...) | [generateAnnotationThresholds.R](../R/generateAnnotationThresholds.R#L213) |
-| faust::discoverPhenotypes(...)           | [discoverPhenotypes.R](../R/discoverPhenotypes.R#L120)                     |
+| Entry Point                                | Source Code                                                                |
+| ------------------------------------------ | -------------------------------------------------------------------------- |
+| `faust::faust(...)`                        | [faust.R](../R/faust.R#L217)                                               |
+| `faust::generateAnnotationThresholds(...)` | [generateAnnotationThresholds.R](../R/generateAnnotationThresholds.R#L213) |
+| `faust::discoverPhenotypes(...)`           | [discoverPhenotypes.R](../R/discoverPhenotypes.R#L120)                     |
 
 For an explanation on the using these entry points please see the [FAUST Inputs README](FAUST_INPUTS.md)
