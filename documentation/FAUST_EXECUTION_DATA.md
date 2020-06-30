@@ -10,8 +10,17 @@
     -   [`exhaustiveFaustCountMatrix.rds`](#exhaustivefaustcountmatrixrds)
     -   [`expUnitData`](#expunitdata)
         -   [`EXPERIMENTAL UNIT N`](#experimental-unit-n)
+            -   [`expUnitExprs.rds`](#expunitexprsrds)
+            -   [`expUnitRes.rds`](#expunitresrds)
+            -   [`expUnitToSampleLookup.rds`](#expunittosamplelookuprds)
+            -   [`scampClusterLabels.rds`](#scampclusterlabelsrds)
+            -   [`scampExpUnitComplete.rds`](#scampexpunitcompleterds)
     -   [`faustCountMatrix.rds`](#faustcountmatrixrds)
     -   [`gateData`](#gatedata)
+        -   [`root_rawGateList.rds`](#root_rawgatelistrds)
+        -   [`root_resList.rds`](#root_reslistrds)
+        -   [`root_resListPrep.rds`](#root_reslistpreprds)
+        -   [`root_selectedChannels.rds`](#root_selectedchannelsrds)
     -   [`metaData`](#metadata)
     -   [`plotData`](#plotdata)
         -   [`hist_MARKER_ab_1.pdf`](#hist_marker_ab_1pdf)
@@ -105,6 +114,8 @@ This directory structure looks like this.
 
 TODO
 
+---
+
 ## `expUnitData`
 
 TODO
@@ -113,17 +124,61 @@ TODO
 
 TODO
 
+#### `expUnitExprs.rds`
+
+TODO
+
+#### `expUnitRes.rds`
+
+TODO
+
+#### `expUnitToSampleLookup.rds`
+
+TODO
+
+#### `scampClusterLabels.rds`
+
+TODO
+
+#### `scampExpUnitComplete.rds`
+
+TODO
+
+---
+
 ## `faustCountMatrix.rds`
 
 TODO
+
+---
 
 ## `gateData`
 
 TODO
 
+### `root_rawGateList.rds`
+
+TODO
+
+### `root_resList.rds`
+
+TODO
+
+### `root_resListPrep.rds`
+
+TODO
+
+### `root_selectedChannels.rds`
+
+TODO
+
+---
+
 ## `metaData`
 
 TODO
+
+---
 
 ## `plotData`
 
@@ -144,6 +199,8 @@ TODO
 #### `scoreLines.pdf`
 
 TODO
+
+---
 
 ## `sampleData`
 
