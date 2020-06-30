@@ -6,7 +6,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 -   [Overview](#overview)
--   [Directory Structure - AKA `faustData`](#directory-structure---aka-faustdata)
+-   [`faustData`](#faustdata)
     -   [`exhaustiveFaustCountMatrix.rds`](#exhaustivefaustcountmatrixrds)
     -   [`expUnitData`](#expunitdata)
         -   [`EXPERIMENTAL UNIT N`](#experimental-unit-n)
