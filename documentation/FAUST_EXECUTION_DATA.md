@@ -106,7 +106,7 @@ This directory structure looks like this.
         │   ├── faustAnnotation.csv
         │   ├── resMat.rds
         │   └── scampAnnotation.csv
-        └── SAMPLE 03
+        └── SAMPLE N
             └── ...
 ```
 
