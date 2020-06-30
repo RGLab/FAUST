@@ -24,9 +24,9 @@
 
 # Overview
 
-This is where you can get a high level understanding of the data that `FAUST` creats and uses during run-time
+This is where you can get a high level understanding of the data that `FAUST` creats and uses during run-time. This data is stored in the `faustData` directory and if needed can be used for a more rigorous understanding of what has occurred during processing.
 
-# Directory Structure - AKA `faustData`
+# `faustData`
 
 In its current form, `FAUST` will create a working directory that contains all of the data used for clustering.
 
