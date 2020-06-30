@@ -5,11 +5,24 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
--   [Execution Data](#execution-data)
+-   [Overview](#overview)
+-   [Directory Structure - AKA `faustData`](#directory-structure---aka-faustdata)
+    -   [`exhaustiveFaustCountMatrix.rds`](#exhaustivefaustcountmatrixrds)
+    -   [`expUnitData`](#expunitdata)
+        -   [`EXPERIMENTAL UNIT N`](#experimental-unit-n)
+    -   [`faustCountMatrix.rds`](#faustcountmatrixrds)
+    -   [`gateData`](#gatedata)
+    -   [`metaData`](#metadata)
+    -   [`plotData`](#plotdata)
+        -   [`hist_MARKER_ab_1.pdf`](#hist_marker_ab_1pdf)
+        -   [`histograms`](#histograms)
+            -   [`MARKER #`](#marker-)
+            -   [`scoreLines.pdf`](#scorelinespdf)
+    -   [`sampleData`](#sampledata)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Execution Data
+# Overview
 
 This is where you can get a high level understanding of the data that `FAUST` creats and uses during run-time
 
