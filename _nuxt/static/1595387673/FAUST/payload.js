@@ -1,0 +1,1 @@
+__NUXT_JSONP__("/FAUST", {data:[],fetch:[],mutations:[]});
