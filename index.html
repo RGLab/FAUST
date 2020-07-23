@@ -78,7 +78,7 @@
     <!-- pkgdown -->
     <link href="pkgdown.css" rel="stylesheet" />
     <script src="pkgdown.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="https://unpkg.com/vue-router/dist/vue-router.js"</script></script>
     <script src="https://unpkg.com/vuex"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
@@ -119,9 +119,9 @@
     <v-app>
       <div class="container template-home">        
         <header>            
-          <div class="navbar navbar-default navbar-fixed-top" role="navigation" id="app">           
-            <div class="hidden container" id="navbuttons">
-              <div class="navbar-header">              
+          <div class="navbar navbar-default navbar-fixed-top" role="navigation">           
+            <div class="container">
+              <div id="navbuttons"  class="navbar-header">              
                 <button
                   type="button"
                   class="navbar-toggle collapsed"
@@ -195,7 +195,7 @@
           <!--/.navbar -->
         </header>      
         <div class="row">
-          <Registration></Registration>
+          <Registration element-to-hide="navbuttons"></Registration>
           <div class="contents col-md-9">
             <div id="faust" class="section level1">
               <div class="page-header">

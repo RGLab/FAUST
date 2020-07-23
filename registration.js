@@ -95,12 +95,18 @@ v-model="valid"
         institution: '',
         institutionRules: [(v) => !!v || 'Institution is required'],
     }),
-    mounted() {
+    props: {
+        elementToHide: {
+            type: String,
+            default: '',
+            required: true
+        },
+    },
+    mounted() {        
+        document.getElementById(this.elementToHide).classList.toggle("hidden")
         this.showModal()
         if (localStorage.user && localStorage.expiration)
         {
-            this.hideModal()
-            document.getElementById("navbuttons").classList.toggle("hidden")
             var user = JSON.parse(localStorage.user);
             this.userId = user.userId;
             this.institution = user.institution;
@@ -119,7 +125,11 @@ v-model="valid"
                 this.lastname = ''
                 this.$store.commit('reset_state')
                 this.showModal()
-                document.getElementById("navbuttons").classList.toggle("hidden")
+                document.getElementById(this.elementToHide).classList.toggle("hidden")
+            } else
+            {
+                this.hideModal()
+                document.getElementById(this.elementToHide).classList.toggle("hidden")
             }
         }
     },
@@ -154,10 +164,11 @@ v-model="valid"
                     localStorage.expiration = expiration
                 }).then(() => {
                     this.hideModal()
-                    document.getElementById("navbuttons").classList.toggle("hidden")
+                    document.getElementById(this.elementToHide).classList.toggle("hidden")
                 })
                 .catch((err) => {
                     console.log(err)
+                    localStorage.clear()
                     this.showModal()
                 });
     },
