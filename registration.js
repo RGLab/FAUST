@@ -92,7 +92,7 @@ v-model="valid"
             (v) => /.+@.+/.test(v) || 'E-mail must be valid',
         ],
         institution: '',
-            institutionRules: [(v) => !!v || 'Institution is required'],
+        institutionRules: [(v) => !!v || 'Institution is required'],
     }),
     mounted() {
         this.showModal()
@@ -119,12 +119,12 @@ v-model="valid"
                 this.$store.commit('reset_state')
                 this.showModal()
                 document.getElementById("navbuttons").classList.toggle("hidden")
-            }         
+            }
         }
     },
     computed: {
         expired_min_old() {
-            return ((Date.now() - this.$store.state.expiration)/1000/60)
+            return ((Date.now() - this.$store.state.expiration) / 1000 / 60)
         }
     },
     methods: {
@@ -133,30 +133,32 @@ v-model="valid"
         },
         hideModal() {
             this.notregistered = false;
-    },
-    processForm() {
-      axios
-        .post(
-          'https://fl50xsrcnf.execute-api.us-west-2.amazonaws.com/dev/users',
-          {
-            userId: Date.now().toString(),
-            name: this.firstname + ' ' + this.lastname,
-            email: this.email,
-            institution: this.institution,
-          }
-      )
-          .then((res) => {
-            this.$store.commit('add_user', res.data);
-            localStorage.user = JSON.stringify(res.data);
-            var expiration = Date.now()
-            this.$store.commit('set_expiration',expiration)
-              localStorage.expiration = expiration
-            
-          }).then(() => {
-              this.hideModal()
-              document.getElementById("navbuttons").classList.toggle("hidden")
-        })
-        .catch((err) => console.log(err));
+        },
+        processForm() {
+            axios
+                .post(
+                    'https://fl50xsrcnf.execute-api.us-west-2.amazonaws.com/dev/users',
+                    {
+                        userId: Date.now().toString(),
+                        name: this.firstname + ' ' + this.lastname,
+                        email: this.email,
+                        institution: this.institution,
+                    }
+                )
+                .then((res) => {
+                    this.$store.commit('add_user', res.data);
+                    localStorage.user = JSON.stringify(res.data);
+                    var expiration = Date.now()
+                    this.$store.commit('set_expiration', expiration)
+                    localStorage.expiration = expiration
+                }).then(() => {
+                    this.hideModal()
+                    document.getElementById("navbuttons").classList.toggle("hidden")
+                })
+                .catch((err) => {
+                    console.log(err)
+                    this.showModal()
+                });
     },
   },
 });
