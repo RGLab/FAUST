@@ -37,6 +37,7 @@ v-model="valid"
   <v-row justify="center">
     <v-col cols="10" md="6" lg="5" justify="center">
       <h2>Please Register as a FAUST User</h2>
+      By registering we will be able to better prioritize support resources, providing critical updates, bug fixes, and new features.
       <v-text-field
         v-model="firstname"
         :rules="nameRules"
