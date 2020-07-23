@@ -108,7 +108,7 @@ v-model="valid"
             this.lastname = user.name.split(" ")[1];
             this.$store.commit('add_user', user)
             this.$store.commit('set_expiration', localStorage.expiration)
-            if (this.expired_min_old > 1)
+            if (this.expired_min_old > 30)
             {
                 localStorage.clear()
                 this.userId = ''
@@ -124,7 +124,7 @@ v-model="valid"
     },
     computed: {
         expired_min_old() {
-            return ((Date.now() - this.$store.state.expiration) / 1000 / 60)
+            return ((Date.now() - this.$store.state.expiration) / 1000 / 60 / 60 / 24)
         }
     },
     methods: {
