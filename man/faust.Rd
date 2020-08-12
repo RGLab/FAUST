@@ -15,7 +15,7 @@ faust(
   projectPath = normalizePath("."),
   depthScoreThreshold = 0.01,
   selectionQuantile = 0.5,
-  nameOccuranceNum = ceiling((0.5 * length(gatingSet))),
+  nameOccurenceNum = ceiling((0.5 * length(gatingSet))),
   supervisedList = NA,
   debugFlag = FALSE,
   threadNum = 1,
@@ -116,7 +116,7 @@ empirical quantile is then compared to the depthScoreThreshold for each
 marker. All markers with empirical quantile above the depthScoreThreshold
 are used by \code{faust} to discover and annotate cell subsets in the experiment.}
 
-\item{nameOccuranceNum}{The number of times a name has to appear in distinct
+\item{nameOccurenceNum}{The number of times a name has to appear in distinct
 SCAMP clusterings to be gated out.}
 
 \item{supervisedList}{A list of lists. The names of list entries correspond
