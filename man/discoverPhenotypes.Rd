@@ -7,7 +7,7 @@
 discoverPhenotypes(
   gatingSet,
   projectPath = normalizePath("."),
-  nameOccuranceNum = ceiling((0.5 * length(gatingSet))),
+  nameOccurrenceNumber = ceiling((0.5 * length(gatingSet))),
   debugFlag = FALSE,
   threadNum = 1,
   seedValue = 123,
@@ -32,7 +32,7 @@ final output of \code{faust}, an annotated matrix of counts, is produced at
 \code{projectPath/faustData/faustCountMatrix.rds}, and can be loaded into R using
 the \code{readRDS} function.}
 
-\item{nameOccuranceNum}{The number of times a name has to appear in distinct
+\item{nameOccurrenceNumber}{The number of times a name has to appear in distinct
 SCAMP clusterings to be gated out.}
 
 \item{debugFlag}{Boolean value. Set to TRUE to print method status information

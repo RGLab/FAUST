@@ -141,7 +141,7 @@
 
 
 .clusterExpUnitsWithScamp <- function(projectPath,
-                                      nameOccuranceNum,
+                                      nameOccurrenceNumber,
                                       debugFlag,
                                       threadNum,
                                       seedValue,
@@ -349,11 +349,11 @@
                                         length(which(nameSummary >= x))}))
     
     elbowLoc <- .computeElbow(nameSummaryPlotDF)
-    if (nameOccuranceNum > 0) {
+    if (nameOccurrenceNumber > 0) {
         #the user has set this value
-        clusterNames <- names(nameSummary[which(nameSummary >= nameOccuranceNum)])
+        clusterNames <- names(nameSummary[which(nameSummary >= nameOccurrenceNumber)])
         saveRDS(
-            nameOccuranceNum,
+            nameOccurrenceNumber,
             file.path(normalizePath(projectPath),
                       "faustData",
                       "metaData",
