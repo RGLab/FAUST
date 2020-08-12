@@ -16,7 +16,7 @@
 #' `projectPath/faustData/faustCountMatrix.rds`, and can be loaded into R using
 #' the `readRDS` function.
 #'
-#' @param nameOccurenceNum The number of times a name has to appear in distinct
+#' @param nameOccurenceNumber The number of times a name has to appear in distinct
 #' SCAMP clusterings to be gated out.
 #'
 #' @param debugFlag Boolean value. Set to TRUE to print method status information
@@ -119,7 +119,7 @@
 #' @md
 discoverPhenotypes <- function(gatingSet,
                                projectPath=normalizePath("."),
-                               nameOccurenceNum=0,
+                               nameOccurenceNumber=0,
                                debugFlag=FALSE,
                                threadNum=1,
                                seedValue=123,
@@ -155,7 +155,7 @@ discoverPhenotypes <- function(gatingSet,
     if (debugFlag) print("Discovering phenotypes across experimental units.")
     .clusterExpUnitsWithScamp(
         projectPath = projectPath,
-        nameOccurenceNum = nameOccurenceNum,
+        nameOccurenceNumber = nameOccurenceNumber,
         debugFlag = debugFlag,
         threadNum = threadNum,
         seedValue = seedValue,
@@ -167,7 +167,7 @@ discoverPhenotypes <- function(gatingSet,
 
     .plotPhenotypeFilter(
         projectPath=projectPath,
-        nameOccurenceNum=nameOccurenceNum,
+        nameOccurenceNumber=nameOccurenceNumber,
         plottingDevice=plottingDevice
     )
 

@@ -89,7 +89,7 @@
 #' marker. All markers with empirical quantile above the depthScoreThreshold
 #' are used by `faust` to discover and annotate cell subsets in the experiment.
 #'
-#' @param nameOccurenceNum The number of times a name has to appear in distinct
+#' @param nameOccurenceNumber The number of times a name has to appear in distinct
 #' SCAMP clusterings to be gated out.
 #'
 #' @param supervisedList A list of lists. The names of list entries correspond
@@ -223,7 +223,7 @@ faust <- function(gatingSet,
                   projectPath=normalizePath("."),
                   depthScoreThreshold=0.01,
                   selectionQuantile=0.50,
-                  nameOccurenceNum=0,
+                  nameOccurenceNumber=0,
                   supervisedList=NA,
                   debugFlag=FALSE,
                   threadNum=1,
@@ -267,7 +267,7 @@ faust <- function(gatingSet,
         discoverPhenotypes(
             gatingSet = gatingSet,
             projectPath = projectPath,
-            nameOccurenceNum = nameOccurenceNum,
+            nameOccurenceNumber = nameOccurenceNumber,
             debugFlag = debugFlag,
             threadNum = threadNum,
             seedValue = seedValue,

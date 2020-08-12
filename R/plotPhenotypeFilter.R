@@ -1,6 +1,6 @@
 .plotPhenotypeFilter <- function(
                                  projectPath,
-                                 nameOccurenceNum,
+                                 nameOccurenceNumber,
                                  plottingDevice
                                  )
 {
@@ -24,7 +24,7 @@
         geom_vline(xintercept=elbowLoc,col="red")+
         xlab("Number of times a phenotype appears across clusterings")+
         ylab("Number of phenotypes exceeding the appearance number")+
-        ggtitle("Red line is nameOccurenceNum setting in faust")
+        ggtitle("Red line is nameOccurenceNumber setting in faust")
 
     fpNameOut <- file.path(normalizePath(projectPath),
                            "faustData",
