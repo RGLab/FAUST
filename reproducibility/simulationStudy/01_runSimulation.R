@@ -216,7 +216,7 @@ faust:::faust(
     depthScoreThreshold = 0.01,
     selectionQuantile = 0.5,
     drawAnnotationHistograms = FALSE,
-    nameOccuranceNum = max(1,floor(length(gs)/4)),
+    nameOccurrenceNumber = max(1,floor(length(gs)/4)),
     debugFlag = TRUE,
     threadNum = 10,
     seedValue = 12345,

@@ -250,7 +250,7 @@ faust(
   debugFlag = FALSE,
   #set this to the number of threads you want to use on your system
   threadNum = parallel::detectCores() / 2 - 1,
-  nameOccuranceNum=1,
+  nameOccurrenceNumber=1,
   seedValue = 271828,
   annotationsApproved = FALSE # set to false before we inspect the scores plots.
 ) 
@@ -283,7 +283,7 @@ faust(
   debugFlag = FALSE,
   #set this to the number of threads you want to use on your system
   threadNum = parallel::detectCores() / 2 - 1,
-  nameOccuranceNum=1,
+  nameOccurrenceNumber=1,
   seedValue = 271828,
   annotationsApproved = TRUE
 )
@@ -331,7 +331,7 @@ The last column is the "not annotated" subset, which **<span style="color:skyblu
 Cells are given the generic label by **<span style="color:skyblue">faust</span>** in one of two ways.
 Each cell in each experimental unit is associated with a full annotation by **<span style="color:skyblue">faust</span>**.
 The number of times a phenotype occurs across the experimental units is counted by **<span style="color:skyblue">faust</span>**.
-If the resulting number falls below the setting of the `nameOccuranceNum` parameter in the **<span style="color:skyblue">faust</span>** function,
+If the resulting number falls below the setting of the `nameOccurrenceNumber` parameter in the **<span style="color:skyblue">faust</span>** function,
 all cells associated with that phenotype are labeled "0_0_0_0_0". This is how **<span style="color:skyblue">faust</span>**
 implements phenotypic filtering as described by the manuscript.
 
