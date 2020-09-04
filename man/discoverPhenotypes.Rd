@@ -7,7 +7,7 @@
 discoverPhenotypes(
   gatingSet,
   projectPath = normalizePath("."),
-  nameOccuranceNum = ceiling((0.5 * length(gatingSet))),
+  nameOccuranceNum = 0,
   debugFlag = FALSE,
   threadNum = 1,
   seedValue = 123,

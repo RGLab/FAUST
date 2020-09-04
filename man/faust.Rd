@@ -15,7 +15,7 @@ faust(
   projectPath = normalizePath("."),
   depthScoreThreshold = 0.01,
   selectionQuantile = 0.5,
-  nameOccuranceNum = ceiling((0.5 * length(gatingSet))),
+  nameOccuranceNum = 0,
   supervisedList = NA,
   debugFlag = FALSE,
   threadNum = 1,

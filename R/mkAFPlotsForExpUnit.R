@@ -1,4 +1,4 @@
-#' Fast Annotation Using Shape-constrained Trees
+#' Full Annotation Using Shape-constrained Trees
 #'
 #' mkAFPlotsForExpUnit produces joyplot of marginal and conditional densities along with their gate locations
 #' for the specified experimental unit.

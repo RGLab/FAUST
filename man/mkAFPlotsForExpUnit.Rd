@@ -2,7 +2,7 @@
 % Please edit documentation in R/mkAFPlotsForExpUnit.R
 \name{mkAFPlotsForExpUnit}
 \alias{mkAFPlotsForExpUnit}
-\title{Fast Annotation Using Shape-constrained Trees}
+\title{Full Annotation Using Shape-constrained Trees}
 \usage{
 mkAFPlotsForExpUnit(
   projectPath,
