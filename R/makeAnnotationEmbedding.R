@@ -382,7 +382,7 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
         #
         #similarly, again load the per-cell annotation matrix
         #
-        amIn <- read.table(file.path(projectPath,"faustData","sampleData",sampleName,"annotationMatrix.csv"),
+        amIn <- read.table(file.path(projectPath,"faustData","sampleData",sName,"annotationMatrix.csv"),
                            header=FALSE,
                            sep=",",
                            stringsAsFactors=FALSE)
