@@ -78,14 +78,25 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
         stringsAsFactors=FALSE
     )
     #
-    #attach other data for reporting.
+    #attach sample lookups and selected faust clusters
     #
     umapData$sampleOfOrigin <- as.character(preppedSampleData$sampleLookups)
     umapData$faustLabels <- preppedSampleData$clusterLabels
+    #
+    #attach the observed expression
+    #
+    rawExprsMat <- preppedSampleData$rawExpressionMatrix
+    umapDataOutPrep <- cbind(umapData,rawExprsMat)
+    #
+    #attach the windsorized expression
+    #
     windExpressionData <- preppedSampleData$windsorizedExpressionMatrix
-    umapDataOutPrep <- cbind(umapData,windExpressionData)
+    umapDataOutPrep2 <- cbind(umapDataOutPrep,windExpressionData)
+    #
+    #attach the exhaustive faust annotations
+    #
     exAnnot <- preppedSampleData$exhaustiveAnnotations
-    umapDataOut <- cbind(umapDataOutPrep,exAnnot)
+    umapDataOut <- cbind(umapDataOutPrep2,exAnnot)
     return(umapDataOut)
 }
 
@@ -347,7 +358,8 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
     scoreMat <- readRDS(file.path(projectPath,"faustData","metaData","scoreMat.rds"))
     rawScoreMultipliers <- apply(scoreMat[,selC,drop=FALSE],2,sum)
     scoreMultipliers <- rawScoreMultipliers/nrow(scoreMat)
-    scoreMultipliers <- (scoreMultipliers/min(min(scoreMultipliers),0.1))
+    #normalize relative to min(AUC,0.1) and scale by golden ratio (1.618)
+    scoreMultipliers <- (1.618*(scoreMultipliers/min(min(scoreMultipliers),0.1)))
     for (selMarker in names(scoreMultipliers)) {
         scaledLevels <- sort(annotLevelList[[selMarker]])
         annotLevelList[[selMarker]] <- (scaledLevels * scoreMultipliers[[selMarker]])
@@ -377,8 +389,13 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
         #again load the expression data for reporting.
         #
         exprsMatIn <- readRDS(file.path(projectPath,"faustData","sampleData",sName,"exprsMat.rds"))
+        #
+        #windsorize and scale the selected markers
+        #
         exprsMat <- exprsMatIn[,selC,drop=FALSE]
         wExprsMat <- apply(exprsMat,2,.windsorizeAndScaleExpression)
+        windColNames <- paste0(colnames(wExprsMat),"_Windsorized")
+        colnames(wExprsMat) <- windColNames
         #
         #similarly, again load the per-cell annotation matrix
         #
@@ -412,7 +429,7 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
             }
             amUpdate[,cmn] <- cUpdateVec
         }
-        namColNames <- paste0(colnames(amUpdate),"_Annot")
+        namColNames <- paste0(colnames(amUpdate),"_faust_annotation")
         colnames(amUpdate) <- namColNames
         #
         #also load the faust cluster labels for reporting.
@@ -435,7 +452,8 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
         if (firstSample) {
             preparedData <- preparedSample
             allSampleLookups <- sLookupVec
-            allExprsData <- wExprsMat
+            allExprsData <- exprsMatIn
+            allWindData <- wExprsMat
             allFA <- fa
             allExhaustiveAnn <- amUpdate
             firstSample <- FALSE
@@ -443,7 +461,8 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
         else {
             preparedData <- rbind(preparedData,preparedSample)
             allSampleLookups <- append(allSampleLookups,sLookupVec)
-            allExprsData <- rbind(allExprsData,wExprsMat)
+            allExprsData <- rbind(allExprsData,exprsMatIn)
+            allWindData <- rbind(allWindData,wExprsMat)
             allFA <- append(allFA,fa)
             allExhaustiveAnn <- rbind(allExhaustiveAnn,amUpdate)
         }
@@ -451,7 +470,8 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
     outList <- list(
         `preparedDataset`= preparedData,
         `sampleLookups`= allSampleLookups,
-        `windsorizedExpressionMatrix`=allExprsData,
+        `rawExpressionMatrix`=allExprsData,
+        `windsorizedExpressionMatrix`=allWindData,
         `clusterLabels`=allFA,
         `exhaustiveAnnotations`=allExhaustiveAnn 
     )
