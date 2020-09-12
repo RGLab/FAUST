@@ -4,7 +4,7 @@
 \alias{makeAnnotationEmbedding}
 \title{Full Annotation Using Shape-constrained Trees}
 \usage{
-makeAnnotationEmbedding(projectPath, sampleNameVec)
+makeAnnotationEmbedding(projectPath, sampleNameVec, vizType = "uniform")
 }
 \arguments{
 \item{projectPath}{A path to a directory containing a completed FAUST analysis.
@@ -13,6 +13,11 @@ contains a completed faust analysis.}
 
 \item{sampleNameVec}{A character vector listing samples to embed. Each entry
 in the vector must match a directory name in projectPath/faustData/sampleData.}
+
+\item{vizType}{A string listing the type of annotation embedding to perform.
+The default value is "uniform", which causes the distance between any two
+annotations is uniform across coordinates. The other supported value is
+"depthscore", which scales annotation coordinates by their normalized depth score.}
 }
 \value{
 A data frame with the following columns:

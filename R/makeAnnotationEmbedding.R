@@ -18,6 +18,11 @@
 #'
 #' @param sampleNameVec A character vector listing samples to embed. Each entry
 #' in the vector must match a directory name in projectPath/faustData/sampleData.
+#'
+#' @param vizType A string listing the type of annotation embedding to perform.
+#' The default value is "uniform", which causes the distance between any two
+#' annotations is uniform across coordinates. The other supported value is
+#' "depthscore", which scales annotation coordinates by their normalized depth score.
 #' 
 #' @return A data frame with the following columns:
 #'
@@ -35,7 +40,7 @@
 #' @export
 #' @md
 #' @importFrom uwot umap
-makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
+makeAnnotationEmbedding <- function(projectPath,sampleNameVec,vizType="uniform") {
     require(uwot)
     if (!dir.exists(file.path(projectPath,"faustData"))) {
         print(paste0("No faustData detected at projectPath location: ",projectPath))
@@ -63,9 +68,13 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
         print("Attempting to include a sample in the embedding that's not in projectPath/faustData/sampleData.")
         stop("Update path before calling this function.")
     }
-    preppedSampleData <- .prepareSamplesForUmap(
+    if (!(vizType %in% (c("uniform","depthscore")))) {
+        stop("Unsupported vizType detected. Set vizType parameter to uniform or depthscore")
+    }
+    preppedSampleData <- .prepareSamplesForEmbed(
         sampleNameVec=sampleNameVec,
-        projectPath=projectPath
+        projectPath=projectPath,
+        visualizationType=vizType
     )
     preppedSample <- preppedSampleData$preparedDataset
     #
@@ -232,7 +241,7 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
                                   selectedChannels,
                                   markerQuantilesLow,
                                   markerQuantilesHigh
-            )
+                                  )
 {
     #
     #load the observed expression matrix
@@ -331,7 +340,7 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
     return(clusterScaleExprsMat)
 }
 
-.prepareSamplesForUmap <- function(sampleNameVec,projectPath) {
+.prepareSamplesForEmbed <- function(sampleNameVec,projectPath,visualizationType) {
     #
     #load the sample expression and annotations
     #
@@ -362,7 +371,13 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec) {
     scoreMultipliers <- (1.618*(scoreMultipliers/min(min(scoreMultipliers),0.1)))
     for (selMarker in names(scoreMultipliers)) {
         scaledLevels <- sort(annotLevelList[[selMarker]])
-        annotLevelList[[selMarker]] <- (scaledLevels * scoreMultipliers[[selMarker]])
+        if (visualizationType=="uniform") {
+            annotLevelList[[selMarker]] <- (scaledLevels * 10)
+        }
+        else {
+            #depth score scaling
+            annotLevelList[[selMarker]] <- (scaledLevels * scoreMultipliers[[selMarker]])
+        }
     }
     quantileScoreWeights <- rawScoreMultipliers/sum(rawScoreMultipliers)
     quantileScoreWeights <- c(0,quantileScoreWeights[-length(quantileScoreWeights)])
