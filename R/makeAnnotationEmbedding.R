@@ -76,11 +76,11 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec,vizType="uniform")
         projectPath=projectPath,
         visualizationType=vizType
     )
-    preppedSample <- preppedSampleData$preparedDataset
+    preppedDataForEmbedding <- preppedSampleData$preparedDataset
     #
     #embed the prepared dataset.
     #
-    annoEmbed <- uwot::umap(preppedSample,n_neighbors=15,metric="euclidean",min_dist=0.2,verbose=FALSE)
+    annoEmbed <- uwot::umap(preppedDataForEmbedding,n_neighbors=15,metric="euclidean",min_dist=0.2,verbose=FALSE)
     umapData <- data.frame(
         umapX=annoEmbed[,1],
         umapY=annoEmbed[,2],
@@ -267,7 +267,10 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec,vizType="uniform")
         clusterExpression <- clusterScaleExprsMat[ufaLookup,,drop=FALSE]
         if (nrow(clusterExpression) == 1) {
             scaledClusterExprs <- clusterExpression
-            scaledClusterExprs[1,] <- 0
+            #set to a random deviate centered at 0. updated from setting to exact 0
+            #to avoid scenario in rare samples where every cluster associated with 
+            #an annotation grouping consists of a single observation
+            scaledClusterExprs[1,] <- rnorm(ncol(clusterExpression),sd=1e-7)
         }
         else {
             scaledClusterExprs <- apply(clusterExpression,2,.standardizeVectorForAnnotScale)
