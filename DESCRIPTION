@@ -37,7 +37,8 @@ Imports:
     cowplot,
     ggridges,
     fdrtool,
-    Rcpp
+    Rcpp,
+    lme4
 VignetteBuilder: knitr
 LinkingTo: Rcpp    
 Depends: R (>= 3.6.0)
