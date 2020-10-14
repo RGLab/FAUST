@@ -38,7 +38,8 @@ Imports:
     ggridges,
     fdrtool,
     Rcpp,
-    lme4
+    lme4,
+    bit
 VignetteBuilder: knitr
 LinkingTo: Rcpp    
 Depends: R (>= 3.6.0)
