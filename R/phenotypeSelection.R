@@ -18,6 +18,13 @@
 #' needed to fit the model formula described in the 'inputModelStr' parameter.
 #' One variable must be called 'sampleName', and the entries must match folders
 #' contained in projectPath/faustData/sampleData.
+#'
+#' @param markersInParentPhenotype The subset of markers in the startingPhenotype
+#' used to compute the sample-by-sample parentCount. NULL by default, leads
+#' to using all observations in each sample as the parentCount. Example:
+#' if the startingPhenotype contains "CD3+ CD4+ CD8-", setting this parameter to
+#' c("CD3","CD4","CD8") will cause the parent count in the GLMM to be total
+#' CD4 T cells rather than all cells in the sample.
 #' 
 #' @return A list with four slots.
 #'
@@ -38,7 +45,8 @@ backwardPhenotypeSelection <- function(
                                        projectPath,
                                        startingPhenotype,
                                        inputModelStr,
-                                       metaDataDF
+                                       metaDataDF,
+                                       markersInParentPhenotype=NULL
                                        )
 {
     require(bit)  #for the bitwhich class, and associated operations
@@ -51,6 +59,16 @@ backwardPhenotypeSelection <- function(
     internalPhenotype <- encodingDF[which(encodingDF[,"newColNames"]==startingPhenotype),"faustColNames"]
     phenoData <- strsplit(internalPhenotype,"~")[[1]]
     possibleMarkers <- phenoData[seq(1,length(phenoData),by=3)]
+    #
+    #test to make sure markers in the parent phenotype are a subset of the startingPhenotype
+    #
+    if (!is.null(markersInParentPhenotype)) {
+        for (pmn in markersInParentPhenotype) {
+            if (length(which(grepl(paste0("\\<",pmn,"\\>"),phenoData)))==0) {
+                stop("Phenotypes in markersInParentPhenotype must be a subset of those in the startingPhenotype")
+            }
+        }
+    }
     #
     #targetExrps will contain all possible markers to target
     #and their associated expression level for looking up in the annotation
@@ -84,7 +102,8 @@ backwardPhenotypeSelection <- function(
         selectedChannels=selectedChannels,
         metaDataDF=metaDataDF,
         modelStr=inputModelStr,
-        phenotypeLookupList=phenotypeLookupList 
+        phenotypeLookupList=phenotypeLookupList,
+        markersInParentPhenotype=markersInParentPhenotype
     )
     #
     #record the data for the complete phenotype
@@ -98,11 +117,11 @@ backwardPhenotypeSelection <- function(
     #
     #iterate over the markers, eliminating markers in a step-wise fashion.
     #
-    while (length(admissibleMarkers) > 1) {
+    while (length(admissibleMarkers) > (length(markersInParentPhenotype)+1)) { #test relies on length(NULL)==0
         print(paste0("Processing ",length(admissibleMarkers)," markers"))
         pvalVec <- c()
         markerList <- list()
-        for (cmn in admissibleMarkers) {
+        for (cmn in setdiff(admissibleMarkers,markersInParentPhenotype)) {
             candMarkers <- setdiff(admissibleMarkers,cmn)
             modelPval <- .getPvalueForMarkers(
                 projectPath=projectPath,
@@ -111,7 +130,8 @@ backwardPhenotypeSelection <- function(
                 selectedChannels=selectedChannels,
                 metaDataDF=metaDataDF,
                 modelStr=inputModelStr,
-                phenotypeLookupList=phenotypeLookupList 
+                phenotypeLookupList=phenotypeLookupList ,
+                markersInParentPhenotype=markersInParentPhenotype
             )
             pvalVec <- append(pvalVec,modelPval)
             markerList <- append(markerList,list(candMarkers))
@@ -184,6 +204,13 @@ backwardPhenotypeSelection <- function(
 #' needed to fit the model formula described in the 'inputModelStr' parameter.
 #' One variable must be called 'sampleName', and the entries must match folders
 #' contained in projectPath/faustData/sampleData.
+#'
+#' @param markersInParentPhenotype The subset of markers in the targetPhenotype 
+#' used to compute the sample-by-sample parentCount. NULL by default, leads
+#' to using all observations in each sample as the parentCount. Example:
+#' if the targetPhenotype contains "CD3+ CD4+ CD8-", setting this parameter to
+#' c("CD3","CD4","CD8") will cause the parent count in the GLMM to be total
+#' CD4 T cells rather than all cells in the sample.
 #' 
 #' @return A list with four slots.
 #'
@@ -204,7 +231,8 @@ forwardPhenotypeSelection <- function(
                                       projectPath,
                                       targetPhenotype,
                                       inputModelStr,
-                                      metaDataDF
+                                      metaDataDF,
+                                      markersInParentPhenotype=NULL
                                       )
 {
     require(bit)  #for the bitwhich class, and associated operations
@@ -217,6 +245,16 @@ forwardPhenotypeSelection <- function(
     internalPhenotype <- encodingDF[which(encodingDF[,"newColNames"]==targetPhenotype),"faustColNames"]
     phenoData <- strsplit(internalPhenotype,"~")[[1]]
     possibleMarkers <- phenoData[seq(1,length(phenoData),by=3)]
+    #
+    #test to make sure markers in the parent phenotype are a subset of the targetPhenotype
+    #
+    if (!is.null(markersInParentPhenotype)) {
+        for (pmn in markersInParentPhenotype) {
+            if (length(which(grepl(paste0("\\<",pmn,"\\>"),phenoData)))==0) {
+                stop("Phenotypes in markersInParentPhenotype must be a subset of those in the targetPhenotype")
+            }
+        }
+    }
     #
     #targetExrps will contain all possible markers to target
     #and their associated expression level for looking up in the annotation
@@ -250,7 +288,8 @@ forwardPhenotypeSelection <- function(
         selectedChannels=selectedChannels,
         metaDataDF=metaDataDF,
         modelStr=inputModelStr,
-        phenotypeLookupList=phenotypeLookupList 
+        phenotypeLookupList=phenotypeLookupList,
+        markersInParentPhenotype=markersInParentPhenotype
     )
     #
     #record the data for the complete phenotype
@@ -264,7 +303,13 @@ forwardPhenotypeSelection <- function(
     #
     #iterate over the markers, adding markers in a step-wise fashion.
     #    
-    stepwiseSelection <- c()
+    if (is.null(markersInParentPhenotype)) {
+        stepwiseSelection <- c()
+    }
+    else {
+        stepwiseSelection <- markersInParentPhenotype
+        admissibleMarkers <- setdiff(selectedChannels,markersInParentPhenotype)
+    }
     while (length(admissibleMarkers) > 1) {
         print(paste0("Processing ",(length(stepwiseSelection)+1)," markers"))
         pvalVec <- c()
@@ -278,7 +323,8 @@ forwardPhenotypeSelection <- function(
                 selectedChannels=selectedChannels,
                 metaDataDF=metaDataDF,
                 modelStr=inputModelStr,
-                phenotypeLookupList=phenotypeLookupList 
+                phenotypeLookupList=phenotypeLookupList,
+                markersInParentPhenotype=markersInParentPhenotype
             )
             pvalVec <- append(pvalVec,modelPval)
             markerList <- append(markerList,list(candMarkers))
@@ -350,6 +396,13 @@ forwardPhenotypeSelection <- function(
 #' needed to fit the model formula described in the 'inputModelStr' parameter.
 #' One variable must be called 'sampleName', and the entries must match folders
 #' contained in projectPath/faustData/sampleData.
+#'
+#' @param markersInParentPhenotype The subset of markers in the referencePhenotype
+#' used to compute the sample-by-sample parentCount. NULL by default, leads
+#' to using all observations in each sample as the parentCount. Example:
+#' if the referencePhenotype contains "CD3+ CD4+ CD8-", setting this parameter to
+#' c("CD3","CD4","CD8") will cause the parent count in the GLMM to be total
+#' CD4 T cells rather than all cells in the sample.
 #' 
 #' @return A data frame with counts for the sub-phenotype consisting of the target
 #' markers. All meta data in the metaDataDF is merged on.
@@ -361,7 +414,8 @@ getCountsForTargetMarkers <- function(
                                       projectPath,
                                       referencePhenotype,
                                       targetMarkers,
-                                      metaDataDF
+                                      metaDataDF,
+                                      markersInParentPhenotype=NULL
                                       )
 {
     require(bit)  #for the bitwhich class, and associated operations
@@ -374,6 +428,16 @@ getCountsForTargetMarkers <- function(
     internalPhenotype <- encodingDF[which(encodingDF[,"newColNames"]==referencePhenotype),"faustColNames"]
     phenoData <- strsplit(internalPhenotype,"~")[[1]]
     possibleMarkers <- phenoData[seq(1,length(phenoData),by=3)]
+    #
+    #test to make sure markers in the parent phenotype are a subset of the referencePhenotype
+    #
+    if (!is.null(markersInParentPhenotype)) {
+        for (pmn in markersInParentPhenotype) {
+            if (length(which(grepl(paste0("\\<",pmn,"\\>"),phenoData)))==0) {
+                stop("Phenotypes in markersInParentPhenotype must be a subset of those in the referencePhenotype")
+            }
+        }
+    }
     #
     #targetExrps will contain all possible markers to target
     #and their associated expression level for looking up in the annotation
@@ -403,7 +467,8 @@ getCountsForTargetMarkers <- function(
         markersInPheno=targetMarkers,
         targetExprs=targetExprs,
         selectedChannels=selectedChannels,
-        phenotypeLookupList=phenotypeLookupList
+        phenotypeLookupList=phenotypeLookupList,
+        markersInParentPhenotype=markersInParentPhenotype
     )
     #
     #merge on the meta data, and return the data frame
@@ -434,8 +499,8 @@ getCountsForTargetMarkers <- function(
         #set up a list to store lookups
         #
         markerPhenoLookups <- vector(mode="list",(length(targetExprs)+1))
-        names(markerPhenoLookups) <- c(names(targetExprs),"parentCount")
-        markerPhenoLookups[["parentCount"]] <- nrow(amIn)
+        names(markerPhenoLookups) <- c(names(targetExprs),"obsInSample")
+        markerPhenoLookups[["obsInSample"]] <- nrow(amIn)
         #
         #get lookups for the markers that constitute the phenotype
         #
@@ -458,7 +523,8 @@ getCountsForTargetMarkers <- function(
                                 markersInPheno,
                                 targetExprs,
                                 selectedChannels,
-                                phenotypeLookupList)
+                                phenotypeLookupList,
+                                markersInParentPhenotype)
 {
     allSampleNames <- list.files(file.path(projectPath,"faustData","sampleData"))
     pcVec <- ccVec <- snVec <- c()
@@ -466,13 +532,24 @@ getCountsForTargetMarkers <- function(
         #
         #get counts for the markers that constitute the phenotype
         #
-        parentCount <- phenotypeLookupList[[sampleName]][["parentCount"]]
-        childBM <- bitwhich(maxindex=parentCount,x=TRUE)
+        obsInSample <- phenotypeLookupList[[sampleName]][["obsInSample"]]
+        childBM <- bitwhich(maxindex=obsInSample,x=TRUE)
         for (mn in markersInPheno) {
             currentBM <- phenotypeLookupList[[sampleName]][[mn]]
             childBM <- (childBM & currentBM) #S3 method from bit library
         }
         childCount <- length(which(as.logical(childBM)))
+        if (is.null(markersInParentPhenotype)) {
+            parentCount <- obsInSample
+        }
+        else {
+            parentBM <- bitwhich(maxindex=obsInSample,x=TRUE)
+            for (mn in markersInParentPhenotype) {
+                currentBM <- phenotypeLookupList[[sampleName]][[mn]]
+                parentBM <- (parentBM & currentBM) #S3 method from bit library
+            }
+            parentCount <- length(which(as.logical(parentBM)))
+        }
         #
         #record data from sample
         #
@@ -525,7 +602,9 @@ getCountsForTargetMarkers <- function(
                                 selectedChannels,
                                 metaDataDF,
                                 modelStr,
-                                phenotypeLookupList)
+                                phenotypeLookupList,
+                                markersInParentPhenotype
+                                )
 {
     #
     #get counts for the phenotype consisting of the candidate markers
@@ -535,7 +614,8 @@ getCountsForTargetMarkers <- function(
         markersInPheno=candidateMarkers,
         targetExprs=targetExprs,
         selectedChannels=selectedChannels,
-        phenotypeLookupList=phenotypeLookupList
+        phenotypeLookupList=phenotypeLookupList,
+        markersInParentPhenotype=markersInParentPhenotype
     )
     #
     #merge on the meta data, fit the model, and resut

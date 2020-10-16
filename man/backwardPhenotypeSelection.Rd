@@ -8,7 +8,8 @@ backwardPhenotypeSelection(
   projectPath,
   startingPhenotype,
   inputModelStr,
-  metaDataDF
+  metaDataDF,
+  markersInParentPhenotype = NULL
 )
 }
 \arguments{
@@ -30,6 +31,13 @@ The variable of interest must occupy the first position of the}
 needed to fit the model formula described in the 'inputModelStr' parameter.
 One variable must be called 'sampleName', and the entries must match folders
 contained in projectPath/faustData/sampleData.}
+
+\item{markersInParentPhenotype}{The subset of markers in the startingPhenotype
+used to compute the sample-by-sample parentCount. NULL by default, leads
+to using all observations in each sample as the parentCount. Example:
+if the startingPhenotype contains "CD3+ CD4+ CD8-", setting this parameter to
+c("CD3","CD4","CD8") will cause the parent count in the GLMM to be total
+CD4 T cells rather than all cells in the sample.}
 }
 \value{
 A list with four slots.
