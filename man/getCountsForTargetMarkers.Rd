@@ -25,7 +25,7 @@ that is produced by a complete faust run.}
 \item{targetMarkers}{The markers of interest in the sub-phenotype.}
 
 \item{metaDataDF}{A data frame with all relevant meta data (except the counts)
-needed to fit the model formula described in the 'inputModelStr' parameter.
+needed to fit the model formula described in the 'selectionMode' parameter.
 One variable must be called 'sampleName', and the entries must match folders
 contained in projectPath/faustData/sampleData.}
 

@@ -8,14 +8,16 @@
 #' This must match a column in the file 'faustCountMatrix.rds' that is produced
 #' by a complete faust run.
 #'
-#' @param inputModelStr A string containing a model formula. This formula is used
-#' to guide the backward selection. The LHS of the formula must read
-#' 'cbind(childCount,(parentCount-childCount))'. The RHS of the formula
-#' (after the '~' character) must match column names of the metaDataDF.
-#' The variable of interest must occupy the first position of the 
+#' @param selectionModel A function that takes a single parameter "inputData" 
+#' and returns a single numeric value, the "pvalue". The "inputData" is a
+#' data frame guaranteed to contain two columns: "childCount", the per-sample 
+#' counts of the phenotype implied by the current marker combination, and
+#' "parentCount", the per-sample counts implied by the markersInParentPhenotype
+#' parameter. All remaining values are the per-sample values of variables
+#' supplied by the metaDataDF.
 #'
 #' @param metaDataDF A data frame with all relevant meta data (except the counts)
-#' needed to fit the model formula described in the 'inputModelStr' parameter.
+#' needed to fit the model formula described in the 'selectionModel' parameter.
 #' One variable must be called 'sampleName', and the entries must match folders
 #' contained in projectPath/faustData/sampleData.
 #'
@@ -37,20 +39,18 @@
 #' Slot `encodingData`: data used to construct phenotype queries based on the
 #' results.
 #'
-#' @importFrom lme4 glmer
 #' @importFrom dplyr inner_join
 #' @importFrom bit bitwhich
 #' @export
 backwardPhenotypeSelection <- function(
                                        projectPath,
                                        startingPhenotype,
-                                       inputModelStr,
+                                       selectionModel,
                                        metaDataDF,
                                        markersInParentPhenotype=NULL
                                        )
 {
     require(bit)  #for the bitwhich class, and associated operations
-    require(lme4) #for glmer
     require(dplyr) #for inner_join
     #
     #set up the environment
@@ -101,7 +101,7 @@ backwardPhenotypeSelection <- function(
         targetExprs=targetExprs,
         selectedChannels=selectedChannels,
         metaDataDF=metaDataDF,
-        modelStr=inputModelStr,
+        selModel=selectionModel,
         phenotypeLookupList=phenotypeLookupList,
         markersInParentPhenotype=markersInParentPhenotype
     )
@@ -129,7 +129,7 @@ backwardPhenotypeSelection <- function(
                 targetExprs=targetExprs,
                 selectedChannels=selectedChannels,
                 metaDataDF=metaDataDF,
-                modelStr=inputModelStr,
+                selModel=selectionModel,
                 phenotypeLookupList=phenotypeLookupList ,
                 markersInParentPhenotype=markersInParentPhenotype
             )
@@ -194,14 +194,16 @@ backwardPhenotypeSelection <- function(
 #' This must match a column in the file 'faustCountMatrix.rds' that is produced
 #' by a complete faust run.
 #'
-#' @param inputModelStr A string containing a model formula. This formula is used
-#' to guide the backward selection. The LHS of the formula must read
-#' 'cbind(childCount,(parentCount-childCount))'. The RHS of the formula
-#' (after the '~' character) must match column names of the metaDataDF.
-#' The variable of interest must occupy the first position of the 
+#' @param selectionModel A function that takes a single parameter "inputData" 
+#' and returns a single numeric value, the "pvalue". The "inputData" is a
+#' data frame guaranteed to contain two columns: "childCount", the per-sample 
+#' counts of the phenotype implied by the current marker combination, and
+#' "parentCount", the per-sample counts implied by the markersInParentPhenotype
+#' parameter. All remaining values are the per-sample values of variables
+#' supplied by the metaDataDF.
 #'
 #' @param metaDataDF A data frame with all relevant meta data (except the counts)
-#' needed to fit the model formula described in the 'inputModelStr' parameter.
+#' needed to fit the model formula described in the 'selectionMode' parameter.
 #' One variable must be called 'sampleName', and the entries must match folders
 #' contained in projectPath/faustData/sampleData.
 #'
@@ -223,20 +225,18 @@ backwardPhenotypeSelection <- function(
 #' Slot `encodingData`: data used to construct phenotype queries based on the
 #' results.
 #'
-#' @importFrom lme4 glmer
 #' @importFrom dplyr inner_join
 #' @importFrom bit bitwhich
 #' @export
 forwardPhenotypeSelection <- function(
                                       projectPath,
                                       targetPhenotype,
-                                      inputModelStr,
+                                      selectionModel,
                                       metaDataDF,
                                       markersInParentPhenotype=NULL
                                       )
 {
     require(bit)  #for the bitwhich class, and associated operations
-    require(lme4) #for glmer
     require(dplyr) #for inner_join
     #
     #set up the environment
@@ -287,7 +287,7 @@ forwardPhenotypeSelection <- function(
         targetExprs=targetExprs,
         selectedChannels=selectedChannels,
         metaDataDF=metaDataDF,
-        modelStr=inputModelStr,
+        selModel=selectionModel,
         phenotypeLookupList=phenotypeLookupList,
         markersInParentPhenotype=markersInParentPhenotype
     )
@@ -322,7 +322,7 @@ forwardPhenotypeSelection <- function(
                 targetExprs=targetExprs,
                 selectedChannels=selectedChannels,
                 metaDataDF=metaDataDF,
-                modelStr=inputModelStr,
+                selModel=selectionModel,
                 phenotypeLookupList=phenotypeLookupList,
                 markersInParentPhenotype=markersInParentPhenotype
             )
@@ -393,7 +393,7 @@ forwardPhenotypeSelection <- function(
 #' @param targetMarkers The markers of interest in the sub-phenotype.
 #'
 #' @param metaDataDF A data frame with all relevant meta data (except the counts)
-#' needed to fit the model formula described in the 'inputModelStr' parameter.
+#' needed to fit the model formula described in the 'selectionMode' parameter.
 #' One variable must be called 'sampleName', and the entries must match folders
 #' contained in projectPath/faustData/sampleData.
 #'
@@ -419,7 +419,6 @@ getCountsForTargetMarkers <- function(
                                       )
 {
     require(bit)  #for the bitwhich class, and associated operations
-    require(lme4) #for glmer
     require(dplyr) #for inner_join
     #
     #set up the environment
@@ -566,42 +565,12 @@ getCountsForTargetMarkers <- function(
     return(phenotypeCountDF)
 }
 
-.modelContrast <- function(modelStr,dataSet) {
-    out <- tryCatch(
-    {
-        m <- glmer(
-            formula=as.formula(modelStr),
-            data=dataSet,
-            family="binomial",
-            control=glmerControl(
-                optimizer="bobyqa", optCtrl = list(maxfun = 1e9),
-                check.conv.singular = .makeCC(action = "warning",  tol = 1e-4))
-        )
-        rv <- c(coefficients(summary(m))[2,4])
-        return(rv)
-    },
-    error=function(cond){
-        message("Error!")
-        message(cond)
-        return(NA)
-    },
-    warning=function(cond){
-        message("Warning!")
-        message(cond)
-        return(NA)
-    },
-    finally={
-    }
-    )
-    return(out)
-}
-
 .getPvalueForMarkers <- function(projectPath,
                                 candidateMarkers,
                                 targetExprs,
                                 selectedChannels,
                                 metaDataDF,
-                                modelStr,
+                                selModel,
                                 phenotypeLookupList,
                                 markersInParentPhenotype
                                 )
@@ -621,9 +590,8 @@ getCountsForTargetMarkers <- function(
     #merge on the meta data, fit the model, and resut
     #
     modelDF <- inner_join(phenoDF,metaDataDF,by=c("sampleName"))
-    modelP <- .modelContrast(
-        modelStr=modelStr,
-        dataSet=modelDF
+    modelP <- selModel(
+        inputData=modelDF
     )
     return(modelP)
 }

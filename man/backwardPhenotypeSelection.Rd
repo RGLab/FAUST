@@ -7,7 +7,7 @@
 backwardPhenotypeSelection(
   projectPath,
   startingPhenotype,
-  inputModelStr,
+  selectionModel,
   metaDataDF,
   markersInParentPhenotype = NULL
 )
@@ -21,14 +21,16 @@ contains a completed faust analysis.}
 This must match a column in the file 'faustCountMatrix.rds' that is produced
 by a complete faust run.}
 
-\item{inputModelStr}{A string containing a model formula. This formula is used
-to guide the backward selection. The LHS of the formula must read
-'cbind(childCount,(parentCount-childCount))'. The RHS of the formula
-(after the '~' character) must match column names of the metaDataDF.
-The variable of interest must occupy the first position of the}
+\item{selectionModel}{A function that takes a single parameter "inputData"
+and returns a single numeric value, the "pvalue". The "inputData" is a
+data frame guaranteed to contain two columns: "childCount", the per-sample
+counts of the phenotype implied by the current marker combination, and
+"parentCount", the per-sample counts implied by the markersInParentPhenotype
+parameter. All remaining values are the per-sample values of variables
+supplied by the metaDataDF.}
 
 \item{metaDataDF}{A data frame with all relevant meta data (except the counts)
-needed to fit the model formula described in the 'inputModelStr' parameter.
+needed to fit the model formula described in the 'selectionModel' parameter.
 One variable must be called 'sampleName', and the entries must match folders
 contained in projectPath/faustData/sampleData.}
 
