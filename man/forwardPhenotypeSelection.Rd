@@ -9,7 +9,8 @@ forwardPhenotypeSelection(
   targetPhenotype,
   selectionModel,
   metaDataDF,
-  markersInParentPhenotype = NULL
+  markersInParentPhenotype = NULL,
+  fixedMarkers = NULL
 )
 }
 \arguments{
@@ -40,6 +41,13 @@ to using all observations in each sample as the parentCount. Example:
 if the targetPhenotype contains "CD3+ CD4+ CD8-", setting this parameter to
 c("CD3","CD4","CD8") will cause the parent count in the GLMM to be total
 CD4 T cells rather than all cells in the sample.}
+
+\item{fixedMarkers}{The subset of markers in the targetPhenotype that are
+fixed during forward selection. NULL by default, allowing all markers in the phenotypes
+to be candidates for step-wise inclusion. Example: if the targetPhenotype contains
+"CD3+ CD4+ CD8-", setting this parameter to c("CD3","CD4","CD8") will cause every
+phenotype considered along the selection path to contain the sub-phenotype
+"CD3+ CD4+ CD8-".}
 }
 \value{
 A list with four slots.

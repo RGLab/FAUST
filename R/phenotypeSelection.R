@@ -27,6 +27,14 @@
 #' if the startingPhenotype contains "CD3+ CD4+ CD8-", setting this parameter to
 #' c("CD3","CD4","CD8") will cause the parent count in the GLMM to be total
 #' CD4 T cells rather than all cells in the sample.
+#'
+#' @param fixedMarkers The subset of markers in the startingPhenotype that are
+#' fixed during backwards selection: they are never candidates for marginalization
+#' from the phenotypes. NULL by default, allowing all markers in the phenotypes
+#' to be candidates for marginalization. Example: if the startingPhenotype contains 
+#' "CD3+ CD4+ CD8-", setting this parameter to c("CD3","CD4","CD8") will cause every
+#' phenotype considered along the selection path to contain the sub-phenotype
+#' "CD3+ CD4+ CD8-".
 #' 
 #' @return A list with four slots.
 #'
@@ -47,7 +55,8 @@ backwardPhenotypeSelection <- function(
                                        startingPhenotype,
                                        selectionModel,
                                        metaDataDF,
-                                       markersInParentPhenotype=NULL
+                                       markersInParentPhenotype=NULL,
+                                       fixedMarkers=NULL
                                        )
 {
     require(bit)  #for the bitwhich class, and associated operations
@@ -65,8 +74,27 @@ backwardPhenotypeSelection <- function(
     if (!is.null(markersInParentPhenotype)) {
         for (pmn in markersInParentPhenotype) {
             if (length(which(grepl(paste0("\\<",pmn,"\\>"),phenoData)))==0) {
-                stop("Phenotypes in markersInParentPhenotype must be a subset of those in the startingPhenotype")
+                stop("Markers in markersInParentPhenotype must be a subset of those in the startingPhenotype")
             }
+        }
+    }
+    #
+    #similarly, test to make sure fixed markers are a subset of the startingPhenotype
+    #
+    if (!is.null(fixedMarkers)) {
+        for (fmn in fixedMarkers) {
+            if (length(which(grepl(paste0("\\<",fmn,"\\>"),phenoData)))==0) {
+                stop("Markers in fixedMarkers must be a subset of those in the startingPhenotype")
+            }
+        }
+    }
+    #
+    #if the fixedMarkers and markersInParentPhenotype are both non-null, then the fixedMarkers
+    #must be a subset of the markersInParentPhenotype. test to ensure this condition
+    #
+    if ((!is.null(fixedMarkers)) && (!is.null(markersInParentPhenotype))) {
+        if (length(setdiff(markersInParentPhenotype,fixedMarkers))) {
+            stop("Markers in fixedMarkers must be a subset of those in markersInParentPhenotype")
         }
     }
     #
@@ -116,12 +144,22 @@ backwardPhenotypeSelection <- function(
     names(phenoOutList)[length(phenoOutList)] <- paste0(length(admissibleMarkers)," markers")
     #
     #iterate over the markers, eliminating markers in a step-wise fashion.
+    #static markers are either used to compute counts for the parentCount, or are 
+    #fixed by the user to maintain interpretability of all marginalized phenotypes
     #
-    while (length(admissibleMarkers) > (length(markersInParentPhenotype)+1)) { #test relies on length(NULL)==0
+    staticMarkers <- unique(c(markersInParentPhenotype,fixedMarkers))
+    if (length(fixedMarkers)>0) {
+        #want to determine a p-value for the subset of fixed markers
+        testLength <- length(staticMarkers)
+    }
+    else {
+        testLength <- length(staticMarkers) + 1
+    }
+    while (length(admissibleMarkers) > testLength) { #test relies on length(NULL)==0
         print(paste0("Processing ",length(admissibleMarkers)," markers"))
         pvalVec <- c()
         markerList <- list()
-        for (cmn in setdiff(admissibleMarkers,markersInParentPhenotype)) {
+        for (cmn in setdiff(admissibleMarkers,staticMarkers)) {
             candMarkers <- setdiff(admissibleMarkers,cmn)
             modelPval <- .getPvalueForMarkers(
                 projectPath=projectPath,
@@ -214,6 +252,13 @@ backwardPhenotypeSelection <- function(
 #' c("CD3","CD4","CD8") will cause the parent count in the GLMM to be total
 #' CD4 T cells rather than all cells in the sample.
 #' 
+#' @param fixedMarkers The subset of markers in the targetPhenotype that are
+#' fixed during forward selection. NULL by default, allowing all markers in the phenotypes
+#' to be candidates for step-wise inclusion. Example: if the targetPhenotype contains 
+#' "CD3+ CD4+ CD8-", setting this parameter to c("CD3","CD4","CD8") will cause every
+#' phenotype considered along the selection path to contain the sub-phenotype
+#' "CD3+ CD4+ CD8-".
+#' 
 #' @return A list with four slots.
 #'
 #' Slot 'selections': the markers chosen at each selection stage. 
@@ -233,7 +278,8 @@ forwardPhenotypeSelection <- function(
                                       targetPhenotype,
                                       selectionModel,
                                       metaDataDF,
-                                      markersInParentPhenotype=NULL
+                                      markersInParentPhenotype=NULL,
+                                      fixedMarkers=NULL
                                       )
 {
     require(bit)  #for the bitwhich class, and associated operations
@@ -251,8 +297,27 @@ forwardPhenotypeSelection <- function(
     if (!is.null(markersInParentPhenotype)) {
         for (pmn in markersInParentPhenotype) {
             if (length(which(grepl(paste0("\\<",pmn,"\\>"),phenoData)))==0) {
-                stop("Phenotypes in markersInParentPhenotype must be a subset of those in the targetPhenotype")
+                stop("Markers in markersInParentPhenotype must be a subset of those in the targetPhenotype")
             }
+        }
+    }
+    #
+    #similarly, test to make sure fixed markers are a subset of the targetPhenotype
+    #
+    if (!is.null(fixedMarkers)) {
+        for (fmn in fixedMarkers) {
+            if (length(which(grepl(paste0("\\<",fmn,"\\>"),phenoData)))==0) {
+                stop("Markers in fixedMarkers must be a subset of those in the startingPhenotype")
+            }
+        }
+    }
+    #
+    #if the fixedMarkers and markersInParentPhenotype are both non-null, then the fixedMarkers
+    #must be a subset of the markersInParentPhenotype. test to ensure this condition
+    #
+    if ((!is.null(fixedMarkers)) && (!is.null(markersInParentPhenotype))) {
+        if (length(setdiff(markersInParentPhenotype,fixedMarkers))) {
+            stop("Markers in fixedMarkers must be a subset of those in markersInParentPhenotype")
         }
     }
     #
@@ -303,14 +368,24 @@ forwardPhenotypeSelection <- function(
     #
     #iterate over the markers, adding markers in a step-wise fashion.
     #    
-    if (is.null(markersInParentPhenotype)) {
-        stepwiseSelection <- c()
-    }
-    else {
-        stepwiseSelection <- markersInParentPhenotype
+    stepwiseSelection <- c()
+    if (!is.null(markersInParentPhenotype)) {
+        stepwiseSelection <- append(stepwiseSelection,markersInParentPhenotype)
         admissibleMarkers <- setdiff(selectedChannels,markersInParentPhenotype)
     }
-    while (length(admissibleMarkers) > 1) {
+    if (!is.null(fixedMarkers)) {
+        stepwiseSelection <- append(stepwiseSelection,fixedMarkers)
+        admissibleMarkers <- setdiff(admissibleMarkers,fixedMarkers)
+    }
+    stepwiseSelection <- unique(stepwiseSelection)
+    if (length(fixedMarkers)>0) {
+        #want to determine a p-value for the subset of fixed markers
+        testLength <- 0
+    }
+    else {
+        testLength <- 1
+    }
+    while (length(admissibleMarkers) > testLength) {
         print(paste0("Processing ",(length(stepwiseSelection)+1)," markers"))
         pvalVec <- c()
         markerList <- list()
