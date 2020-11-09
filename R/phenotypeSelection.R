@@ -35,6 +35,15 @@
 #' "CD3+ CD4+ CD8-", setting this parameter to c("CD3","CD4","CD8") will cause every
 #' phenotype considered along the selection path to contain the sub-phenotype
 #' "CD3+ CD4+ CD8-".
+#'
+#' @param pvalAdjustmentMethod Null by default. If null, no adjustment is made to the
+#' ouptut of the selectionModel. If non-null, this must be a string that is passed to the
+#' 'method' parameter of the base R 'p.adjust' function. In the non-null case it is assumed
+#' selectionModel is returning a p-value, and the string must be one of the supported adjustment
+#' methods described in the documentation of 'p.adjust'.
+#'
+#' @param verbose Boolean. FALSE by default. If TRUE print information about backward selection
+#' to the terminal.
 #' 
 #' @return A list with four slots.
 #'
@@ -56,7 +65,9 @@ backwardPhenotypeSelection <- function(
                                        selectionModel,
                                        metaDataDF,
                                        markersInParentPhenotype=NULL,
-                                       fixedMarkers=NULL
+                                       fixedMarkers=NULL,
+                                       pvalAdjustmentMethod=NULL,
+                                       verbose=FALSE
                                        )
 {
     require(bit)  #for the bitwhich class, and associated operations
@@ -143,6 +154,11 @@ backwardPhenotypeSelection <- function(
     phenoOutList <- append(phenoOutList,list(startingPhenotype))
     names(phenoOutList)[length(phenoOutList)] <- paste0(length(admissibleMarkers)," markers")
     #
+    #vectors to record all p-values
+    #
+    globalPvalVec <- c(modelPval)
+    globalIndexOffset <- 1
+    #
     #iterate over the markers, eliminating markers in a step-wise fashion.
     #static markers are either used to compute counts for the parentCount, or are 
     #fixed by the user to maintain interpretability of all marginalized phenotypes
@@ -156,7 +172,9 @@ backwardPhenotypeSelection <- function(
         testLength <- length(staticMarkers) + 1
     }
     while (length(admissibleMarkers) > testLength) { #test relies on length(NULL)==0
-        print(paste0("Processing ",length(admissibleMarkers)," markers"))
+        if (verbose) {
+            print(paste0("Processing ",length(admissibleMarkers)," markers"))
+        }
         pvalVec <- c()
         markerList <- list()
         for (cmn in setdiff(admissibleMarkers,staticMarkers)) {
@@ -178,8 +196,37 @@ backwardPhenotypeSelection <- function(
         #select the choice of markers that minimizes the pvalues
         #in case of ties, select the first choice.
         #
-        cbPvalue <- pvalVec[[which(pvalVec==min(pvalVec))[1]]]
         cbSelection <- markerList[[which(pvalVec==min(pvalVec))[1]]]
+        #
+        #get the associated pvalue, adjusted for multiple comparisons as needed.
+        #
+        globalPvalVec <- append(globalPvalVec,pvalVec)
+        localGPV <- globalPvalVec
+        cbPvalLookup <- which(pvalVec==min(pvalVec))[1]
+        if (verbose) {
+            print(paste0("localGPV: ",localGPV))
+            print(paste0("pvalVec[cbPvalLookup]: ",pvalVec[cbPvalLookup]))
+        }
+        cbPvalLookup <- (cbPvalLookup + globalIndexOffset)
+        if (verbose) {
+            print(paste0("cbPvalLookup: ",cbPvalLookup))
+            print(paste0("localGPV[cbPvalLookup]: ",localGPV[cbPvalLookup]))
+        }
+        globalIndexOffset <- (globalIndexOffset + length(pvalVec))
+        if (is.null(pvalAdjustmentMethod)) {
+            #user did not select an adjusted method
+            #copy pvalues for unadjusted selection
+            adjustedGPV <- localGPV
+        }
+        else {
+            #apply the specified adjustment method
+            adjustedGPV <- p.adjust(localGPV,method=pvalAdjustmentMethod)
+        }
+        cbPvalue <- adjustedGPV[[cbPvalLookup]]
+        if (verbose) {
+            print(paste0("adjustedGPV: ",adjustedGPV))
+            print(paste0("cbPvalue: ",cbPvalue))
+        }
         #
         #get the expression associated with the selected markers
         #

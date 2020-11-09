@@ -10,7 +10,9 @@ backwardPhenotypeSelection(
   selectionModel,
   metaDataDF,
   markersInParentPhenotype = NULL,
-  fixedMarkers = NULL
+  fixedMarkers = NULL,
+  pvalAdjustmentMethod = NULL,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -49,6 +51,15 @@ to be candidates for marginalization. Example: if the startingPhenotype contains
 "CD3+ CD4+ CD8-", setting this parameter to c("CD3","CD4","CD8") will cause every
 phenotype considered along the selection path to contain the sub-phenotype
 "CD3+ CD4+ CD8-".}
+
+\item{pvalAdjustmentMethod}{Null by default. If null, no adjustment is made to the
+ouptut of the selectionModel. If non-null, this must be a string that is passed to the
+'method' parameter of the base R 'p.adjust' function. In the non-null case it is assumed
+selectionModel is returning a p-value, and the string must be one of the supported adjustment
+methods described in the documentation of 'p.adjust'.}
+
+\item{verbose}{Boolean. FALSE by default. If TRUE print information about backward selection
+to the terminal.}
 }
 \value{
 A list with four slots.
