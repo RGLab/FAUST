@@ -4,7 +4,13 @@
 \alias{makeAnnotationEmbedding}
 \title{Full Annotation Using Shape-constrained Trees}
 \usage{
-makeAnnotationEmbedding(projectPath, sampleNameVec, vizType = "uniform")
+makeAnnotationEmbedding(
+  projectPath,
+  sampleNameVec,
+  vizType = "uniform",
+  embeddingSelectionQuantile = 0.75,
+  embeddingDepthScoreThreshold = 0.01
+)
 }
 \arguments{
 \item{projectPath}{A path to a directory containing a completed FAUST analysis.
@@ -18,6 +24,14 @@ in the vector must match a directory name in projectPath/faustData/sampleData.}
 The default value is "uniform", which causes the distance between any two
 annotations is uniform across coordinates. The other supported value is
 "depthscore", which scales annotation coordinates by their normalized depth score.}
+
+\item{embeddingSelectionQuantile}{A numeric value between 0 and 1. Indicates which
+the quantile of the depth-score distribution to use for marker inclusion in the
+annoation embedding.}
+
+\item{embeddingDepthScoreThreshold}{A numeric value between 0 and 1. Indicates which
+the depth-score threshold value to use for marker inclusion in the
+annoation embedding.}
 }
 \value{
 A data frame with the following columns:

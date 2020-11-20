@@ -24,6 +24,14 @@
 #' annotations is uniform across coordinates. The other supported value is
 #' "depthscore", which scales annotation coordinates by their normalized depth score.
 #' 
+#' @param embeddingSelectionQuantile A numeric value between 0 and 1. Indicates which
+#' the quantile of the depth-score distribution to use for marker inclusion in the 
+#' annoation embedding.
+#'
+#' @param embeddingDepthScoreThreshold A numeric value between 0 and 1. Indicates which
+#' the depth-score threshold value to use for marker inclusion in the 
+#' annoation embedding.
+#' 
 #' @return A data frame with the following columns:
 #'
 #' Column `umapX` and `umapY`: the x-y coordinates of the embedding.
@@ -40,7 +48,14 @@
 #' @export
 #' @md
 #' @importFrom uwot umap
-makeAnnotationEmbedding <- function(projectPath,sampleNameVec,vizType="uniform") {
+makeAnnotationEmbedding <- function(
+                                    projectPath,
+                                    sampleNameVec,
+                                    vizType="uniform",
+                                    embeddingSelectionQuantile=0.75,
+                                    embeddingDepthScoreThreshold=0.01
+                                    )
+{
     require(uwot)
     if (!dir.exists(file.path(projectPath,"faustData"))) {
         print(paste0("No faustData detected at projectPath location: ",projectPath))
@@ -77,10 +92,20 @@ makeAnnotationEmbedding <- function(projectPath,sampleNameVec,vizType="uniform")
         visualizationType=vizType
     )
     preppedDataForEmbedding <- preppedSampleData$preparedDataset
+    #gatingFiles <- list.files(file.path(projectPath,"faustData","gateData"))
+    #selectedMarkersFN <- gatingFiles[grepl("selectedChannels",gatingFiles)]
+    #selectedMarkers <- readRDS(file.path(projectPath,"faustData","gateData",selectedMarkersFN))
+    allSelectedMarkers <- colnames(preppedDataForEmbedding)
+    faustDepthScoreMat <- readRDS(file.path(projectPath,"faustData","metaData","scoreMat.rds"))
+    embeddingScores <- apply(faustDepthScoreMat,2,function(x){quantile(x,probs=embeddingSelectionQuantile)})
+    embeddingSelMarkers <- names(which(embeddingScores >= embeddingDepthScoreThreshold))
+    embeddingMarkers <- intersect(embeddingSelMarkers,allSelectedMarkers)
+    finalMatrixForEmbedding <- preppedDataForEmbedding[,embeddingMarkers,drop=FALSE]
     #
     #embed the prepared dataset.
     #
-    annoEmbed <- uwot::umap(preppedDataForEmbedding,n_neighbors=15,metric="euclidean",min_dist=0.2,verbose=FALSE)
+    #annoEmbed <- uwot::umap(preppedDataForEmbedding,n_neighbors=15,metric="euclidean",min_dist=0.2,verbose=FALSE)
+    annoEmbed <- uwot::umap(finalMatrixForEmbedding,n_neighbors=15,metric="euclidean",min_dist=0.2,verbose=FALSE)
     umapData <- data.frame(
         umapX=annoEmbed[,1],
         umapY=annoEmbed[,2],
