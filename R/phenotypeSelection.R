@@ -58,6 +58,7 @@
 #'
 #' @importFrom dplyr inner_join
 #' @importFrom bit bitwhich
+#' @importFrom stats p.adjust rnorm 
 #' @export
 backwardPhenotypeSelection <- function(
                                        projectPath,
@@ -70,8 +71,8 @@ backwardPhenotypeSelection <- function(
                                        verbose=FALSE
                                        )
 {
-    require(bit)  #for the bitwhich class, and associated operations
-    require(dplyr) #for inner_join
+    requireNamespace("bit")  #for the bitwhich class, and associated operations
+    requireNamespace("dplyr") #for inner_join
     #
     #set up the environment
     #
@@ -329,8 +330,8 @@ forwardPhenotypeSelection <- function(
                                       fixedMarkers=NULL
                                       )
 {
-    require(bit)  #for the bitwhich class, and associated operations
-    require(dplyr) #for inner_join
+    requireNamespace("bit")  #for the bitwhich class, and associated operations
+    requireNamespace("dplyr") #for inner_join
     #
     #set up the environment
     #
@@ -540,8 +541,8 @@ getCountsForTargetMarkers <- function(
                                       markersInParentPhenotype=NULL
                                       )
 {
-    require(bit)  #for the bitwhich class, and associated operations
-    require(dplyr) #for inner_join
+    requireNamespace("bit")  #for the bitwhich class, and associated operations
+    requireNamespace("dplyr") #for inner_join
     #
     #set up the environment
     #

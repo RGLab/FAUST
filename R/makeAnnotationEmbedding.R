@@ -48,6 +48,7 @@
 #' @export
 #' @md
 #' @importFrom uwot umap
+#' @importFrom stats rnorm
 makeAnnotationEmbedding <- function(
                                     projectPath,
                                     sampleNameVec,
@@ -56,7 +57,7 @@ makeAnnotationEmbedding <- function(
                                     embeddingDepthScoreThreshold=0.01
                                     )
 {
-    require(uwot)
+    requireNamespace("uwot")
     if (!dir.exists(file.path(projectPath,"faustData"))) {
         print(paste0("No faustData detected at projectPath location: ",projectPath))
         stop("Update path or run FAUST before calling this function.")

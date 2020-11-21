@@ -146,6 +146,12 @@ std::vector<double> addDistributionNoiseToDataVector(const std::vector<double>& 
   return resultVec;
 }
 
+//' Add noise to a data vector,preserving rank order.
+//'
+//'@param dataVector A vector to jitter.
+//'@param scaleGaussian Scale of the noise
+//'@param rSeed A random seed
+//'@export
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::export]]
 std::vector<double> addNoiseToDataVector(const std::vector<double>& dataVector, double scaleGaussian,
