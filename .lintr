@@ -1,0 +1,1 @@
+linters: with_defaults(line_length_linter(140), object_length_linter(50), object_name_linter("camelCase"))
