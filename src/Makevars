@@ -1,1 +1,2 @@
 CXX_STD = CXX11
+CXX11=/usr/local/gfortran/bin/g++

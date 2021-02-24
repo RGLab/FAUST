@@ -1,5 +1,5 @@
 ---
-title: "Intro to FAUST R package"
+title: "Introduction to FAUST R package"
 author: 
 - Evan Greene
 date: "`r Sys.Date()`"
@@ -7,7 +7,7 @@ output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  \usepackage[utf8]{inputenc}
 ---
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
@@ -21,9 +21,13 @@ knitr::opts_chunk$set(
 
 # FAUST Overview
 
-Full Annotation Using Shape-constrained Trees (FAUST) is a new method for automated discovery and annotation of single-cell data from flow and mass cytometry experiments.
+Full Annotation Using Shape-constrained Trees (FAUST) is a method to perform discovery and annotation of phenotypes in single-cell data from flow and mass cytometry experiments.
 
-The principal output of the pipeline is an **annotated count matrix**.
+This implementation targets the gating set data structure in the [`flowWorkspace`](https://bioconductor.org/packages/release/bioc/html/flowWorkspace.html) Bioconductor package.
+
+When applied to a cytometry study stored in a gating set, the `faust` R function creates a directory called "faustData".
+
+The principal output is an **annotated count matrix** `faustCountMatrix.rds` which is written to the "faustData" directory.
 
 - **Rows** in the count matrix correspond to **samples** collected in the single cell experiment.
 - The **columns** in the count matrix are **cell populations** discovered by the pipeline. 
@@ -31,48 +35,19 @@ The principal output of the pipeline is an **annotated count matrix**.
 - The **column annotations** define, in terms of these *markers*, the **phenotypes** of all **cell populations** discovered by the pipeline.
 - **Entries** in the count matrix correspond the **number of cells** in a sample that belong to a discovered cell population. 
 
-This vigette provides an overview of how to use the implementation provided in the `FAUST` package.
+This count matrix can be loaded into R using the `readRDS` function.
 
-# Installation
+This vignette provides a brief overview of how to use the implementation provided in the `faust` package.
 
-The `FAUST` package is available on the [RGLab GitHub](http://www.github.com/RGLab/FAUST) repository. 
-It will be made available on [Bioconductor](http://www.bioconductor.org) in the future.
+# An example workflow with simulated data.
 
-In order to run the code in this vignette, you will need to install some dependencies. 
-`flowWorkspaceData` has some examples from the [Lyoplate data set](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4748244/).
-`flowWorkspace` is used to construct the `GatingSet` objects.
-
-```{r install_deps, eval = FALSE}
-# flowWorkspaceData has the Lyoplate data.
-# openCyto is used to construct gating sets.
-# Run the following to install the Bioconductor dependencies.
-tryCatch(installed.packages()["BiocManager","Version"],
-         error = function(e){
-           install.packages("BiocManager")
-         })
-library(BiocManager)
-BiocManager::install("flowWorkspaceData", update = FALSE)
-BiocManager::install("flowWorkspace", update = FALSE)
-```
-
-Now we install `FAUST` and its dependency, `scamp` from the RGLab GitHub repo.
-
-```{r install_faust, eval = FALSE}
-devtools::install_github("RGLab/scamp")
-devtools::install_github("RGLab/FAUST")
-```
-
-# An example workflow. 
-
-We load all the required libraries. 
-
-```{r libraries, message = FALSE}
-# load needed libraries.
+```{r libraries_and_sim, message = FALSE, echo=FALSE}
+# load libraries and code to simluate data.
 suppressPackageStartupMessages({
-  library(flowWorkspaceData)
+  library(mvtnorm)
+  library(MASS)
+  library(flowCore)
   library(flowWorkspace)
-  library(ggdendro)
-  library(scamp)
   library(ggplot2)
   library(cowplot)
   library(knitr)
@@ -80,279 +55,386 @@ suppressPackageStartupMessages({
   library(tidyr)
   library(faust)
 })
+
+Posdef <- function (n, ev = runif(n, 1, 2))
+{
+    #function written by Ravi Varadhan, from r-help mailing list
+    #Thu Feb 7, 20:02:30 CET 2008
+    #Generates a positive definine matrix of dimension n
+    #ev bounds the variance by 2
+    Z <- matrix(ncol=n, rnorm(n^2))
+    decomp <- qr(Z)
+    Q <- qr.Q(decomp)
+    R <- qr.R(decomp)
+    d <- diag(R)
+    ph <- d / abs(d)
+    O <- Q %*% diag(ph)
+    Z <- t(O) %*% diag(ev) %*% O
+    return(Z)
+}
+
+labelMeanVector <- function(meanVector) {
+    baseStr <- paste0("V",seq(length(meanVector)))
+    tokenStr <- rep("+",length(meanVector))
+    tokenStr[which(meanVector==0)] <- "-"
+    return(paste0(paste0(baseStr,tokenStr),collapse=""))
+}
+
+genClusterCentersWithLabels <- function(possibleCenterMat,
+                                        nPop=5,
+                                        seedVal=0)
+{
+    pcMat <- t(possibleCenterMat)
+    allPops <- expand.grid(split(pcMat,rep(seq(nrow(pcMat)),ncol(pcMat))))
+    if (nPop > nrow(allPops)) {
+        print("Too many clusters relative to specMat/possibleCenterMat.")
+        stop("Reduce number of clusters or increase possible mean vectors.")
+    }
+    clusterIndex <- sample(seq(nrow(allPops)),nPop)
+    outMat <- allPops[clusterIndex,,drop=FALSE]
+    outLab <- as.character(apply(outMat,1,labelMeanVector))
+    outList <- list(fixedMeanMatrix=outMat,fixedLabelVector=outLab)
+    return(outList)
+}
+
+getSimTrueCountMatrix <- function(truthList)
+{
+    uniqueNames <- c()
+    for (i in seq(length(truthList))) {
+        uniqueNames <- append(uniqueNames,names(truthList[[i]]))
+    }
+    uniqueNames <- sort(unique(uniqueNames))
+    truthMat <- matrix(0,nrow=length(truthList),ncol=length(uniqueNames))
+    colnames(truthMat) <- uniqueNames
+    rownames(truthMat) <- names(truthList)
+    for (i in seq(length(truthList))) {
+        cv <- truthList[[i]]
+        for (cName in colnames(truthMat)) {
+            lookup <- which(names(cv) == cName)
+            if (length(lookup)) {
+                truthMat[i,cName] <- cv[lookup]
+            }
+        }
+    }
+    return(truthMat)
+}
+
+simSample <- function(sampleDim,
+                      sampleSize,
+                      transformationType,
+                      mixtureType="gaussianOnly",
+                      fixedMeanMatrix=NA,
+                      fixedLabelVector=NA,
+                      noiseDim=0,
+                      probVecSample,
+                      isKnockout=FALSE,
+                      isSpikeIn=FALSE,
+                      sRegime=0,
+                      targetRanks=c(length(probVecSample)-1,length(probVecSample)),
+                      hasBatchEffect=FALSE,
+                      batchEffect=0
+                      )
+{
+    numClusters <- nrow(fixedMeanMatrix)
+    probVec <- probVecSample
+    knockoutStatus <- "No knockout"
+    if (isKnockout) {
+        targetProbs <- sort(probVec)
+        targetProb <- targetProbs[ceiling(length(targetProbs)/2)]
+        targetLookup <- which(probVec == targetProb)
+        modProbLookups <- setdiff(seq(length(probVec)),targetLookup)
+        knockoutStatus <- fixedLabelVector[targetLookup]
+        probVec[modProbLookups] <- (probVec[modProbLookups] + (targetProb/length(modProbLookups)))
+        probVec[targetLookup] <- 0
+    }
+    if ((sRegime) && (isSpikeIn)) {
+        currentSpikeMass <- probVec[targetRanks[2]]
+        targetSpikeMass <- probVec[targetRanks[1]]
+        massIncrement <- currentSpikeMass/(length(probVec)-1)
+        probVec <- probVec + massIncrement
+        probVec[targetRanks[2]] <- 0
+        probVec <- probVec - (targetSpikeMass * probVec)
+        probVec[targetRanks[2]] <- targetSpikeMass
+        if (abs(sum(probVec) - 1) > 1e-9) {
+            print(probVec)
+            print(sum(probVec))
+            print(abs(sum(probVec) - 1))
+            stop("Error in probability reapportionment")
+        }
+        if (min(probVec) == probVec[targetRanks[2]]) {
+            stop("Error in spiking in population")
+        }
+    }
+    sampleSizeVec <- as.vector(t(rmultinom(1,sampleSize,probVec)))
+    outData <- matrix(nrow=0,ncol=(sampleDim+noiseDim))
+    outLabel <- c()
+    for (clusterNumber in seq(numClusters)) {
+        if (sampleSizeVec[clusterNumber] == 0) {
+            next
+        }
+        currentMu <- as.numeric(fixedMeanMatrix[clusterNumber,,drop=TRUE])
+        if (hasBatchEffect) {
+            currentMu <- currentMu + batchEffect 
+        }
+        subjectShift <- round(rnorm(length(currentMu),mean=0,sd=(1/sqrt(2))))
+        currentMu <- currentMu + subjectShift 
+        currentLabel <- fixedLabelVector[clusterNumber]
+        outLabel <- append(outLabel,rep(currentLabel,sampleSizeVec[clusterNumber]))
+        currentSigma<- Posdef(sampleDim)
+        if (mixtureType == "tPlusGauss") {
+            if ((clusterNumber %% 2) == 0) {
+                currentSample <- mvrnorm(sampleSizeVec[clusterNumber],mu=currentMu,Sigma=currentSigma)
+            }
+            else {
+                currentSample <- rmvt(sampleSizeVec[clusterNumber],delta=currentMu,sigma=currentSigma,df=2)
+            }
+        }
+        else if (mixtureType == "tOnly") {
+            currentSample <- rmvt(sampleSizeVec[clusterNumber],delta=currentMu,sigma=currentSigma,df=2)
+        }
+        else  {
+            currentSample <- mvrnorm(sampleSizeVec[clusterNumber],mu=currentMu,Sigma=currentSigma)
+        }
+        if (is.vector(currentSample)) {
+            currentSample <- t(as.matrix(currentSample))
+        }
+        if (noiseDim > 0) {
+            currentSigma<- Posdef(noiseDim)
+            noiseSample <- mvrnorm(nrow(currentSample),mu=rep(5,noiseDim),Sigma=currentSigma)
+            if (is.vector(noiseSample)) {
+                noiseSample <- t(as.matrix(noiseSample))
+            }
+            currentSample <- cbind(currentSample,noiseSample)
+        }
+        outData <- rbind(outData,t(apply(currentSample,1,transformationType)))
+    }
+    colnames(outData) <- paste0("V",seq(ncol(outData)))
+    outList <- list(sampleMatrix=outData,sampleLabels=outLabel,knockoutInfo=knockoutStatus)
+    return(outList)
+}
+
+simulateExperiment <- function(
+                               meanVectorBoundsMatrix, 
+                               numSamples=100, 
+                               randomSeed=0,
+                               transformationList=list(function(x){return(x)},
+                                                       function(x){return(x)},
+                                                       function(x){return(x)}), 
+                               noiseDimension=5,
+                               probVecIn, 
+                               minSampleSize=5000,
+                               maxSampleSize=40000,
+                               tncp=10000,
+                               knockoutNumber=0, 
+                               spikeInFlag=FALSE, 
+                               targetRanks=c(length(probVecIn)-1,length(probVecIn)),
+                               useBatchFlag=FALSE, 
+                               batchEffectShift=0.75,
+                               fixedResFlag=FALSE, 
+                               responderStatusVec=c(NA)
+                               )
+{
+    probVecForSim <- sort(probVecIn,decreasing=TRUE)
+    sampleSpecs <- genClusterCentersWithLabels(
+        possibleCenterMat=meanVectorBoundsMatrix,
+        nPop=length(probVecForSim),
+        seedVal=randomSeed
+    )
+    currentTransformation <- transformationList[[1]]
+    currentSample <- 1
+    startKnockoutNum <- numSamples - knockoutNumber + 1
+    isKnockoutSample <- FALSE
+    regime <- rep(0,numSamples)
+    regime[sample(seq(numSamples),(numSamples/2))] <- 1
+    if (fixedResFlag) {
+        regime <- rep(0,numSamples)
+        regime[which(responderStatusVec==1)] <- 1
+    }
+    nextBatchEffect <- rep((-1*batchEffectShift),ncol(sampleSpecs$fixedMeanMatrix))
+    regimeList <- knockoutList <- labelsList <- flowList <- truthList <- list()
+    while (currentSample <= numSamples) {
+        nextSampleSize <- min(max(minSampleSize,round(rt(1,df=3,ncp=tncp))),maxSampleSize)
+        nextRegime <- regime[currentSample]
+        if (currentSample >= startKnockoutNum) {
+            isKnockoutSample <- TRUE
+        }
+        else {
+            isKnockoutSample <- FALSE
+        }
+        if ((useBatchFlag) && (((currentSample - 1) %% 10) == 0)) {
+            nextBatchEffect <- nextBatchEffect + batchEffectShift
+            if ((currentSample - 1) > floor(numSamples/3)) {
+                currentTransformation <- transformationList[[2]]
+            }
+            if ((currentSample - 1) > floor((2*(numSamples/3)))) {
+                currentTransformation <- transformationList[[3]]
+            }
+        }
+
+        sampleData <- simSample(
+            sampleDim=ncol(sampleSpecs$fixedMeanMatrix),
+            sampleSize=nextSampleSize,
+            transformationType=currentTransformation,
+            fixedMeanMatrix=sampleSpecs$fixedMeanMatrix,
+            fixedLabelVector=sampleSpecs$fixedLabelVector,
+            noiseDim=noiseDimension,
+            probVecSample=probVecForSim,
+            isKnockout=isKnockoutSample,
+            isSpikeIn=spikeInFlag,
+            sRegime=nextRegime,
+            targetRanks=targetRanks,
+            hasBatchEffect=useBatchFlag,
+            batchEffect=nextBatchEffect
+        )
+        if (currentSample < 10) {
+            outName <- paste0("sample00",currentSample)
+        }
+        else if (currentSample < 100) {
+            outName <- paste0("sample0",currentSample)
+        }
+        else {
+            outName <- paste0("sample",currentSample)
+        }
+        ff <- flowCore::flowFrame(sampleData$sampleMatrix)
+        flowList <- append(flowList,ff)
+        names(flowList)[length(flowList)] <- outName
+        labelsList <- append(labelsList,list(sampleData$sampleLabels))
+        names(labelsList)[length(labelsList)] <- outName
+        truthList <- append(truthList,list(table(sampleData$sampleLabels)))
+        names(truthList)[length(truthList)] <- outName
+        knockoutList <- append(knockoutList,list(table(sampleData$knockoutInfo)))
+        names(knockoutList)[length(knockoutList)] <- outName
+        regimeList <- append(regimeList,list(nextRegime))
+        names(regimeList)[length(regimeList)] <- outName
+        currentSample <- currentSample + 1
+    }
+    truthMat <- getSimTrueCountMatrix(truthList)
+    
+    outputList <- list(
+        "flowFrameList"=flowList,
+        "truthValueList"=truthList,
+        "truthMat"=truthMat,
+        "labelsList"=labelsList,
+        "knockoutList"=knockoutList,
+        "spikedPop"=sampleSpecs$fixedLabelVector[targetRanks[2]],
+        "spikedInPopList"=regimeList
+    )
+    return(outputList)
+}
+dimension <- 10 
+sampleSize <- 1000 
+ssLB <- 1000 
+ssUB <- 1000
+specMat <- matrix(0,nrow=2,ncol=dimension)
+specMat[2,] <- c(8,8,8,8,8,8,8,8,8,8)
+dataTransformations <- list(function(x){return((x))},
+                                function(x){return((x))},
+                                function(x){return((x))})
+startProb <- 0.1425
+refClusterProbVec <- c(
+    startProb,rep(startProb/2,2),rep(startProb/4,4),rep(startProb/8,8),rep(startProb/16,16),rep(startProb/32,32),rep(startProb/64,64)
+)
+numberOfClusters <- 5
+clusterProbVec <- sort(refClusterProbVec[seq(numberOfClusters)],decreasing=TRUE)
+if (sum(clusterProbVec) < 1) {
+    residualPV <- 1-sum(clusterProbVec)
+    clusterProbVec <- (clusterProbVec + (residualPV/length(clusterProbVec)))
+}
 ```
 
-
-## Using the **<span style="color:skyblue">faust</span>** function in **R**
-
-After installing and loading the `FAUST` library, the `R` function 
-<code style="color:skyblue">faust</code> is available to analyze data.
+After installing and loading the `faust` library, the `R` function 
+<code style="color:skyblue">faust</code> is available to analyze cytometry data.
 
 This function takes as input a `GatingSet` data structure.
 This data structure can be constructed using the
 [`flowWorkspace`](https://bioconductor.org/packages/release/bioc/html/flowWorkspace.html) Bioconductor package.
 The gating set should contain all the experimental samples you wish to analyze using <code style="color:skyblue">faust</code>.
 
-### Documentation. 
+Here, we construct a gating set using simulated data to demonstrate how to use the <code style="color:skyblue">faust</code> function. 
+The gating set contains 10 simulated sample, each of 1000 observations.
+The samples are simulated from a multivariate Gaussian mixture with 5 components.
+By design, this means there are 5 distinct clusters or "phenotypes" in the gating set.
 
-```{r docs, warning=FALSE, eval=TRUE}
-?faust
-```
-The documentation provides details about many **<span style="color:skyblue">faust</span>** parameters. 
-The goal of this vignette is to give an overview of how you can use **<span style="color:skyblue">faust</span>** to analyze experimental data,
-using data from the FlowCAP III Lyoplate challenge as a case-study.
-
-## FAUST step one: construct a gating set.
-
-Run the following code block to install needed libraries,
-load the gating set, and also set the gating set path.
-The gating set path is passed to the FAUST pipeline.
-
-```{r get_gatingset, warning=FALSE, eval=TRUE, fig.height = 8}
-# Get the gating set.
-flowWorkspaceDataInfo()
-gsPath <- system.file("extdata","gs_bcell_auto", package = "flowWorkspaceData")
-gs <- load_gs(gsPath)
-
-# Inspect the manual strategy.
-plot(gs[[1]],  boolean = TRUE)
+```{r simulate_gatingset, warning=FALSE, eval=TRUE, echo=TRUE}
+simmedExp <- simulateExperiment(
+    meanVectorBoundsMatrix=specMat,
+    numSamples=10,
+    transformationList=dataTransformations,
+    noiseDimension=0,
+    probVecIn=clusterProbVec,
+    minSampleSize=ssLB,
+    maxSampleSize=ssUB,
+    randomSeed=12345,
+    tncp=sampleSize
+)
+fs <- as(simmedExp[["flowFrameList"]], "flowSet")
+gs <- flowWorkspace::GatingSet(fs)
 ```
 
-## `FAUST` step two: specify the experimental unit of anlaysis.
+## Using **<span style="color:skyblue">faust</span>** function in **R**
 
-The first parameter the user may wish to set in order to use the `FAUST` method is called `experimentalUnit`.
-This parameter specifies how samples in the experiment should be combined in order for `FAUST` to perform discovery and annotation.
-In other words, this parameter defines the experimental unit of analysis.
-If the user does not wish to modify this parameter value, `FAUST` will use **individual samples** as the experimental unit of analysis.
+Once cytometry data is stored in a gating set, you can apply the **<span style="color:skyblue">faust</span>** function to the gating set.
+You will need to identify the cell population in the gating set to analyze, and a directory on your computer that will store the results.
 
-The samples should usually be combined so that they represent relatively homogeneous collections of samples. 
-What constitutes a homogeneous collection depends on the experimental context.
-As examples, data could not be combined at all and analyzed by individual sample; 
-they could be grouped by subject, so that all samples from a subject are analyzed together; 
-they could be grouped by batch so all samples in a batch are combined;
-or they could be combined by stimulation so that all samples under common stimulation are analyzed together;
-or they could be combined so all samples in the experiment are analyzed as a homogeneous group. 
+Since we simulated the data set, we will apply the **<span style="color:skyblue">faust</span>** function to the "root" population,
+which comprises the all observations in the data set.
+In real cytometry data, the **<span style="color:skyblue">faust</span>** function is usually applied to a pre-gated population such as lymphocytes.
 
-Here we run `FAUST` at the individual sample level (which is its default setting), so that cell population discovery and annotation is performed for each sample separately.
-The gating set data structure contains experimental metadata, accessed through the `pData` method.
-When applied to a gating set, `pData(gs)` returns a data frame of experimental metadata.
-The `FAUST` parameter `experimentalUnit` must be set to one of the column names in the `pData(gs)` data frame.
-`FAUST` will use this parameter to concatenate experimental samples prior to conducting discovery and annotation.
-To run `FAUST` at the sample level, we will set this parameter to "name".
+We will store the results in a temporary directory created at the `projPath`.
+By setting the `annotationsApproved` parameter to `TRUE`, we run the method from end-to-end.
+Additional **<span style="color:skyblue">faust</span>** parameters can be read about by typing `?faust` at the R prompt.
 
-## `FAUST` step three: decide on the starting cell population
-
-A `gatingSet` will often have a manual gating strategy attached to it, that records how human investigators have interrogated the flow or mass cytometry samples.
-The `FAUST` pipeline benefits from using this gating information by selecting a starting cell population that has had debris and dead cells already gated out.
-If gating has not been provided, [`openCyto`](https://bioconductor.org/packages/release/bioc/html/openCyto.html)
-can be used to gate singlets and identify live cells.
-
-We will use the "Live" node in the manual gating tree as our starting cell population for each sample.
-
-```{r pick_starting_node, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
-startingNode <- "Live"
-```
-
-## `FAUST` step four: decide what channels to use.
-
-The `GatingSet` records information about the *markers* used in a flow or mass cytometry experiment,
-as well as the expression level of those markers on each single cell recorded in the experiment.
-The `FAUST` pipeline assumes that a common set of markers is available for all samples in an experiment.
-We are not required to use **all** the available markers. 
-The markers used should be passed to `FAUST` in a `character vector`.
-They must **exactly** match the `desc` field of the `parameters` of the `flowFrames` in the `GatingSet. 
-`FAUST` will not run if they do not match exactly.
-
-Here we are analyzing two samples from the manually gated Lyoplate B cell data set. This data set
-has a peculiarity, in that the `markers` and `channels` are swapped. We need to swap them back in order to 
-get meaningful cell population phenotypes returned to us by `FAUST`. We do that below:
-
-
-```{r select_active_channels, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
-## The marker names have channel assignments
-markernames(gs)
-## The column names are actually the channels.
-colnames(gs)
-
-## We need to swap these
-newmarkers <- colnames(gs)
-names(newmarkers) <- colnames(gs)
-markernames(gs) <- newmarkers
-markernames(gs)
-## We don't need the live channel.
-activeChannelsIn <- markernames(gs)[-1L]
-```
-
-
-## `FAUST` step five: set channel bounds.
-
-The channel bounds encode prior knowledge about the channels in the experiment.
-
-Our prior knowledge tells us about the expression level below which `FAUST` annotations should be treated as "Low" and above which `FAUST` annotations should be treated as "High". 
-For example, we would expect any cell populations with an median fluorescence intensity (MFI) below 0 in a channel to be annnotated as "Low" for that channel. 
-Similarly, cell populatins with an MFI above, say 3500 (out of 4096 in FlowJo channel space) in a channel, we would annotate as "High"
-This is domain-specific knowledge, and `FAUST` allows us to encode this knowledge. 
-We encode this in a `data.frame` with columns corresponding to **channels** and rows corresponding to the **lower** and **upper** bounds for "Low" and "High" annotations for each channel.
-
-Expression values in a channel less than or equal to the value in the "Low"
-row are treated as low, by default, and not actively considered when `FAUST` processes the data.
-Expression values in a channel greater than or equal to the value in the "High"
-row are treated as high, by default, and not actively considered when `FAUST` processes the data.
-
-If the user does not wish to set this parameter, `FAUST` will estimate values for each channel empirically: the 1st and 99th percentiles will be computed for each marker in each experimental unit,
-and the 5th and 95th percentiles across all experimental units will be used at the "Low" and "High" values for each respective marker. 
-
-Here we set the lower value to 0 and the upper value to 3500. These values are picked after inspecting
-the distribution of the data after compensation and transformation to a comparable scale.
-
-
-```{r set_channel_bounds, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
-channelBoundsIn <- matrix(0,nrow=2,ncol=length(activeChannelsIn))
-colnames(channelBoundsIn) <- activeChannelsIn
-rownames(channelBoundsIn) <- c("Low","High")
-channelBoundsIn["High",] <- 3500
-channelBoundsIn
-```
-
-## `FAUST` step six: set project path
-
-When you run the `FAUST` pipeline, it will create a directory called `faustData` on your computer, located at a path that you provide.
-
-The `faustData` directory stores intermediate data used by the pipeline, plotting data produced by the pipeline, and the final count matrix.
-
-Here we'll work in a temporary directory.
-
-```{r set_project_path, warning=FALSE, eval=TRUE, echo=TRUE,message=FALSE}
+```{r run_faust_on_simulated_data, warning=FALSE, eval=TRUE, echo=TRUE}
 projPath <- file.path(tempdir(),"FAUST")
 dir.create(projPath, recursive = TRUE)
-```
 
-## `FAUST` step seven: run FAUST to generate channel depth scores.
-
-We've gathered all the information we need.
-
-We have the set of active channels, the lower and upper limits for annotation, and we have a `GatingSet`, and a project path. 
-
-We now invoke <code style="color:skyblue">faust</code>, the main function of the package. Note that the parameter `annotationsApproved` is set to `FALSE`.
-This will cause <code style="color:skyblue">faust</code> to grow the annotation forest, produce summary plots in the directory `projectPath/faustData/plotData`, and then terminate.
-The next section will describe how to interpret these plots.
-
-```{r save_gs_and_create_line_plots, warning=FALSE, eval=TRUE, echo=TRUE, message=FALSE}
 faust(
-  gatingSet = gs,
-  experimentalUnit = "name",
-  activeChannels = activeChannelsIn,
-  channelBounds = channelBoundsIn,
-  startingCellPop = startingNode,
-  projectPath = projPath,
-  depthScoreThreshold = 0.05,
-  selectionQuantile = 1.0,
-  debugFlag = FALSE,
-  #set this to the number of threads you want to use on your system
-  threadNum = parallel::detectCores() / 2 - 1,
-  nameOccuranceNum=1,
-  seedValue = 271828,
-  annotationsApproved = FALSE # set to false before we inspect the scores plots.
-) 
-```
-
-## `FAUST` step eight: analyze the depth score line plots for each channel.
-
-`FAUST` generates a preliminary **annotation forest** and we can examine the information in each **channel** before continuing.
-Some channels may not be very informative and so it may not be desirable to use those channels to annotate cell populations. 
-`FAUST` computes a **depth score** that summarizes how informative a channel is. 
-
-```{r, results='asis'}
-path <- file.path(projPath,"faustData","plotData","scoreLines.pdf")
-cat(paste0("<img src='",path,"'>"))
-```
-
-
-## `FAUST` step nine: run the annotations with the revised depth score thresholds.
-
-```{r run_faust_to_completion, message= FALSE, results = 'hide'}
-faust(
-  gatingSet = gs,
-  experimentalUnit = "name",
-  activeChannels = activeChannelsIn,
-  channelBounds = channelBoundsIn,
-  startingCellPop = startingNode,
-  projectPath = projPath,
-  depthScoreThreshold = 0.05,
-  selectionQuantile = 1.0,
-  debugFlag = FALSE,
-  #set this to the number of threads you want to use on your system
-  threadNum = parallel::detectCores() / 2 - 1,
-  nameOccuranceNum=1,
-  seedValue = 271828,
-  annotationsApproved = TRUE
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath,
+    annotationsApproved = TRUE
 )
 ```
 
+## Examining output
 
-## `FAUST` step ten: analyze the results. 
+Once the **<span style="color:skyblue">faust</span>** function completes running, the primary output is the annotated count matrix.
 
-The count matrix produced by the pipeline is written to file.
-We read it in.
-
-```{r read_count_matrix, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
-countMatrix <- readRDS(file.path(projPath,"faustData","faustCountMatrix.rds"))
-# Make suitable for ggplot
-count.long <- countMatrix %>% 
-  as.data.frame %>% 
-  mutate(sample = rownames(.)) %>% 
-  gather(key = population, value = count,1:(ncol(.) - 1) )
-
-# Run clustering
-count.dendro <- as.dendrogram(hclust(d = dist(x = t(countMatrix))))
-
-# Create dendrogram plot
-dendro.plot <- ggdendrogram(data = count.dendro, rotate = TRUE) + 
-  theme(axis.text.y = element_text(size = 6))
-
-# Extract the order
-count.order <- order.dendrogram(count.dendro)
-
-# Order the levels 
-count.long$population <- factor(x = count.long$population,
-                               levels = rownames(t(countMatrix))[count.order], 
-                               ordered = TRUE)
-
-# Create heatmap plot
-ggplot(data = count.long, aes(x = sample, y = population)) +
-  geom_tile(aes(fill = count)) +
-  scale_fill_distiller(trans ="log10", palette = 2, type = "div") +
-  theme(legend.position = "top") +
-  ggtitle("Cell counts of populations by samples") +
-   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```{r show_count_matrix, eval=TRUE, echo=TRUE}
+count_df <- as.data.frame(readRDS(file.path(projPath,"faustData","faustCountMatrix.rds")))
+count_df
 ```
-The last column is the "not annotated" subset, which **<span style="color:skyblue">faust</span>** encodes as "0_0_0_0_0".
+We see that there are six columns in the annotated count matrix.
+Five are phenotypes discovered by `faust` and annotated in terms of the simulated markers.
+The sixth column is annotated "0_0_0_0_0" and corresponds to all observations that were assigned a phenotype which
+was not observed frequently enough to survive down-selection.
 
-Cells are given the generic label by **<span style="color:skyblue">faust</span>** in one of two ways.
-Each cell in each experimental unit is associated with a full annotation by **<span style="color:skyblue">faust</span>**.
-The number of times a phenotype occurs across the experimental units is counted by **<span style="color:skyblue">faust</span>**.
-If the resulting number falls below the setting of the `nameOccuranceNum` parameter in the **<span style="color:skyblue">faust</span>** function,
-all cells associated with that phenotype are labeled "0_0_0_0_0". This is how **<span style="color:skyblue">faust</span>**
-implements phenotypic filtering as described by the manuscript.
+Single cell annotations and visualizations can be constructed using the function `makeAnnotationEmbedding`.
+Here we show the annotation embedding across the experiment colored by the `faustLabels`.
 
-All phenotypes that survive the phenotypic filtering step are then gated out sample-by-sample, relative to the annotation boundaries determined
-for their experimental unit.
-The second way a cell is labeled "0_0_0_0_0" occurs at this gating step: if the measured protein expression of a cell disagrees with the associated
-phenotype for any of the markers contained in the phenotypic label, the cell is then labeled "0_0_0_0_0". This step guarantees that the
-annotations produced by **<span style="color:skyblue">faust</span>** are consistent with the underlying protein measurements.
+```{r generate_annotation_embeddings, eval=TRUE, echo=TRUE, results='asis'}
+snVec <- list.files(file.path(projPath,"faustData","sampleData"))
+annoEmbed <- faust::makeAnnotationEmbedding(	      
+    projectPath=projPath,
+    sampleNameVec=snVec
+)
 
-We can generate pairwise dotplots showing the gating strategies to gate out discovered cell populations.
-Not all cell populations are meaningful (some are too small). We'll prefilter and plot those that might have some meaningful
-support in the data.
+p <- ggplot(annoEmbed,aes(x=umapX,y=umapY,color=faustLabels))+
+  geom_point()+
+  theme_classic()+
+  xlab("Annotation Embedding X")+
+  ylab("Annotation Embedding Y")+
+  facet_grid(vars(sampleOfOrigin))
 
-```{r generate_gating_plots, warning=FALSE, eval=TRUE,echo=TRUE,message=FALSE}
-pops <- names(which(colSums(countMatrix) > 1000)) # at least 1000 cells across all samples
-pops <- setdiff(pops,"0_0_0_0_0") #We don't want plots for the not-annotated cells.
-for (col in pops) {
-  for (r in rownames(countMatrix)) {
-    faust:::plotFaustGates(col, r, projPath)
-  }
-}
+p
+```
+We can compare the single cell annotations to the simulated truth.
+
+```{r cross_tab, eval=TRUE, echo=TRUE}
+trueLabels <- Reduce(append,simmedExp[["labelsList"]])
+faustLabels <- annoEmbed$faustLabels
+table(trueLabels,faustLabels)
 ```
 
-Plots are stored in the `projectPath/faustData/plotData` directory.
+The simulated true labels are along the rows, and the columns are the faust annotations.
+We see that the faust labels along the column re-order the markers in terms of the depth score.

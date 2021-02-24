@@ -1,6 +1,6 @@
 Package: faust
 Title: Full Annotation Using Shape-constrained Trees
-Version: 0.5.2
+Version: 0.5.3
 Authors@R: c(person("Evan", "Greene", email = "egreene@fredhutch.org", role = c("aut", "cre")),
    	   person("Laurie", "Davies", role = c("ctb")),	       
 	   person("J.R.M.", "Hosking", role=c("ctb")),
@@ -51,9 +51,11 @@ URL: https://github.com/FredHutch/faust
 BugReports: https://github.com/FredHutch/faust/issues
 SystemRequirements: C++11
 Suggests:
-    flowWorkspaceData,
     parallel,
-    ggdendro,
     BiocManager,
+    testthat,
     knitr,
-    testthat
+    mvtnorm,
+    MASS,
+    rmarkdown
+
