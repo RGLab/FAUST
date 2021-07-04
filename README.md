@@ -68,7 +68,7 @@ After loading `FAUST`, type `vignette('faustIntro')` to read a vignette discussi
 
 ## Linux Installation Note -- Protocol Buffers
 
-If you are trying to install FAUST on Linux with GCC version greater than 8, and you encounter installation errors, the following note may help resolve these errors: [https://github.com/protocolbuffers/protobuf/issues/5144#issuecomment-688723405](protocol buffer issue link).
+If you are trying to install FAUST on Linux with GCC version greater than 8, and you encounter installation errors, the following note may help resolve these errors: [protocol buffer issue link](https://github.com/protocolbuffers/protobuf/issues/5144#issuecomment-688723405).
 
 ## Citation
 
