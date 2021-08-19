@@ -182,6 +182,12 @@
 #' @param plottingDevice string with device for saving graphical output.
 #' By default it is set to "pdf".
 #'
+#' @param annotationForestDepth Numeric value. Number of marker combinations
+#' to search in the annotation forest. By default it is set to 3. Minimum
+#' recommended value is 2. Maximum possible is the number of markers in the
+#' data set. Increasing this parameter can significantly increase computation
+#' time.
+#'
 #' @return generateAnnotationThresholds is used to generate standardized
 #' annotation thresholds prior to the discovery phase of the FAUST analysis.
 #' It will initialize a directory called "faustData" located at the projectPath parameter.
@@ -232,7 +238,8 @@ generateAnnotationThresholds <- function(gatingSet,
                                                  targetArch=c("singleCPU")
                                              ),
                                          annotationsApproved=FALSE,
-                                         plottingDevice="pdf"
+                                         plottingDevice="pdf",
+                                         annotationForestDepth=3
                                          )
 {
     #first, test parameters for validity. stop faust run if invalid settings detected.
@@ -328,7 +335,8 @@ generateAnnotationThresholds <- function(gatingSet,
             densitySubSampleThreshold = densitySubSampleThreshold,
             densitySubSampleSize = densitySubSampleSize,
             densitySubSampleIterations = densitySubSampleIterations,
-            archDescriptionList = archDescriptionList
+            archDescriptionList = archDescriptionList,
+            annotationForestDepth = annotationForestDepth
         )
         bigForestDone <- TRUE
         saveRDS(bigForestDone,

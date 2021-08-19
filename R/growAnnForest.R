@@ -1,15 +1,16 @@
 .growForestForExpUnit <- function(expUnit,
-                                 rootPop,
-                                 activeChannels,
-                                 analysisMap,
-                                 numIter,
-                                 debugFlag,
-                                 threadNum,
-                                 seedValue,
-                                 projectPath,
-                                 densitySubSampleThreshold,
-                                 densitySubSampleSize,
-                                 densitySubSampleIterations)
+                                  rootPop,
+                                  activeChannels,
+                                  analysisMap,
+                                  numIter,
+                                  debugFlag,
+                                  threadNum,
+                                  seedValue,
+                                  projectPath,
+                                  densitySubSampleThreshold,
+                                  densitySubSampleSize,
+                                  densitySubSampleIterations,
+                                  annotationForestDepth)
 {
     #function to
     if (debugFlag) print(paste0("Growing annotation forest for: ",expUnit))
@@ -38,7 +39,7 @@
         pValueThreshold=0.25,
         minimumClusterSize=25,
         randomCandidateSearch=FALSE,
-        maximumSearchDepth=2,
+        maximumSearchDepth=(annotationForestDepth-1), #subtract 1 due to c++ index from 0
         numberOfThreads=threadNum,
         maximumGatingNum=1e10,
         anyValueRestricted=resFlag,
@@ -89,7 +90,9 @@
                            densitySubSampleThreshold,
                            densitySubSampleSize,
                            densitySubSampleIterations,
-                           archDescriptionList)
+                           archDescriptionList,
+                           annotationForestDepth
+                           )
 {
     #removing numForestIter from interface for simplicity,
     #since it is a rarely modified parameter that makes
@@ -136,7 +139,8 @@
                 projectPath=projectPath,
                 densitySubSampleThreshold=densitySubSampleThreshold,
                 densitySubSampleSize=densitySubSampleSize,
-                densitySubSampleIterations=densitySubSampleIterations
+                densitySubSampleIterations=densitySubSampleIterations,
+                annotationForestDepth=annotationForestDepth
             )
         }
     }
