@@ -5,7 +5,7 @@ author:
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{FAUST Introduction}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -321,12 +321,12 @@ simulateExperiment <- function(
     )
     return(outputList)
 }
-dimension <- 10 
-sampleSize <- 1000 
-ssLB <- 1000 
-ssUB <- 1000
+dimension <- 5 
+sampleSize <- 500 
+ssLB <- 500 
+ssUB <- 500
 specMat <- matrix(0,nrow=2,ncol=dimension)
-specMat[2,] <- c(8,8,8,8,8,8,8,8,8,8)
+specMat[2,] <- c(8,8,8,8,8)
 dataTransformations <- list(function(x){return((x))},
                                 function(x){return((x))},
                                 function(x){return((x))})
@@ -358,7 +358,7 @@ By design, this means there are 5 distinct clusters or "phenotypes" in the gatin
 ```{r simulate_gatingset, warning=FALSE, eval=TRUE, echo=TRUE}
 simmedExp <- simulateExperiment(
     meanVectorBoundsMatrix=specMat,
-    numSamples=10,
+    numSamples=5,
     transformationList=dataTransformations,
     noiseDimension=0,
     probVecIn=clusterProbVec,

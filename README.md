@@ -8,7 +8,7 @@ The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is
 
 ## Installation
 
-Currently `faust` must be installed from its source. It depends on the `scamp` package.
+Currently `faust` must be installed from its source. It depends on the `scamp` package. 
 
 The most recent version can be installed from [github](https://github.com/FredHutch/faust) using [devtools](https://github.com/r-lib/devtools) in R. An installation (without vignettes) can be performed by first installing:
 
@@ -66,7 +66,11 @@ This takes longer since the vignettes must be built from source.
 
 After loading `FAUST`, type `vignette('faustIntro')` to read a vignette discussing how to use the `FAUST` function in R.
 
-## Linux Installation Note -- Protocol Buffers
+## MacOS Installation Note 
+
+MacOS users should make sure developer tools and XCode are installed. If you run into installation issues, the function `pkgbuild::check_build_tools()` may be useful in debugging them. Additionally, the information about [R compiler tools for MacOS found here](https://thecoatlessprofessor.com/programming/cpp/r-compiler-tools-for-rcpp-on-macos/) may also be helpful.
+
+## Linux Installation Note 
 
 If you are trying to install FAUST on Linux with GCC version greater than 8, and you encounter installation errors, the following note may help resolve these errors: [protocol buffer issue link](https://github.com/protocolbuffers/protobuf/issues/5144#issuecomment-688723405).
 
