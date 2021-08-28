@@ -303,6 +303,7 @@ generateAnnotationThresholds <- function(gatingSet,
     )
 
     if (debugFlag) print("Making restriction matrices.")
+    #construct arrays that incorporate channel bounds into the analysis for the C++ code
     .makeRestrictionMatrices(
         samplesInExp = flowWorkspace::sampleNames(gatingSet),
         channelBounds = channelBounds,
@@ -338,6 +339,7 @@ generateAnnotationThresholds <- function(gatingSet,
             archDescriptionList = archDescriptionList,
             annotationForestDepth = annotationForestDepth
         )
+        #save a boolean to checkpoint completion
         bigForestDone <- TRUE
         saveRDS(bigForestDone,
                 file.path(normalizePath(projectPath),
@@ -361,6 +363,8 @@ generateAnnotationThresholds <- function(gatingSet,
         debugFlag = debugFlag
     )
 
+    #apply supervision to the standardization of annotation boundaries,
+    #if the user has specified specific choices.
     .superviseReconciliation(
         projectPath = projectPath,
         debugFlag = debugFlag
@@ -368,11 +372,13 @@ generateAnnotationThresholds <- function(gatingSet,
 
 
     if (debugFlag) print("Writing annotation matrices to file.")
+    #create arrays of single-cell annotations for every cell relative to the thresholds
     .mkAnnMats(
         projectPath = projectPath
     )
 
     if (debugFlag) print("Generating depth score plot.")
+    #make diagnostic plots for the depth score
     .plotScoreLines(
         projectPath = projectPath,
         depthScoreThreshold = depthScoreThreshold,
@@ -381,6 +387,7 @@ generateAnnotationThresholds <- function(gatingSet,
     )
 
     if (debugFlag) print("Generating marker boundary histograms.")
+    #diagnostic plots: aggregate histograms with the distribution of thresholds
     .plotMarkerHistograms(
         projectPath = projectPath,
         plottingDevice = plottingDevice
@@ -388,6 +395,7 @@ generateAnnotationThresholds <- function(gatingSet,
 
     if (drawAnnotationHistograms) {
         if (debugFlag) print("Generating annotation boundary histograms.")
+        #diagnostic plots. show the threshold(s) on data from the underlying samples
         .plotSampleHistograms(
             projectPath = projectPath,
             plottingDevice=plottingDevice
@@ -429,6 +437,7 @@ generateAnnotationThresholds <- function(gatingSet,
     }
 
     else {
+        #if the annotations are approved, save a boolean to checkpoint this
         saveRDS(annotationsApproved,
                 file.path(normalizePath(projectPath),
                           "faustData",

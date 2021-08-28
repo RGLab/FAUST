@@ -3,6 +3,7 @@
                                   plottingDevice
                                   )
 {
+    #generate diagnostic plots of histograms.
     analysisMap <- readRDS(file.path(normalizePath(projectPath),
                                      "faustData",
                                      "metaData",

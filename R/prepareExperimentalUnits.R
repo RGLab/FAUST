@@ -18,6 +18,10 @@
                                          "analysisMap.rds"))
         uniqueExpUnits <- unique(analysisMap[,"experimentalUnit"])
         for (expUnit in uniqueExpUnits) {
+            #iterate over experimental units. contactenate the expression data from the component samples, 
+            #restriction data derived from channel bounds, and a lookup vector mapping the unit back to its samples,
+            #as specified by the initial faust call. the annotation forest and 
+            #phenotype discovery will operate on the files collected here.
             aData <- analysisMap[which(analysisMap[,"experimentalUnit"]==expUnit),,drop=FALSE]
             firstSample <- TRUE
             for (sampleNum in seq(nrow(aData))) {

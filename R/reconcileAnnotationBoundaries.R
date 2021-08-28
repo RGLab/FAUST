@@ -1,6 +1,8 @@
 .reconcileAnnotationBoundaries <- function(projectPath,
                                            debugFlag)
 {
+    #this function contains the logic to standardize the annotation thresholds 
+    #across experimental units.
     if (!dir.exists(file.path(normalizePath(projectPath),
                               "faustData",
                               "gateData")))

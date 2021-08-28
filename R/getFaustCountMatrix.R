@@ -2,6 +2,7 @@
                                  debugFlag)
 
 {
+    #Make the interpretable count matrix for analysis.
     analysisMap <- readRDS(file.path(normalizePath(projectPath),
                                      "faustData",
                                      "metaData",

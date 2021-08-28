@@ -11,6 +11,7 @@
                                     densitySubSampleIterations
                                     )
 {
+    #read data from the experimental unit and cluster with SCAMP
     if (debugFlag) print(paste0("Starting SCAMP for: ",expUnit))
     expUnitExprs <- readRDS(file.path(normalizePath(projectPath),
                                     "faustData",
@@ -78,6 +79,7 @@
                                      expUnit,
                                      "expUnitToSampleLookup.rds"))
     for (sampleName in names(table(expUnitToSampleLookup))) {
+        #save proposed phenotypes from scamp.
         sampleLookup <- which(expUnitToSampleLookup == sampleName)
         if (length(sampleLookup)) {
             sampleClustering <- outClustering[sampleLookup]

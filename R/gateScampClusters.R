@@ -2,7 +2,7 @@
                                debugFlag)
 {
 
-
+    #using the selected phenotypes, gate out exact counts.
     analysisMap <- readRDS(file.path(normalizePath(projectPath),
                                      "faustData",
                                      "metaData",

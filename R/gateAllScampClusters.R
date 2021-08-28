@@ -1,7 +1,7 @@
 .gateAllScampClusters <- function(projectPath,
                                debugFlag)
 {
-
+    #Diagnostic -- gate out every encountered phenotype.
 
     analysisMap <- readRDS(file.path(normalizePath(projectPath),
                                      "faustData",

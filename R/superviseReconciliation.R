@@ -24,6 +24,7 @@
             print("Proceding as if these are controlled values.")
         }
         for (channel in supervisedChannels) {
+            #use the selection list to set the standard
             tmpList <- outList[[channel]]
             supervision <- selectionList[[channel]]
             if (length(supervision) > length(tmpList[[1]])) {

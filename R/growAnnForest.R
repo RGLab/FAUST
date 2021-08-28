@@ -12,18 +12,21 @@
                                   densitySubSampleIterations,
                                   annotationForestDepth)
 {
-    #function to
+    #function to 
     if (debugFlag) print(paste0("Growing annotation forest for: ",expUnit))
+    #load the expression data for the experimental unit
     expUnitExprs <- readRDS(file.path(normalizePath(projectPath),
                                     "faustData",
                                     "expUnitData",
                                     expUnit,
-                                    "expUnitExprs.rds"))
+                                      "expUnitExprs.rds"))
+    #load the restriction bounds for the experimental unit
     expUnitRes <- readRDS(file.path(normalizePath(projectPath),
                                   "faustData",
                                   "expUnitData",
                                   expUnit,
-                                  "expUnitRes.rds"))
+                                    "expUnitRes.rds"))
+    #subset to the markers selected by the user
     expUnitExprs <- expUnitExprs[,activeChannels,drop=FALSE]
     expUnitRes <- expUnitRes[,activeChannels,drop=FALSE]
     resFlag <- FALSE
@@ -59,6 +62,7 @@
                       "expUnitData",
                       expUnit,
                       paste0(rootPop,"_annF.rds")))
+    #get the effective population size and parse the forest
     ePop <- apply(expUnitRes,2,function(x){length(which(x==0))})
     names(ePop) <- colnames(expUnitExprs)
     af <- annF[["gateData"]]
@@ -152,6 +156,7 @@
                                  "faustData",
                                  "slurmData"))
         }
+        #dispatch jobs over a cluter using slurm
         stillRunningSlurm <- TRUE
         startSlurmTime <- proc.time()
         maxNodeNum <- archDescriptionList$maxNodeNum
@@ -176,6 +181,7 @@
                                          "slurmData",
                                          currentLevel))
                 }
+                #generate a template to start the job with slurm
                 .prepareSlurmJob(
                     expUnit = currentLevel,
                     rootPop = rootPop,
@@ -209,6 +215,7 @@
                                      stdout=TRUE)
             }
             else {
+                #poll jobs
                 Sys.sleep(10) #in seconds
                 currentSlurmTime <- (proc.time() - startSlurmTime)
                 if (as.numeric(currentSlurmTime[3]) > maxTime) {
@@ -221,6 +228,7 @@
                 }
                 activeSlurmLevels <- c()
                 for (sLevel in slurmLevels) {
+                    #test for rds with boolean indicating the job finished
                     if (
                     (file.exists(file.path(normalizePath(projectPath),
                                            "faustData",

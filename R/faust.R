@@ -247,6 +247,7 @@ faust <- function(gatingSet,
                   annotationForestDepth=3
                   )
 {
+    #wrapper around selection and standardization of annotation thresholds.
     generateAnnotationThresholds(
         gatingSet = gatingSet,
         startingCellPop = startingCellPop,
@@ -272,6 +273,7 @@ faust <- function(gatingSet,
     )
 
     if (annotationsApproved) {
+        #wrapper around discovery and down-selection of phenotypes.
         discoverPhenotypes(
             gatingSet = gatingSet,
             projectPath = projectPath,
