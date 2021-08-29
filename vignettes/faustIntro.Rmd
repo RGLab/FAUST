@@ -25,7 +25,7 @@ Full Annotation Using Shape-constrained Trees (FAUST) is a method to perform dis
 
 This implementation targets the gating set data structure in the [`flowWorkspace`](https://bioconductor.org/packages/release/bioc/html/flowWorkspace.html) Bioconductor package.
 
-When applied to a cytometry study stored in a gating set, the `faust` R function creates a directory called "faustData".
+When applied to a cytometry study stored in a gating set, the `faust` R function creates a directory called "faustData" located at the setting of a parameter called "projectPath".
 
 The principal output is an **annotated count matrix** `faustCountMatrix.rds` which is written to the "faustData" directory.
 

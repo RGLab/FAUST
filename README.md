@@ -4,9 +4,25 @@
 
 The `FAUST` package implements the FAUST method described in [New interpretable machine learning method for single-cell data reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v2).
 
-The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is available.
+Full Annotation Using Shape-constrained Trees (FAUST) is a method to perform discovery and annotation of phenotypes in single-cell data from flow and mass cytometry experiments.
+
+This implementation targets the gating set data structure in the [`flowWorkspace`](https://bioconductor.org/packages/release/bioc/html/flowWorkspace.html) Bioconductor package.
+
+When applied to a cytometry study stored in a gating set, the `faust` R function creates a directory called "faustData" located at the setting of a parameter called "projectPath".
+
+The principal output is an **annotated count matrix** `faustCountMatrix.rds` which is written to the "faustData" directory.
+
+- **Rows** in the count matrix correspond to **samples** collected in the single cell experiment.
+- The **columns** in the count matrix are **cell populations** discovered by the pipeline. 
+- The **columns** are *annotated* by a selected subset of *markers* used in conducting the experiment.
+- The **column annotations** define, in terms of these *markers*, the **phenotypes** of all **cell populations** discovered by the pipeline.
+- **Entries** in the count matrix correspond the **number of cells** in a sample that belong to a discovered cell population. 
+
+This count matrix can be loaded into R using the `readRDS` function.
 
 ## Installation
+
+The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is available.
 
 Currently `faust` must be installed from its source. It depends on the `scamp` package. 
 
