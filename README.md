@@ -22,7 +22,7 @@ This count matrix can be loaded into R using the `readRDS` function.
 
 ## Installation
 
-The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is available.
+The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is available. Building the vignettes requires the ability to generate png images.
 
 Currently `faust` must be installed from its source. It depends on the `scamp` package. 
 
