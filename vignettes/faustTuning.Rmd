@@ -1,5 +1,5 @@
 ---
-title: "Tuning a FAUST analysis"
+title: "FAUST Tuning"
 author: 
 - Evan Greene
 date: "`r Sys.Date()`"
@@ -17,8 +17,6 @@ knitr::opts_chunk$set(
 ```
 
 # Introduction
-
-The vignette `faustIntro` shows how to use the `R` function <code style="color:skyblue">faust</code> to conduct end-to-end analysis of a cytometry dataset.
 
 This vignette provides information about the two main component functions of the `R` function <code style="color:skyblue">faust</code>: the functions `generateAnnotationThresholds` and `discoverPhenotypes`.
 If you inspect the `R` source, you will see the <code style="color:skyblue">faust</code> function is a simple wrapper around these two functions.

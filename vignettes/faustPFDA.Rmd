@@ -1,5 +1,5 @@
 ---
-title: "Running PFDA on FAUST outputs"
+title: "FAUST PFDA"
 author: 
 - Evan Greene
 date: "`r Sys.Date()`"
@@ -320,7 +320,7 @@ if (sum(clusterProbVec) < 1) {
 #
 #dataset 1 -- make a gating set to illustrate depth-score tuning
 #
-dimension <- 
+dimension <- 8
 specMat <- matrix(0,nrow=2,ncol=dimension)
 specMat[2,] <- c(10,10,10,10,10,10,10,10)
 simmedExp1 <- simulateExperiment(
@@ -335,7 +335,7 @@ simmedExp1 <- simulateExperiment(
     tncp=sampleSize
 )
 
-specMat[2,] <- c(3.5,3.5,3.5,3.5,3.5,3.5,3.5,3.5)
+specMat[2,] <- c(3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5)
 simmedExp2 <- simulateExperiment(
     meanVectorBoundsMatrix=specMat,
     numSamples=10,
