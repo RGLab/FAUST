@@ -1,50 +1,24 @@
 ---
-title: "FAUST Introduction"
+title: "FAUST PFDA"
 author: 
 - Evan Greene
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{FAUST Introduction}
+  %\VignetteIndexEntry{FAUST PFDA}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   comment = "#>",
-  fig.width = 6,
-  fig.height = 12,
-  dpi = 100,
-  fig.align = "center"
+  dpi = 300
 )
 ```
 
-# FAUST Overview
-
-Full Annotation Using Shape-constrained Trees (FAUST) is a method to perform discovery and annotation of phenotypes in single-cell data from flow and mass cytometry experiments.
-
-This implementation targets the gating set data structure in the [`flowWorkspace`](https://bioconductor.org/packages/release/bioc/html/flowWorkspace.html) Bioconductor package.
-
-When applied to a cytometry study stored in a gating set, the `faust` R function creates a directory called "faustData" located at the setting of a parameter called "projectPath".
-
-The principal output is an **annotated count matrix** `faustCountMatrix.rds` which is written to the "faustData" directory.
-
-- **Rows** in the count matrix correspond to **samples** collected in the single cell experiment.
-- The **columns** in the count matrix are **cell populations** discovered by the pipeline. 
-- The **columns** are *annotated* by a selected subset of *markers* used in conducting the experiment.
-- The **column annotations** define, in terms of these *markers*, the **phenotypes** of all **cell populations** discovered by the pipeline.
-- **Entries** in the count matrix correspond the **number of cells** in a sample that belong to a discovered cell population. 
-
-This count matrix can be loaded into R using the `readRDS` function.
-
-This vignette provides a brief overview of how to use the implementation provided in the `faust` package.
-
-In addition to this vignette, the package also includes the vignettes:
-
-- `faustTuning` which provides information about how to tune parameters of the method
-- `faustPFDA` which provides information about how to apply PFDA to the output in the `faustCountMatrix.rds`
-
-# An example workflow with simulated data.
+This vignette provides a demonstration of how to apply PFDA to the annotated count matrix produced by FAUST.
+It is a mechanical demonstration, insofar as we will simulate data and show the steps involved in fitting a PFDA model.
+In real data, care must be taken to properly define the biological compartment of interest in terms of the marker panel prior to fitting the PFDA model.
 
 ```{r libraries_and_sim, message = FALSE, echo=FALSE}
 # load libraries and code to simulate data.
@@ -59,6 +33,9 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(tidyr)
   library(faust)
+  library(ggridges)
+  library(lme4)
+  library(multcomp)
 })
 
 Posdef <- function (n, ev = runif(n, 1, 2))
@@ -326,12 +303,9 @@ simulateExperiment <- function(
     )
     return(outputList)
 }
-dimension <- 5 
-sampleSize <- 500 
-ssLB <- 500 
-ssUB <- 500
-specMat <- matrix(0,nrow=2,ncol=dimension)
-specMat[2,] <- c(8,8,8,8,8)
+sampleSize <- 750
+ssLB <- 750
+ssUB <- 750
 dataTransformations <- list(function(x){return((x))},
                                 function(x){return((x))},
                                 function(x){return((x))})
@@ -339,33 +313,20 @@ startProb <- 0.1425
 refClusterProbVec <- c(
     startProb,rep(startProb/2,2),rep(startProb/4,4),rep(startProb/8,8),rep(startProb/16,16),rep(startProb/32,32),rep(startProb/64,64)
 )
-numberOfClusters <- 5
+numberOfClusters <- 20
 clusterProbVec <- sort(refClusterProbVec[seq(numberOfClusters)],decreasing=TRUE)
 if (sum(clusterProbVec) < 1) {
     residualPV <- 1-sum(clusterProbVec)
     clusterProbVec <- (clusterProbVec + (residualPV/length(clusterProbVec)))
 }
-```
-
-After installing and loading the `faust` library, the `R` function 
-<code style="color:skyblue">faust</code> is available to analyze cytometry data.
-
-This function takes as input a `GatingSet` data structure.
-This data structure can be constructed using the
-[`flowWorkspace`](https://bioconductor.org/packages/release/bioc/html/flowWorkspace.html) Bioconductor package.
-The gating set should contain all the experimental samples you wish to analyze using <code style="color:skyblue">faust</code>.
-
-Here, we construct a gating set using simulated data to demonstrate how to use the <code style="color:skyblue">faust</code> function. 
-The gating set contains 5 simulated sample, each of 500 observations.
-The samples are simulated from a multivariate Gaussian mixture with 5 components.
-By design, this means there are 5 distinct clusters or "phenotypes" in the gating set.
-
-The source code for the `simulateExperiment` function is included in the source code of this vignette.
-To view it, open the file `faustIntro.Rmd` in the `vignettes` directory of your local installation, or the 
-[`source code on github`](https://github.com/RGLab/FAUST/blob/master/vignettes/faustIntro.Rmd).
-
-```{r simulate_gatingset, warning=FALSE, eval=TRUE, echo=TRUE}
-simmedExp <- simulateExperiment(
+#
+#dataset 1 -- make a gating set to illustrate PFDA
+#
+set.seed(1234)
+dimension <- 8
+specMat <- matrix(0,nrow=2,ncol=dimension)
+specMat[2,] <- c(10,10,10,10,10,10,10,10)
+simmedExp1 <- simulateExperiment(
     meanVectorBoundsMatrix=specMat,
     numSamples=5,
     transformationList=dataTransformations,
@@ -376,77 +337,123 @@ simmedExp <- simulateExperiment(
     randomSeed=12345,
     tncp=sampleSize
 )
-fs <- as(simmedExp[["flowFrameList"]], "flowSet")
+
+specMat[2,] <- c(3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5)
+simmedExp2 <- simulateExperiment(
+    meanVectorBoundsMatrix=specMat,
+    numSamples=5,
+    transformationList=dataTransformations,
+    noiseDimension=0,
+    probVecIn=clusterProbVec,
+    minSampleSize=ssLB,
+    maxSampleSize=ssUB,
+    randomSeed=12345,
+    tncp=sampleSize
+)
+ffList <- append(simmedExp1[["flowFrameList"]],
+                 simmedExp2[["flowFrameList"]])
+names(ffList) <- paste0("Sample_",sprintf('%0.2d', 1:length(ffList)))
+fs <- as(ffList, "flowSet")
 gs <- flowWorkspace::GatingSet(fs)
 ```
 
-## Using **<span style="color:skyblue">faust</span>** function in **R**
+# PFDA example
 
-Once cytometry data is stored in a gating set, you can apply the **<span style="color:skyblue">faust</span>** function to the gating set.
-You will need to identify the cell population in the gating set to analyze, and a directory on your computer that will store the results.
+We begin by simulating a dataset.
 
-Since we simulated the data set, we will apply the **<span style="color:skyblue">faust</span>** function to the "root" population,
-which comprises the all observations in the data set.
-In real cytometry data, the **<span style="color:skyblue">faust</span>** function is usually applied to a pre-gated population such as lymphocytes.
-
-We will store the results in a temporary directory created at the `projPath`.
-By setting the `annotationsApproved` parameter to `TRUE`, we run the method from end-to-end.
-By setting the `threadNum` parameter to `4`, we instruct `faust` to use 4 threads.
-Additional **<span style="color:skyblue">faust</span>** parameters can be read about by typing `?faust` at the R prompt.
-
-```{r run_faust_on_simulated_data, warning=FALSE, eval=TRUE, echo=TRUE}
+```{r at01, message = FALSE, echo=TRUE, eval=FALSE}
+#
+#generate the annotation thresholds 
+#
+set.seed(123)
 projPath <- file.path(tempdir(),"FAUST")
+if (dir.exists(projPath)) {
+   unlink(projPath, recursive=TRUE)
+}
 dir.create(projPath, recursive = TRUE)
-
 faust(
     gatingSet           = gs,
     startingCellPop     = "root",
     projectPath         = projPath,
+    plottingDevice      = "png",
     annotationsApproved = TRUE,
     threadNum           = 4
 )
 ```
+```{r at01a, message = FALSE, echo=FALSE, eval = TRUE, results='hide'}
+set.seed(123)
+projPath <- file.path(tempdir(),"FAUST")
+if (dir.exists(projPath)) {
+   unlink(projPath, recursive=TRUE)
+}
+dir.create(projPath, recursive = TRUE)
+invisible(faust(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath,
+    plottingDevice      = "png",
+    annotationsApproved = TRUE,
+    threadNum           = 4
+))
+```
 
-## Examining output
+We next load the counts into the analysis and derive a parent count. To demonstrate fitting a PFDA model, we will manually assign a reponder status
+to each sample against which we can model.
 
-Once the **<span style="color:skyblue">faust</span>** function completes running, the primary output is the annotated count matrix.
-
-```{r show_count_matrix, eval=TRUE, echo=TRUE}
+```{r prepare_counts, eval=TRUE, echo=TRUE}
 count_df <- as.data.frame(readRDS(file.path(projPath,"faustData","faustCountMatrix.rds")))
-count_df
+cellPops <- setdiff(colnames(count_df),c("0_0_0_0_0"))
+count_df$parentCount <- apply(count_df,1,sum)
+count_df$subjectID <- paste0("Sample_",sprintf('%0.2d', 1:nrow(count_df)))
+count_df$modelRT <- c(rep(1,(nrow(count_df)/2)),rep(0,(nrow(count_df)/2)))
 ```
-We see that there are six columns in the annotated count matrix.
-Five are phenotypes discovered by `faust` and annotated in terms of the simulated markers.
-The sixth column is annotated "0_0_0_0_0" and corresponds to all observations that were assigned a phenotype which
-was not observed frequently enough to survive down-selection.
 
-Single cell annotations and visualizations can be constructed using the function `makeAnnotationEmbedding`.
-Here we show the annotation embedding across the experiment colored by the `faustLabels`.
+To apply PFDA, we must have a biological compartment in mind whose sub-phenotypes we wish to investigate.
+Here we are simulating data, and so will assume phenotypes that are `V1+` represent a biological compartment of interest in order to demonstrate the process.
 
-```{r generate_annotation_embeddings, eval=TRUE, echo=TRUE, results='asis'}
-snVec <- list.files(file.path(projPath,"faustData","sampleData"))
-annoEmbed <- faust::makeAnnotationEmbedding(	      
-    projectPath=projPath,
-    sampleNameVec=snVec
+```{r multivariate model, eval=TRUE, echo=TRUE}
+pfdaExampleCellPops <- cellPops[grepl("V1\\+",cellPops)]
+pfdaExampleGlmerDFPrep <- count_df[,c(pfdaExampleCellPops,"parentCount","modelRT","subjectID")]
+pfdaExampleGlmerDF <- gather(pfdaExampleGlmerDFPrep,key=cellPop,value=count,-c("parentCount","modelRT","subjectID"))
+pfdaExampleGlmerDF$popName <- as.factor(paste0("Pop_",as.numeric(as.factor(pfdaExampleGlmerDF$cellPop))))
+pfdaExampleGlmerDF$obsFactor <- as.factor(paste0("Obs_",seq(nrow(pfdaExampleGlmerDF))))
+kable(pfdaExampleCellPops)
+```
+
+We now fit the multivariate PFDA model to the listed phenotypes in the compartment using a binomial GLMM using `glmer` from the `lme4` package.
+
+```{r pfda_model, eval=TRUE, echo=TRUE}
+pfdaExampleGlmerFit <- glmer(
+    formula=cbind(count,(parentCount-count))  ~ popName*modelRT + (1|obsFactor),
+    data=pfdaExampleGlmerDF,
+    family="binomial",
+    nAGQ=0,
+    control=glmerControl(
+        optimizer="bobyqa",
+        optCtrl = list(maxfun = 1e9),
+        boundary.tol = 1e-9,
+        tolPwrss=1e-9,
+        check.conv.singular = .makeCC(action = "warning",  tol = 1e-12)
+    )
 )
-
-p <- ggplot(annoEmbed,aes(x=umapX,y=umapY,color=faustLabels))+
-  geom_point()+
-  theme_classic()+
-  xlab("Annotation Embedding X")+
-  ylab("Annotation Embedding Y")+
-  facet_grid(vars(sampleOfOrigin))+
-  theme(legend.position="bottom")
-
-p
-```
-We can compare the single cell annotations to the simulated truth.
-
-```{r cross_tab, eval=TRUE, echo=TRUE}
-trueLabels <- Reduce(append,simmedExp[["labelsList"]])
-faustLabels <- annoEmbed$faustLabels
-table(trueLabels,faustLabels)
 ```
 
-The simulated true labels are along the rows, and the columns are the faust annotations.
-We see that the faust labels along the column re-order the markers in terms of the depth score.
+Having fit the model, we conduct a test of increased abundance across the compartment using `glht` from the `multcomp` package.
+
+```{r linear_combo_test, echo=TRUE, eval=TRUE}
+pfdaExampleCoefNames = names(fixef(pfdaExampleGlmerFit))
+pfdaExampleGLHTMat <- matrix(0, nrow = 1, ncol = length(pfdaExampleCoefNames))
+pfdaExampleGLHTMat[,which(pfdaExampleCoefNames == "modelRT")] <- 1
+pfdaExampleGLHTMat[1,which(grepl(":modelRT",pfdaExampleCoefNames))] <- 1/(length(which(grepl(":modelRT",pfdaExampleCoefNames)))+1)
+rownames(pfdaExampleGLHTMat) <- c("Phenotype_Compartment")
+pfdaExampleMulti <- glht(pfdaExampleGlmerFit,pfdaExampleGLHTMat, alternative = "greater")
+pfdaExampleObsPval <- round(summary(pfdaExampleMulti)$test$pvalues[1],9)
+pfdaExampleCT95 <- confint(pfdaExampleMulti,level=0.95)
+pfdaExampleMultiResults <- as.data.frame(pfdaExampleCT95$confint)
+pfdaExampleMultiResults$Compartment <- rownames(pfdaExampleMultiResults)
+pfdaExampleMultiResults$ModelType <- "PFDA"
+pfdaExampleMultiResults$Component <- "PFDA"
+kable(pfdaExampleMultiResults)
+```
+
+This demonstrates the mechanics of how to run `PFDA` on the `FAUST` count matrix.

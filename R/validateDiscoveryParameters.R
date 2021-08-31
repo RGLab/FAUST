@@ -7,6 +7,7 @@
                                          densitySubSampleIterations,
                                          archDescriptionList)
 {
+    #test to make sure the parameter settings are valid.
     if (length(seedValue) != 1)
     {
         stop("seedValue must be a single integer value.")

@@ -4,7 +4,7 @@
                                  plottingDevice
                                  )
 {
-    
+    #Generate a diagnostic plot to show the phenotype filtering threshold.
     nameSummary <- readRDS(file.path(normalizePath(projectPath),
                                      "faustData",
                                      "metaData",

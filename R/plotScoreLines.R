@@ -5,6 +5,7 @@
                             plottingDevice
                             )
 {
+    #plot the distribution of depth scores across the experiment.
     forceList <- readRDS(file.path(normalizePath(projectPath),
                                    "faustData",
                                    "metaData",

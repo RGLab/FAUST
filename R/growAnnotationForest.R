@@ -236,6 +236,7 @@ growAnnotationForest <- function(dataSet,
             firstIteration <- FALSE
         }
         else {
+            #append results to iterated runs.
             for (i in seq(length(gatingForest[["gateData"]]))) {
                 gatingForest[["gateData"]][[i]] <- append(gatingForest[["gateData"]][[i]],
                                                           gatingLocs[["gateData"]][[i]])

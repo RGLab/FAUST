@@ -153,6 +153,7 @@ discoverPhenotypes <- function(gatingSet,
     )
 
     if (debugFlag) print("Discovering phenotypes across experimental units.")
+    #discover phenotypes in each expeirmental unit
     .clusterExpUnitsWithScamp(
         projectPath = projectPath,
         nameOccuranceNum = nameOccuranceNum,
@@ -165,6 +166,7 @@ discoverPhenotypes <- function(gatingSet,
         archDescriptionList = archDescriptionList
     )
 
+    #plot showing the filtering threshold
     .plotPhenotypeFilter(
         projectPath=projectPath,
         nameOccuranceNum=nameOccuranceNum,
@@ -172,24 +174,28 @@ discoverPhenotypes <- function(gatingSet,
     )
 
     if (debugFlag) print("Gating populations.")
+    #gate out the cells
     .gateScampClusters(
         projectPath = projectPath,
         debugFlag = debugFlag
     )
 
     if (debugFlag) print("Generating faust count matrix.")
+    #construct the count matrix
     .getFaustCountMatrix(
         projectPath = projectPath,
         debugFlag = debugFlag
     )
 
     if (debugFlag) print("Gating all populations.")
+    #diagnostic -- gate out every phenotype encountered across experimental units
     .gateAllScampClusters(
         projectPath = projectPath,
         debugFlag = debugFlag
     )
 
     if (debugFlag) print("Generating exhaustive faust count matrix.")
+    #diagnostic -- gate out every phenotype encountered across experimental units
     .getExhaustiveFaustCountMatrix(
         projectPath = projectPath,
         debugFlag = debugFlag

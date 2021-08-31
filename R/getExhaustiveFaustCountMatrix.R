@@ -1,6 +1,7 @@
 .getExhaustiveFaustCountMatrix <- function(projectPath,
                                            debugFlag)
 {
+    #diagnostic -- make a count matrix for every encountered phenotype.
     analysisMap <- readRDS(file.path(normalizePath(projectPath),
                                      "faustData",
                                      "metaData",

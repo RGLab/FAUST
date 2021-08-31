@@ -185,6 +185,12 @@
 #' @param plottingDevice string with device for saving graphical output.
 #' By default it is set to "pdf".
 #'
+#' @param annotationForestDepth Numeric value. Number of marker combinations
+#' to search in the annotation forest. By default it is set to 3. Minimum
+#' recommended value is 2. Maximum possible is the number of markers in the
+#' data set. Increasing this parameter can significantly increase computation
+#' time.
+#'
 #' @return The `faust` function returns a null value on completion. The main
 #' output is the file "projectPath/faustData/faustCountMatrix.rds". The
 #' rownames are `sampleNames(gatingSet)]`
@@ -237,9 +243,11 @@ faust <- function(gatingSet,
                       list(
                           targetArch=c("singleCPU")
                       ),
-                  plottingDevice="pdf"
+                  plottingDevice="pdf",
+                  annotationForestDepth=3
                   )
 {
+    #wrapper around selection and standardization of annotation thresholds.
     generateAnnotationThresholds(
         gatingSet = gatingSet,
         startingCellPop = startingCellPop,
@@ -260,10 +268,12 @@ faust <- function(gatingSet,
         densitySubSampleThreshold = densitySubSampleThreshold,
         densitySubSampleSize = densitySubSampleSize,
         densitySubSampleIterations = densitySubSampleIterations,
-        plottingDevice = plottingDevice
+        plottingDevice = plottingDevice,
+        annotationForestDepth = annotationForestDepth
     )
 
     if (annotationsApproved) {
+        #wrapper around discovery and down-selection of phenotypes.
         discoverPhenotypes(
             gatingSet = gatingSet,
             projectPath = projectPath,

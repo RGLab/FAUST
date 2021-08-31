@@ -12,6 +12,7 @@
                                     "metaData",
                                     "sanitizedCellPopStr.rds"))
 
+    #iterate over experimental units and collect the depth scores
     firstForest <- TRUE
     for (expUnit in uniqueExpUnits) {
         if (file.exists(file.path(normalizePath(projectPath),
@@ -71,6 +72,7 @@
                           "faustData",
                           "metaData",
                           "depthMat.rds"))
+        #select markers based on their depth scores
         quantileScore <- apply(scoreMat,2,function(x){as.numeric(quantile(x,probs=c(selectionQuantile)))})
         scoreNames <- names(which(quantileScore >= depthScoreThreshold))
         quantileDepth <- apply(depthMat,2,function(x){as.numeric(quantile(x,probs=c((1-selectionQuantile))))})

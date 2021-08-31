@@ -1,0 +1,837 @@
+---
+title: "FAUST Tuning"
+author: 
+- Evan Greene
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{FAUST Tuning}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  dpi = 300
+)
+```
+
+# Introduction
+
+This vignette provides information about the two main component functions of the `R` function <code style="color:skyblue">faust</code>: the functions `generateAnnotationThresholds` and `discoverPhenotypes`.
+If you inspect the `R` source, you will see the <code style="color:skyblue">faust</code> function is a simple wrapper around these two functions.
+These functions, in turn, orchestrate the two main phases of the `FAUST` analysis: marker scoring, selection, and threshold standardization, occurs in `generateAnnotationThresholds`; phenotype discovery then occurs in `discoverPhenotypes` once the standardized thresholds have been approved by the user.
+
+We will discuss both phases in this vignette.
+
+```{r libraries_and_sim, message = FALSE, echo=FALSE}
+# load libraries and code to simulate data.
+suppressPackageStartupMessages({
+  library(mvtnorm)
+  library(MASS)
+  library(flowCore)
+  library(flowWorkspace)
+  library(ggplot2)
+  library(cowplot)
+  library(knitr)
+  library(dplyr)
+  library(tidyr)
+  library(faust)
+  library(ggridges)
+})
+
+Posdef <- function (n, ev = runif(n, 1, 2))
+{
+    #function written by Ravi Varadhan, from r-help mailing list
+    #Thu Feb 7, 20:02:30 CET 2008
+    #Generates a positive definine matrix of dimension n
+    #ev bounds the variance by 2
+    Z <- matrix(ncol=n, rnorm(n^2))
+    decomp <- qr(Z)
+    Q <- qr.Q(decomp)
+    R <- qr.R(decomp)
+    d <- diag(R)
+    ph <- d / abs(d)
+    O <- Q %*% diag(ph)
+    Z <- t(O) %*% diag(ev) %*% O
+    return(Z)
+}
+
+labelMeanVector <- function(meanVector) {
+    baseStr <- paste0("V",seq(length(meanVector)))
+    tokenStr <- rep("+",length(meanVector))
+    tokenStr[which(meanVector==0)] <- "-"
+    return(paste0(paste0(baseStr,tokenStr),collapse=""))
+}
+
+genClusterCentersWithLabels <- function(possibleCenterMat,
+                                        nPop=5,
+                                        seedVal=0)
+{
+    pcMat <- t(possibleCenterMat)
+    allPops <- expand.grid(split(pcMat,rep(seq(nrow(pcMat)),ncol(pcMat))))
+    if (nPop > nrow(allPops)) {
+        print("Too many clusters relative to specMat/possibleCenterMat.")
+        stop("Reduce number of clusters or increase possible mean vectors.")
+    }
+    clusterIndex <- sample(seq(nrow(allPops)),nPop)
+    outMat <- allPops[clusterIndex,,drop=FALSE]
+    outLab <- as.character(apply(outMat,1,labelMeanVector))
+    outList <- list(fixedMeanMatrix=outMat,fixedLabelVector=outLab)
+    return(outList)
+}
+
+getSimTrueCountMatrix <- function(truthList)
+{
+    uniqueNames <- c()
+    for (i in seq(length(truthList))) {
+        uniqueNames <- append(uniqueNames,names(truthList[[i]]))
+    }
+    uniqueNames <- sort(unique(uniqueNames))
+    truthMat <- matrix(0,nrow=length(truthList),ncol=length(uniqueNames))
+    colnames(truthMat) <- uniqueNames
+    rownames(truthMat) <- names(truthList)
+    for (i in seq(length(truthList))) {
+        cv <- truthList[[i]]
+        for (cName in colnames(truthMat)) {
+            lookup <- which(names(cv) == cName)
+            if (length(lookup)) {
+                truthMat[i,cName] <- cv[lookup]
+            }
+        }
+    }
+    return(truthMat)
+}
+
+simSample <- function(sampleDim,
+                      sampleSize,
+                      transformationType,
+                      mixtureType="gaussianOnly",
+                      fixedMeanMatrix=NA,
+                      fixedLabelVector=NA,
+                      noiseDim=0,
+                      probVecSample,
+                      isKnockout=FALSE,
+                      isSpikeIn=FALSE,
+                      sRegime=0,
+                      targetRanks=c(length(probVecSample)-1,length(probVecSample)),
+                      hasBatchEffect=FALSE,
+                      batchEffect=0
+                      )
+{
+    numClusters <- nrow(fixedMeanMatrix)
+    probVec <- probVecSample
+    knockoutStatus <- "No knockout"
+    if (isKnockout) {
+        targetProbs <- sort(probVec)
+        targetProb <- targetProbs[ceiling(length(targetProbs)/2)]
+        targetLookup <- which(probVec == targetProb)
+        modProbLookups <- setdiff(seq(length(probVec)),targetLookup)
+        knockoutStatus <- fixedLabelVector[targetLookup]
+        probVec[modProbLookups] <- (probVec[modProbLookups] + (targetProb/length(modProbLookups)))
+        probVec[targetLookup] <- 0
+    }
+    if ((sRegime) && (isSpikeIn)) {
+        currentSpikeMass <- probVec[targetRanks[2]]
+        targetSpikeMass <- probVec[targetRanks[1]]
+        massIncrement <- currentSpikeMass/(length(probVec)-1)
+        probVec <- probVec + massIncrement
+        probVec[targetRanks[2]] <- 0
+        probVec <- probVec - (targetSpikeMass * probVec)
+        probVec[targetRanks[2]] <- targetSpikeMass
+        if (abs(sum(probVec) - 1) > 1e-9) {
+            print(probVec)
+            print(sum(probVec))
+            print(abs(sum(probVec) - 1))
+            stop("Error in probability reapportionment")
+        }
+        if (min(probVec) == probVec[targetRanks[2]]) {
+            stop("Error in spiking in population")
+        }
+    }
+    sampleSizeVec <- as.vector(t(rmultinom(1,sampleSize,probVec)))
+    outData <- matrix(nrow=0,ncol=(sampleDim+noiseDim))
+    outLabel <- c()
+    for (clusterNumber in seq(numClusters)) {
+        if (sampleSizeVec[clusterNumber] == 0) {
+            next
+        }
+        currentMu <- as.numeric(fixedMeanMatrix[clusterNumber,,drop=TRUE])
+        if (hasBatchEffect) {
+            currentMu <- currentMu + batchEffect 
+        }
+        subjectShift <- round(rnorm(length(currentMu),mean=0,sd=(1/sqrt(2))))
+        currentMu <- currentMu + subjectShift 
+        currentLabel <- fixedLabelVector[clusterNumber]
+        outLabel <- append(outLabel,rep(currentLabel,sampleSizeVec[clusterNumber]))
+        currentSigma<- Posdef(sampleDim)
+        if (mixtureType == "tPlusGauss") {
+            if ((clusterNumber %% 2) == 0) {
+                currentSample <- mvrnorm(sampleSizeVec[clusterNumber],mu=currentMu,Sigma=currentSigma)
+            }
+            else {
+                currentSample <- rmvt(sampleSizeVec[clusterNumber],delta=currentMu,sigma=currentSigma,df=2)
+            }
+        }
+        else if (mixtureType == "tOnly") {
+            currentSample <- rmvt(sampleSizeVec[clusterNumber],delta=currentMu,sigma=currentSigma,df=2)
+        }
+        else  {
+            currentSample <- mvrnorm(sampleSizeVec[clusterNumber],mu=currentMu,Sigma=currentSigma)
+        }
+        if (is.vector(currentSample)) {
+            currentSample <- t(as.matrix(currentSample))
+        }
+        if (noiseDim > 0) {
+            currentSigma<- Posdef(noiseDim)
+            noiseSample <- mvrnorm(nrow(currentSample),mu=rep(5,noiseDim),Sigma=currentSigma)
+            if (is.vector(noiseSample)) {
+                noiseSample <- t(as.matrix(noiseSample))
+            }
+            currentSample <- cbind(currentSample,noiseSample)
+        }
+        outData <- rbind(outData,t(apply(currentSample,1,transformationType)))
+    }
+    colnames(outData) <- paste0("V",seq(ncol(outData)))
+    outList <- list(sampleMatrix=outData,sampleLabels=outLabel,knockoutInfo=knockoutStatus)
+    return(outList)
+}
+
+simulateExperiment <- function(
+                               meanVectorBoundsMatrix, 
+                               numSamples=100, 
+                               randomSeed=0,
+                               transformationList=list(function(x){return(x)},
+                                                       function(x){return(x)},
+                                                       function(x){return(x)}), 
+                               noiseDimension=5,
+                               probVecIn, 
+                               minSampleSize=5000,
+                               maxSampleSize=40000,
+                               tncp=10000,
+                               knockoutNumber=0, 
+                               spikeInFlag=FALSE, 
+                               targetRanks=c(length(probVecIn)-1,length(probVecIn)),
+                               useBatchFlag=FALSE, 
+                               batchEffectShift=0.75,
+                               fixedResFlag=FALSE, 
+                               responderStatusVec=c(NA)
+                               )
+{
+    probVecForSim <- sort(probVecIn,decreasing=TRUE)
+    sampleSpecs <- genClusterCentersWithLabels(
+        possibleCenterMat=meanVectorBoundsMatrix,
+        nPop=length(probVecForSim),
+        seedVal=randomSeed
+    )
+    currentTransformation <- transformationList[[1]]
+    currentSample <- 1
+    startKnockoutNum <- numSamples - knockoutNumber + 1
+    isKnockoutSample <- FALSE
+    regime <- rep(0,numSamples)
+    regime[sample(seq(numSamples),(numSamples/2))] <- 1
+    if (fixedResFlag) {
+        regime <- rep(0,numSamples)
+        regime[which(responderStatusVec==1)] <- 1
+    }
+    nextBatchEffect <- rep((-1*batchEffectShift),ncol(sampleSpecs$fixedMeanMatrix))
+    regimeList <- knockoutList <- labelsList <- flowList <- truthList <- list()
+    while (currentSample <= numSamples) {
+        nextSampleSize <- min(max(minSampleSize,round(rt(1,df=3,ncp=tncp))),maxSampleSize)
+        nextRegime <- regime[currentSample]
+        if (currentSample >= startKnockoutNum) {
+            isKnockoutSample <- TRUE
+        }
+        else {
+            isKnockoutSample <- FALSE
+        }
+        if ((useBatchFlag) && (((currentSample - 1) %% 10) == 0)) {
+            nextBatchEffect <- nextBatchEffect + batchEffectShift
+            if ((currentSample - 1) > floor(numSamples/3)) {
+                currentTransformation <- transformationList[[2]]
+            }
+            if ((currentSample - 1) > floor((2*(numSamples/3)))) {
+                currentTransformation <- transformationList[[3]]
+            }
+        }
+
+        sampleData <- simSample(
+            sampleDim=ncol(sampleSpecs$fixedMeanMatrix),
+            sampleSize=nextSampleSize,
+            transformationType=currentTransformation,
+            fixedMeanMatrix=sampleSpecs$fixedMeanMatrix,
+            fixedLabelVector=sampleSpecs$fixedLabelVector,
+            noiseDim=noiseDimension,
+            probVecSample=probVecForSim,
+            isKnockout=isKnockoutSample,
+            isSpikeIn=spikeInFlag,
+            sRegime=nextRegime,
+            targetRanks=targetRanks,
+            hasBatchEffect=useBatchFlag,
+            batchEffect=nextBatchEffect
+        )
+        if (currentSample < 10) {
+            outName <- paste0("sample00",currentSample)
+        }
+        else if (currentSample < 100) {
+            outName <- paste0("sample0",currentSample)
+        }
+        else {
+            outName <- paste0("sample",currentSample)
+        }
+        ff <- flowCore::flowFrame(sampleData$sampleMatrix)
+        flowList <- append(flowList,ff)
+        names(flowList)[length(flowList)] <- outName
+        labelsList <- append(labelsList,list(sampleData$sampleLabels))
+        names(labelsList)[length(labelsList)] <- outName
+        truthList <- append(truthList,list(table(sampleData$sampleLabels)))
+        names(truthList)[length(truthList)] <- outName
+        knockoutList <- append(knockoutList,list(table(sampleData$knockoutInfo)))
+        names(knockoutList)[length(knockoutList)] <- outName
+        regimeList <- append(regimeList,list(nextRegime))
+        names(regimeList)[length(regimeList)] <- outName
+        currentSample <- currentSample + 1
+    }
+    truthMat <- getSimTrueCountMatrix(truthList)
+    
+    outputList <- list(
+        "flowFrameList"=flowList,
+        "truthValueList"=truthList,
+        "truthMat"=truthMat,
+        "labelsList"=labelsList,
+        "knockoutList"=knockoutList,
+        "spikedPop"=sampleSpecs$fixedLabelVector[targetRanks[2]],
+        "spikedInPopList"=regimeList
+    )
+    return(outputList)
+}
+sampleSize <- 500 
+ssLB <- 500 
+ssUB <- 500
+dataTransformations <- list(function(x){return((x))},
+                                function(x){return((x))},
+                                function(x){return((x))})
+startProb <- 0.1425
+refClusterProbVec <- c(
+    startProb,rep(startProb/2,2),rep(startProb/4,4),rep(startProb/8,8),rep(startProb/16,16),rep(startProb/32,32),rep(startProb/64,64)
+)
+numberOfClusters <- 5
+clusterProbVec <- sort(refClusterProbVec[seq(numberOfClusters)],decreasing=TRUE)
+if (sum(clusterProbVec) < 1) {
+    residualPV <- 1-sum(clusterProbVec)
+    clusterProbVec <- (clusterProbVec + (residualPV/length(clusterProbVec)))
+}
+#
+#dataset 1 -- make a gating set to illustrate depth-score tuning
+#
+dimension <- 3
+specMat <- matrix(0,nrow=2,ncol=dimension)
+specMat[2,] <- c(10,10,1)
+simmedExp1 <- simulateExperiment(
+    meanVectorBoundsMatrix=specMat,
+    numSamples=5,
+    transformationList=dataTransformations,
+    noiseDimension=0,
+    probVecIn=clusterProbVec,
+    minSampleSize=ssLB,
+    maxSampleSize=ssUB,
+    randomSeed=12345,
+    tncp=sampleSize
+)
+
+specMat[2,] <- c(10,1,1)
+simmedExp2 <- simulateExperiment(
+    meanVectorBoundsMatrix=specMat,
+    numSamples=10,
+    transformationList=dataTransformations,
+    noiseDimension=0,
+    probVecIn=clusterProbVec,
+    minSampleSize=ssLB,
+    maxSampleSize=ssUB,
+    randomSeed=12345,
+    tncp=sampleSize
+)
+ffList <- append(simmedExp1[["flowFrameList"]],
+                 simmedExp2[["flowFrameList"]])
+names(ffList) <- paste0("Sample_",sprintf('%0.2d', 1:length(ffList)))
+fs <- as(ffList, "flowSet")
+gs <- flowWorkspace::GatingSet(fs)
+```
+
+# Annotation thresholds - depth score tuning
+
+We beging by simulating a simple dataset consisting of 15 samples with three markers, which we generically call `V1`, `V2`, and `V3`.
+
+We invoke the function `generateAnnotationThresholds` on this data set with the following parameter-settings:
+
+- `gatingSet` is passed the GatingSet object loaded in memory.
+- `startingCellPop` is the node in the gating hierarchy to analyze. The setting "root" instructs `faust` to use all observations in each sample.
+- `projectPath` specifies the location to store the results of the `faust` analysis on disk.
+- `plottingDevice` instructs `faust` to generate intermediate diagnostic plots in the `png` format.
+- `threadNum` instructs `faust` to use 4 threads while growing the annotation forest.
+
+```{r at01, message = FALSE, echo=TRUE, eval=FALSE}
+#
+#generate the annotation thresholds 
+#
+set.seed(123)
+projPath <- file.path(tempdir(),"FAUST")
+if (dir.exists(projPath)) {
+   unlink(projPath, recursive=TRUE)
+}
+dir.create(projPath, recursive = TRUE)
+generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath,
+    plottingDevice      = "png",
+    threadNum           = 4
+)
+```
+```{r at01a, message = FALSE, echo=FALSE, eval = TRUE, results='hide'}
+set.seed(123)
+projPath <- file.path(tempdir(),"FAUST")
+if (dir.exists(projPath)) {
+   unlink(projPath, recursive=TRUE)
+}
+dir.create(projPath, recursive = TRUE)
+invisible(generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath,
+    plottingDevice      = "png",
+    threadNum           = 4
+))
+```
+
+Once complete, the `faustData` directory will have instantiated a sub-directory called `plotData`. By default, the `faust` function will generate several pdf images in this directory. Here, we investigate the file `scoreLines.png`, which shows thes distribution of depth scores by marker across experimental units in the dataset. 
+
+
+```{r slp01, echo = FALSE, message=FALSE, fig.align='center', fig.cap='Depth score distribution by marker', out.width='85%', fig.pos='H'}
+#
+#show the depth score plot
+#
+knitr::include_graphics(file.path(projPath,"faustData","plotData","scoreLines.png"))
+```
+
+Along the x-axis quantiles of the depth score are plotted at increments of `0.01`. The y-axis shows the observed depth-score at this quantile. Each line corresponds to a marker processed in the `faust` analysis.
+
+Inspecting this plot, we see that marker `V1` has a uniformly high depth score, that `V2` has a low depth score for most quantiles and then a jump to high depth score for the higher quanitles, and marker `V3` mainly has low depth score across all quantiles.
+
+The solidly-colored line of `V1` indicates that `faust` has selected this marker for the phenotype discovery in the latter phase of the analysis. The dashed lines for markers `V2` and `V3` indcates `faust` has removed these markers from the phenotype discovery phase based on the default parameter settings.
+
+The two dashed red lines also appear on the plot: the vertical red line corresponds to the parameter `selectionQuantile` and the horizontal line to the parameter `depthScoreThreshold`. By default, these parameters are set to 0.50 and 0.01 respectively, and define the default marker selection policy of `faust`: all markers with empirical depth score above the `depthScoreThreshold` at the specified `selectionQuantile` will be included for phenotype discovery; those markers below the threshold, excluded.
+
+This distribution of scores can be connected to the underlying data. For `V1`, we expect that univariate multimodality should be visible across the experiment because the depth score is uniformly high. For `V2` we expect multimodality to be visible only in a subset of samples. And for `V3` we expect univarite plots to show no discernable multimodality.
+
+The following ridgelines confirm this expectation.
+
+```{r sr01, message=FALSE, eval=TRUE, echo=TRUE, fig.width = 8, fig.asp = 0.618, out.width = "70%", fig.align = "center"}
+#
+#link the scoreLines plot to the sample-level data
+#
+all_samples <- list.files(file.path(projPath,"faustData","sampleData"))
+firstSample <- TRUE
+for (sn in all_samples) {
+    sample_data <- as.data.frame(readRDS(file.path(projPath,"faustData","sampleData",sn,"exprsMat.rds")))
+    sample_data$`sample_id` <- sn
+    if (firstSample) {
+        all_sample_data <- sample_data
+        firstSample <- FALSE
+    }
+    else {
+        all_sample_data <- rbind(all_sample_data,sample_data)
+    }
+}
+depth_score_demo_df <- gather(all_sample_data,key="Marker",value="Expression",-sample_id)
+p1 <- ggplot(depth_score_demo_df, aes(x = Expression, y = sample_id,fill=Marker))+
+    facet_wrap(~Marker,ncol=2)+
+    geom_density_ridges(rel_min_height=0.01)+
+    theme_ridges(center_axis_label=TRUE)+
+    ylab("Simulated sample")+
+    xlab("Simulated expression")+
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          legend.position="bottom")
+p1
+```
+
+This presents the first tuning opportunity for `faust`: we see that for 5 of the simulated samples, marker `V2` has clear evidence of multimodality. Should it be included in the analysis?
+
+The decision to tune `faust` to include markers based on the depth score is informed by the experimental design. Imagine, for example, that these simulated samples came from a an experiment with samples collected from five subjects and subjected to three stimulation conditions: control, stim1, and stim2. It is possible that multimodality (corresponding to expression of the marker) is expected only in a subset of samples based on such a design. It may then be desirable to tune `faust` to include marker `V2` in such a case: while we do not know if the curve observed for marker `V2` corresponds to a specific stimulation condition, this depth score line (arising from the data) may be consistent with our prior beliefs about the experimental context.
+
+We show how to perform this tuning in the following code chunk. In addition to the original parameter settings we now set:
+- `depthScoreThreshold` to a value above its default of 0.01.
+- `selectionQuantile` to a quantile setting above its default of 0.50.
+
+These updated settings are based off our inspection of the intermediate `scoreLines` plot.
+
+```{r at02, echo=TRUE, eval = FALSE}
+#
+#re-run tuning the depth score selection criteria
+#
+projPath02 <- file.path(tempdir(),"FAUST_R2")
+if (dir.exists(projPath02)) {
+   unlink(projPath02, recursive=TRUE)
+}
+dir.create(projPath02, recursive = TRUE)
+generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath02,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    threadNum           = 4
+)
+```
+```{r at02a, message = FALSE, echo=FALSE, eval = TRUE, results='hide'}
+#
+#re-run tuning the depth score selection criteria
+#
+projPath02 <- file.path(tempdir(),"FAUST_R2")
+if (dir.exists(projPath02)) {
+   unlink(projPath02, recursive=TRUE)
+}
+dir.create(projPath02, recursive = TRUE)
+invisible(generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath02,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    threadNum           = 4
+))
+```
+
+Note we unlink the `faustData` directory prior to re-running. We recommend doing this on re-run. Once we have re-run, we again inspect the depth score plot, and see that both `V1` and `V2` are now included.
+
+```{r slp02, echo = FALSE, message=FALSE, fig.align='center', fig.cap='Depth score distribution by marker', out.width='100%', fig.pos='H'}
+#
+#show the depth score plot
+#
+knitr::include_graphics(file.path(projPath02,"faustData","plotData","scoreLines.png"))
+```
+
+If possible, we recommend discussing the experimental design with the scientist(s) that generated the dataset (if different from the person reading this vignette) prior to applying `faust` to the dataset, in order to understand what design parameters might influence the `faust` analysis.
+
+In addition to stimulation conditions, other information that may be useful to describe to `faust`:
+
+- information about time points in longitudinal studies
+- if specific markers in the panel are included because they are required to answer a question of scientific interest
+- if there are known batch effects
+- if prior biological knowledge leads to expected characteristics about the markers in the dataset
+
+One final comment: we do not recommend including external metadata that will be used in follow-on modeling in the `faust` analysis. For example, if a cytometry experiment is designed to discover phenotypes that differentiate subjects that respond to therapy from those that do not, the responder status of individual subjects should be held-out from `faust` to prevent biasing the follow-on analysis. This same comment potentially applies to any external metadata (including meta data describing stimulation condtions, etc), and so tuning requires careful thought on an experiment-by-experiment basis.
+
+# Annotation thresholds - tuning the experimental unit
+
+Continuing with the previous example, let's suppose that the 15 that these simulated samples did come from a an experiment with five subjects and three stimulation conditions: control, stim1, and stim2. When we are aware of such a design, we often wish to set the experimental unit to `subject` rather than the default of a `sample`, in order to have a per-subject annotation thresholds against which changes in abundance due to stimulation conditions may be detected.
+
+To tune `faust` to do this, all levels of the experimental unit must be stored in the `pData` of the `GatingSet`. The name of the variable in the `pData` is then passed to the `faust` function in order to use that grouping as the experimental unit. 
+
+```{r pdata_update, echo=TRUE, eval = TRUE}
+pd <- pData(gs)
+pd$subject <- rep(paste0("Subject_",seq(5)),3)
+pData(gs) <- pd
+kable(pData(gs), caption = "Meta data stored in the GatingSet pData")
+```
+
+Examining the pData, we see that the mapping from sample to subject is now stored in the GatingSet. We next invoke `generateAnnotationThresholds`, tuned to use the subject as the experimental unit.
+
+```{r at03, echo=TRUE, eval = FALSE}
+#
+#re-run tuning the experimental unit
+#
+projPath03 <- file.path(tempdir(),"FAUST_R3")
+if (dir.exists(projPath03)) {
+   unlink(projPath03, recursive=TRUE)
+}
+dir.create(projPath03, recursive = TRUE)
+generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath03,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    experimentalUnit    = "subject",
+    threadNum           = 4
+)
+```
+```{r at03a, message = FALSE, echo=FALSE, eval = TRUE, results='hide'}
+#
+#re-run tuning the experimental unit
+#
+projPath03 <- file.path(tempdir(),"FAUST_R3")
+if (dir.exists(projPath03)) {
+   unlink(projPath03, recursive=TRUE)
+}
+dir.create(projPath03, recursive = TRUE)
+invisible(generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath03,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    experimentalUnit    = "subject",
+    threadNum           = 4
+))
+```
+
+We again look at the depth score plot in the following display.
+
+```{r slp03, echo = FALSE, message=FALSE, fig.align='center', fig.cap='Depth score distribution by marker', out.width='100%', fig.pos='H'}
+#
+#show the depth score plot
+#
+knitr::include_graphics(file.path(projPath03,"faustData","plotData","scoreLines.png"))
+```
+
+When we look at the depth score plot, we now see that markers `V1` and `V2` have consistent depth score across the experiment. This is because by concatenating expression data by subject, marker V2 now consistently appears to have multimodality across the expeirment. This can be confirmed by viewing the expression data for the experimental unit.
+
+```{r sr02, message=FALSE, eval=TRUE, echo=TRUE, fig.width = 8, fig.asp = 0.618, out.width = "85%", fig.align = "center"}
+#
+#link the scoreLines plot to the experimental unit data
+#
+all_eus <- list.files(file.path(projPath03,"faustData","expUnitData"))
+firstEu <- TRUE
+for (eu in all_eus) {
+    eu_data <- as.data.frame(readRDS(file.path(projPath03,"faustData","expUnitData",eu,"expUnitExprs.rds")))
+    eu_data$`eu_id` <- eu
+    if (firstEu) {
+        all_eu_data <- eu_data
+        firstEu <- FALSE
+    }
+    else {
+        all_eu_data <- rbind(all_eu_data,eu_data)
+    }
+}
+depth_score_demo_df <- gather(all_eu_data,key="Marker",value="Expression",-eu_id)
+p2 <- ggplot(depth_score_demo_df, aes(x = Expression, y = eu_id,fill=Marker))+
+    facet_wrap(~Marker,ncol=2)+
+    geom_density_ridges(rel_min_height=0.01)+
+    theme_ridges(center_axis_label=TRUE)+
+    ylab("Simulated experimental unit")+
+    xlab("Simulated expression")+
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          legend.position="bottom")
+p2
+```
+
+# Annotation thresholds - tuning the active channels
+
+For higher dimensional panels, there may be markers you want to exclude from the analysis. This can occur for a variety of reasons, such as technical effects. This is done simply by passing in a string vector to `faust` listing the markers you wish to use. We illustrate this in the following example, where we exclude marker `V3` from the analysis.
+
+```{r at04, echo=TRUE, eval = FALSE}
+#
+#re-run tuning the active channels
+#
+projPath04 <- file.path(tempdir(),"FAUST_R4")
+if (dir.exists(projPath04)) {
+   unlink(projPath04, recursive=TRUE)
+}
+dir.create(projPath04, recursive = TRUE)
+generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath04,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    experimentalUnit    = "subject",
+    threadNum           = 4,
+    activeChannels      = c("V1","V2")
+)
+```
+```{r at04a, message = FALSE, echo=FALSE, eval = TRUE, results='hide'}
+#
+#re-run tuning the active channels
+#
+projPath04 <- file.path(tempdir(),"FAUST_R4")
+if (dir.exists(projPath04)) {
+   unlink(projPath04, recursive=TRUE)
+}
+dir.create(projPath04, recursive = TRUE)
+invisible(generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath04,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    experimentalUnit    = "subject",
+    threadNum           = 4,
+    activeChannels      = c("V1","V2")
+))
+```
+
+If we look at the depth score plot again, we will only see scores for markers `V1` and `V2`.
+
+```{r slp04, echo = FALSE, message=FALSE, fig.align='center', fig.cap='Depth score distribution by marker', out.width='100%', fig.pos='H'}
+#
+#show the depth score plot
+#
+knitr::include_graphics(file.path(projPath04,"faustData","plotData","scoreLines.png"))
+```
+
+In addition to the depth score plot, the `plotData` directory also contains plots that show the distribution of annotation thresholds placed against an aggregate expression distribution.
+
+These plots can be useful to assess if the marker boundaries needs to be tuned. We next show the plot for `V1`.
+
+```{r slp05, echo = FALSE, message=FALSE, fig.align='center', fig.cap='Depth score distribution by marker', out.width='100%', fig.pos='H'}
+knitr::include_graphics(file.path(projPath04,"faustData","plotData","hist_V1_ab_1.png"))
+```
+
+From this plot, the red dashed lines are the annotation thresholds determined for each experimental unit. The histogram is drawn by aggregating 500 observations (randomly selected) from each expeirmental unit and then concatenating across the experiment. The purpose of this type of plot is to show the relative locations of annotation thresholds from one experimental unit to the next. These plots can be useful in checking for batch effects or for other technical effects that may affect a subset of samples in large experiments.
+
+# Annotation thresholds - tuning the channel bounds
+
+A final tuning object is the parameter `channelBounds`, which determines the admissible set of observations considers when `faust` computes density estimates. Inspecting the aggregate density histograms can lead to tuning this parameter. Another reason for tuning this parameter arises in flow cytometry experiments: if you know the transformation that has been applied to the markers, you may want to set the lower admissible bound to the image of `0` under this transformation. Still another reason to tune this parameter is if you wish to intergrate information from FMO controls. We show how to manually set this parameter in the following code block. Note that the column names of the matrix are required to match the active channels parameter setting.
+
+```{r at05, echo=TRUE, eval = FALSE}
+#
+#re-run manually setting the channel bound
+#here we set the upper bound to Inf and the lower bound to 0
+#this admits all non-negative measurements for density calculations.
+#settings can vary depending on experimental context.
+#
+cbManual <- matrix(0,nrow=2,ncol=2)
+colnames(cbManual) <- c("V1","V2")
+rownames(cbManual) <- c("Low","High")
+cbManual["High",] <- Inf
+projPath05 <- file.path(tempdir(),"FAUST_R5")
+if (dir.exists(projPath05)) {
+   unlink(projPath05, recursive=TRUE)
+}
+dir.create(projPath05, recursive = TRUE)
+generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath05,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    experimentalUnit    = "subject",
+    threadNum           = 4,
+    activeChannels      = c("V1","V2"),
+    channelBounds       = cbManual
+)
+```
+```{r at05a, message = FALSE, echo=FALSE, eval = TRUE, results='hide'}
+cbManual <- matrix(0,nrow=2,ncol=2)
+colnames(cbManual) <- c("V1","V2")
+rownames(cbManual) <- c("Low","High")
+cbManual["High",] <- Inf
+projPath05 <- file.path(tempdir(),"FAUST_R5")
+if (dir.exists(projPath05)) {
+   unlink(projPath05, recursive=TRUE)
+}
+dir.create(projPath05, recursive = TRUE)
+invisible(generateAnnotationThresholds(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath05,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    experimentalUnit    = "subject",
+    threadNum           = 4,
+    activeChannels      = c("V1","V2"),
+    channelBounds       = cbManual
+))
+```
+
+In this example, we see the tuning does not noticeably affect the distribution of annotation thresholds, as seen by the following plot.
+
+```{r slp06, echo = FALSE, message=FALSE, fig.align='center', fig.cap='Depth score distribution by marker', out.width='100%', fig.pos='H'}
+knitr::include_graphics(file.path(projPath05,"faustData","plotData","hist_V1_ab_1.png"))
+```
+
+## Discovering phenotypes
+
+Once the annotation thresholds have been generated, and tuning is complete, you can discover phenotypes across the experiment using the `discoverPhenotypes` function.
+
+```{r discover_phenotypes, eval = TRUE, echo = TRUE}
+discoverPhenotypes(
+    gatingSet   = gs,
+    projectPath = projPath05,
+    threadNum   = 4
+)
+count_df <- as.data.frame(readRDS(file.path(projPath05,"faustData","faustCountMatrix.rds")))
+head(count_df)
+```
+
+Once complete, the `faustCountMatrix.rds` is available for downstream analysis in the `faustData` directory.
+
+## The faust function
+
+We conclude by noting that all parameters discussed in this vignette can be set by invoking the `faust` function directly. This function is simply a wrapper around `generateAnnotationThresholds` and `discoverPhenotypes`, and will pass parameters to the appropriate function as done in this vignette.
+
+The only difference is that `faust` has a parameter called `annotationsApproved` that must be set to `TRUE` before `discoverPhenotypes` is called. This variable is the way you signal to `faust` that tuning is complete. We complete this vignette by showing this.
+
+```{r at06, echo=TRUE, eval = FALSE}
+#
+#run the tuned analysis via the faust function
+#
+cbManual <- matrix(0,nrow=2,ncol=2)
+colnames(cbManual) <- c("V1","V2")
+rownames(cbManual) <- c("Low","High")
+cbManual["High",] <- Inf
+projPath06 <- file.path(tempdir(),"FAUST_R6")
+if (dir.exists(projPath06)) {
+   unlink(projPath06, recursive=TRUE)
+}
+dir.create(projPath06, recursive = TRUE)
+faust(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath06,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    experimentalUnit    = "subject",
+    threadNum           = 4,
+    activeChannels      = c("V1","V2"),
+    channelBounds       = cbManual,
+    annotationsApproved = TRUE
+)
+```
+```{r at06a, message = FALSE, echo=FALSE, eval = TRUE, results='hide'}
+cbManual <- matrix(0,nrow=2,ncol=2)
+colnames(cbManual) <- c("V1","V2")
+rownames(cbManual) <- c("Low","High")
+cbManual["High",] <- Inf
+projPath06 <- file.path(tempdir(),"FAUST_R6")
+if (dir.exists(projPath06)) {
+   unlink(projPath06, recursive=TRUE)
+}
+dir.create(projPath06, recursive = TRUE)
+invisible(faust(
+    gatingSet           = gs,
+    startingCellPop     = "root",
+    projectPath         = projPath06,
+    depthScoreThreshold = 0.25,
+    selectionQuantile   = 0.825,
+    plottingDevice      = "png",
+    experimentalUnit    = "subject",
+    threadNum           = 4,
+    activeChannels      = c("V1","V2"),
+    channelBounds       = cbManual,
+    annotationsApproved = TRUE
+))
+```
+
+We see the `faustCountMatrix.rds` is available for downstream analysis.
+
+```{r conclusion, eval = TRUE, echo = TRUE}
+count_df <- as.data.frame(readRDS(file.path(projPath06,"faustData","faustCountMatrix.rds")))
+head(count_df)
+```

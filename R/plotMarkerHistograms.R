@@ -3,6 +3,7 @@
                                   plottingDevice
                                   )
 {
+    #make aggregate histograms for diagnostics.
     analysisMap <- readRDS(file.path(normalizePath(projectPath),
                                      "faustData",
                                      "metaData",

@@ -182,6 +182,12 @@
 #' @param plottingDevice string with device for saving graphical output.
 #' By default it is set to "pdf".
 #'
+#' @param annotationForestDepth Numeric value. Number of marker combinations
+#' to search in the annotation forest. By default it is set to 3. Minimum
+#' recommended value is 2. Maximum possible is the number of markers in the
+#' data set. Increasing this parameter can significantly increase computation
+#' time.
+#'
 #' @return generateAnnotationThresholds is used to generate standardized
 #' annotation thresholds prior to the discovery phase of the FAUST analysis.
 #' It will initialize a directory called "faustData" located at the projectPath parameter.
@@ -232,7 +238,8 @@ generateAnnotationThresholds <- function(gatingSet,
                                                  targetArch=c("singleCPU")
                                              ),
                                          annotationsApproved=FALSE,
-                                         plottingDevice="pdf"
+                                         plottingDevice="pdf",
+                                         annotationForestDepth=3
                                          )
 {
     #first, test parameters for validity. stop faust run if invalid settings detected.
@@ -296,6 +303,7 @@ generateAnnotationThresholds <- function(gatingSet,
     )
 
     if (debugFlag) print("Making restriction matrices.")
+    #construct arrays that incorporate channel bounds into the analysis for the C++ code
     .makeRestrictionMatrices(
         samplesInExp = flowWorkspace::sampleNames(gatingSet),
         channelBounds = channelBounds,
@@ -328,8 +336,10 @@ generateAnnotationThresholds <- function(gatingSet,
             densitySubSampleThreshold = densitySubSampleThreshold,
             densitySubSampleSize = densitySubSampleSize,
             densitySubSampleIterations = densitySubSampleIterations,
-            archDescriptionList = archDescriptionList
+            archDescriptionList = archDescriptionList,
+            annotationForestDepth = annotationForestDepth
         )
+        #save a boolean to checkpoint completion
         bigForestDone <- TRUE
         saveRDS(bigForestDone,
                 file.path(normalizePath(projectPath),
@@ -353,6 +363,8 @@ generateAnnotationThresholds <- function(gatingSet,
         debugFlag = debugFlag
     )
 
+    #apply supervision to the standardization of annotation boundaries,
+    #if the user has specified specific choices.
     .superviseReconciliation(
         projectPath = projectPath,
         debugFlag = debugFlag
@@ -360,11 +372,13 @@ generateAnnotationThresholds <- function(gatingSet,
 
 
     if (debugFlag) print("Writing annotation matrices to file.")
+    #create arrays of single-cell annotations for every cell relative to the thresholds
     .mkAnnMats(
         projectPath = projectPath
     )
 
     if (debugFlag) print("Generating depth score plot.")
+    #make diagnostic plots for the depth score
     .plotScoreLines(
         projectPath = projectPath,
         depthScoreThreshold = depthScoreThreshold,
@@ -373,6 +387,7 @@ generateAnnotationThresholds <- function(gatingSet,
     )
 
     if (debugFlag) print("Generating marker boundary histograms.")
+    #diagnostic plots: aggregate histograms with the distribution of thresholds
     .plotMarkerHistograms(
         projectPath = projectPath,
         plottingDevice = plottingDevice
@@ -380,6 +395,7 @@ generateAnnotationThresholds <- function(gatingSet,
 
     if (drawAnnotationHistograms) {
         if (debugFlag) print("Generating annotation boundary histograms.")
+        #diagnostic plots. show the threshold(s) on data from the underlying samples
         .plotSampleHistograms(
             projectPath = projectPath,
             plottingDevice=plottingDevice
@@ -421,6 +437,7 @@ generateAnnotationThresholds <- function(gatingSet,
     }
 
     else {
+        #if the annotations are approved, save a boolean to checkpoint this
         saveRDS(annotationsApproved,
                 file.path(normalizePath(projectPath),
                           "faustData",
