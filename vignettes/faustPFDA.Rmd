@@ -16,9 +16,9 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Introduction
-
-This vignette provides information about how to apply PFDA to the annotated cout matrix produced by FAUST. 
+This vignette provides a demonstration of how to apply PFDA to the annotated count matrix produced by FAUST.
+It is a mechanical demonstration, insofar as we will simulate data and show the steps involved in fitting a PFDA model.
+In real data, care must be taken to properly define the biological compartment of interest in terms of the marker panel prior to fitting the PFDA model.
 
 ```{r libraries_and_sim, message = FALSE, echo=FALSE}
 # load libraries and code to simulate data.
@@ -359,7 +359,7 @@ gs <- flowWorkspace::GatingSet(fs)
 
 # PFDA example
 
-We beging by simulating a dataset.
+We begin by simulating a dataset.
 
 ```{r at01, message = FALSE, echo=TRUE, eval=FALSE}
 #
@@ -397,7 +397,7 @@ invisible(faust(
 ))
 ```
 
-We next load the counts into the analysis and derive a parent count. To fit a PFDA model, we will assign a reponder status
+We next load the counts into the analysis and derive a parent count. To demonstrate fitting a PFDA model, we will manually assign a reponder status
 to each sample against which we can model.
 
 ```{r prepare_counts, eval=TRUE, echo=TRUE}
@@ -409,8 +409,7 @@ count_df$modelRT <- c(rep(1,(nrow(count_df)/2)),rep(0,(nrow(count_df)/2)))
 ```
 
 To apply PFDA, we must have a biological compartment in mind whose sub-phenotypes we wish to investigate.
-Here are simulating generic data, and so will assume phenotypes that are `V1+` represent
-a biological compartment of interest.
+Here we are simulating data, and so will assume phenotypes that are `V1+` represent a biological compartment of interest in order to demonstrate the process.
 
 ```{r multivariate model, eval=TRUE, echo=TRUE}
 pfdaExampleCellPops <- cellPops[grepl("V1\\+",cellPops)]
@@ -457,4 +456,4 @@ pfdaExampleMultiResults$Component <- "PFDA"
 kable(pfdaExampleMultiResults)
 ```
 
-This demonstrates how to run `PFDA` on the `FAUST` count matrix.
+This demonstrates the mechanics of how to run `PFDA` on the `FAUST` count matrix.
