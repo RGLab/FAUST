@@ -20,6 +20,12 @@ The principal output is an **annotated count matrix** `faustCountMatrix.rds` whi
 
 This count matrix can be loaded into R using the `readRDS` function.
 
+There are three vignettes in this packages.
+
+- `faustIntro` is a quick introduction to the main faust function
+- `faustTuning` has a discussion about how to tune different parameters available in the package
+- `faustPFDA` provides an example of how to fit a PFDA model to the output count matrix
+
 ## Installation
 
 The `FAUST` package requires `Rcpp` and `devtools`, and that a C++11 compiler is available. Building the vignettes requires the ability to generate png images.
@@ -75,10 +81,18 @@ To build the vignettes during installation, instead run:
     	     error = function(e){
                 install.packages("remotes")
              })	
+    tryCatch(installed.packages()["lme4","Version"],
+    	     error = function(e){
+                install.packages("lme4")
+             })	
+    tryCatch(installed.packages()["multcomp","Version"],
+    	     error = function(e){
+                install.packages("multcomp")
+             })	
     remotes::install_github("RGLab/FAUST", force = TRUE, build_vignettes = TRUE)
 ```
 
-This takes longer since the vignettes must be built from source.
+This takes longer since the vignettes must be built from source. Note that the vignettes will attemp to use 4 threads in order to reduce build time. 
 
 After loading `FAUST`, type `vignette('faustIntro')` to read a vignette discussing how to use the `FAUST` function in R.
 

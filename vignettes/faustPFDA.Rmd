@@ -34,6 +34,8 @@ suppressPackageStartupMessages({
   library(tidyr)
   library(faust)
   library(ggridges)
+  library(lme4)
+  library(multcomp)
 })
 
 Posdef <- function (n, ev = runif(n, 1, 2))
@@ -301,9 +303,9 @@ simulateExperiment <- function(
     )
     return(outputList)
 }
-sampleSize <- 2500
-ssLB <- 2500
-ssUB <- 2500
+sampleSize <- 750
+ssLB <- 750
+ssUB <- 750
 dataTransformations <- list(function(x){return((x))},
                                 function(x){return((x))},
                                 function(x){return((x))})
@@ -311,21 +313,22 @@ startProb <- 0.1425
 refClusterProbVec <- c(
     startProb,rep(startProb/2,2),rep(startProb/4,4),rep(startProb/8,8),rep(startProb/16,16),rep(startProb/32,32),rep(startProb/64,64)
 )
-numberOfClusters <- 25
+numberOfClusters <- 20
 clusterProbVec <- sort(refClusterProbVec[seq(numberOfClusters)],decreasing=TRUE)
 if (sum(clusterProbVec) < 1) {
     residualPV <- 1-sum(clusterProbVec)
     clusterProbVec <- (clusterProbVec + (residualPV/length(clusterProbVec)))
 }
 #
-#dataset 1 -- make a gating set to illustrate depth-score tuning
+#dataset 1 -- make a gating set to illustrate PFDA
 #
+set.seed(1234)
 dimension <- 8
 specMat <- matrix(0,nrow=2,ncol=dimension)
 specMat[2,] <- c(10,10,10,10,10,10,10,10)
 simmedExp1 <- simulateExperiment(
     meanVectorBoundsMatrix=specMat,
-    numSamples=10,
+    numSamples=5,
     transformationList=dataTransformations,
     noiseDimension=0,
     probVecIn=clusterProbVec,
@@ -338,7 +341,7 @@ simmedExp1 <- simulateExperiment(
 specMat[2,] <- c(3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5)
 simmedExp2 <- simulateExperiment(
     meanVectorBoundsMatrix=specMat,
-    numSamples=10,
+    numSamples=5,
     transformationList=dataTransformations,
     noiseDimension=0,
     probVecIn=clusterProbVec,
@@ -354,7 +357,7 @@ fs <- as(ffList, "flowSet")
 gs <- flowWorkspace::GatingSet(fs)
 ```
 
-# Annotation thresholds - depth score tuning
+# PFDA example
 
 We beging by simulating a dataset.
 
@@ -368,11 +371,13 @@ if (dir.exists(projPath)) {
    unlink(projPath, recursive=TRUE)
 }
 dir.create(projPath, recursive = TRUE)
-generateAnnotationThresholds(
+faust(
     gatingSet           = gs,
     startingCellPop     = "root",
     projectPath         = projPath,
-    plottingDevice      = "png"
+    plottingDevice      = "png",
+    annotationsApproved = TRUE,
+    threadNum           = 4
 )
 ```
 ```{r at01a, message = FALSE, echo=FALSE, eval = TRUE, results='hide'}
@@ -382,42 +387,43 @@ if (dir.exists(projPath)) {
    unlink(projPath, recursive=TRUE)
 }
 dir.create(projPath, recursive = TRUE)
-invisible(generateAnnotationThresholds(
+invisible(faust(
     gatingSet           = gs,
     startingCellPop     = "root",
     projectPath         = projPath,
-    plottingDevice      = "png"
+    plottingDevice      = "png",
+    annotationsApproved = TRUE,
+    threadNum           = 4
 ))
 ```
 
 We next load the counts into the analysis and derive a parent count. To fit a PFDA model, we will assign a reponder status
 to each sample against which we can model.
 
-```{r prepare_counts, eval=FALSE, echo=TRUE}
+```{r prepare_counts, eval=TRUE, echo=TRUE}
 count_df <- as.data.frame(readRDS(file.path(projPath,"faustData","faustCountMatrix.rds")))
-cellPops <- setdiff(colnames(count_df),c(0_0_0_0_0))
+cellPops <- setdiff(colnames(count_df),c("0_0_0_0_0"))
 count_df$parentCount <- apply(count_df,1,sum)
-count_df$subjectID <- paste0("Sample_",sprintf('%0.2d', 1:20))
-count_df$modelRT <- c(rep(1,10),rep(0,10))
+count_df$subjectID <- paste0("Sample_",sprintf('%0.2d', 1:nrow(count_df)))
+count_df$modelRT <- c(rep(1,(nrow(count_df)/2)),rep(0,(nrow(count_df)/2)))
 ```
 
 To apply PFDA, we must have a biological compartment in mind whose sub-phenotypes we wish to investigate.
-Here are simulating generic data, and so will assume phenotypes that are `V1+`, `V4-`, and `V5+` represent
-a biological compartment. T
+Here are simulating generic data, and so will assume phenotypes that are `V1+` represent
+a biological compartment of interest.
 
-```{r multivariate model, eval=FALSE, echo=TRUE}
+```{r multivariate model, eval=TRUE, echo=TRUE}
 pfdaExampleCellPops <- cellPops[grepl("V1\\+",cellPops)]
-pfdaExampleCellPops <- pfdaExampleCellPops[grepl("V4-",pfdaExampleCellPops)]
-pfdaExampleCellPops <- pfdaExampleCellPops[grepl("V5\\+",pfdaExampleCellPops)]
 pfdaExampleGlmerDFPrep <- count_df[,c(pfdaExampleCellPops,"parentCount","modelRT","subjectID")]
 pfdaExampleGlmerDF <- gather(pfdaExampleGlmerDFPrep,key=cellPop,value=count,-c("parentCount","modelRT","subjectID"))
 pfdaExampleGlmerDF$popName <- as.factor(paste0("Pop_",as.numeric(as.factor(pfdaExampleGlmerDF$cellPop))))
 pfdaExampleGlmerDF$obsFactor <- as.factor(paste0("Obs_",seq(nrow(pfdaExampleGlmerDF))))
+kable(pfdaExampleCellPops)
 ```
 
-We now fit the multivariate PFDA model using a binomial GLMM.
+We now fit the multivariate PFDA model to the listed phenotypes in the compartment using a binomial GLMM using `glmer` from the `lme4` package.
 
-```{r pfda_model, eval=FALSE, echo=TRUE}
+```{r pfda_model, eval=TRUE, echo=TRUE}
 pfdaExampleGlmerFit <- glmer(
     formula=cbind(count,(parentCount-count))  ~ popName*modelRT + (1|obsFactor),
     data=pfdaExampleGlmerDF,
@@ -433,20 +439,22 @@ pfdaExampleGlmerFit <- glmer(
 )
 ```
 
-Having fit the model, we conduct a test of increased abundance using `glht`. 
+Having fit the model, we conduct a test of increased abundance across the compartment using `glht` from the `multcomp` package.
 
-```{r linear_combo, echo=TRUE, eval=FALSE}
+```{r linear_combo_test, echo=TRUE, eval=TRUE}
 pfdaExampleCoefNames = names(fixef(pfdaExampleGlmerFit))
 pfdaExampleGLHTMat <- matrix(0, nrow = 1, ncol = length(pfdaExampleCoefNames))
-pfdaExampleGLHTMat[,which(pfdaExampleCoefNames == "modelRT1")] <- 1
-pfdaExampleGLHTMat[1,which(pfdaExampleCoefNames %like% ":modelRT1")] <- 1/(length(which(pfdaExampleCoefNames%like%":modelRT1"))+1)
+pfdaExampleGLHTMat[,which(pfdaExampleCoefNames == "modelRT")] <- 1
+pfdaExampleGLHTMat[1,which(grepl(":modelRT",pfdaExampleCoefNames))] <- 1/(length(which(grepl(":modelRT",pfdaExampleCoefNames)))+1)
 rownames(pfdaExampleGLHTMat) <- c("Phenotype_Compartment")
 pfdaExampleMulti <- glht(pfdaExampleGlmerFit,pfdaExampleGLHTMat, alternative = "greater")
 pfdaExampleObsPval <- round(summary(pfdaExampleMulti)$test$pvalues[1],9)
 pfdaExampleCT95 <- confint(pfdaExampleMulti,level=0.95)
 pfdaExampleMultiResults <- as.data.frame(pfdaExampleCT95$confint)
-pfdaExampleMultiResults$upr <- 3
 pfdaExampleMultiResults$Compartment <- rownames(pfdaExampleMultiResults)
 pfdaExampleMultiResults$ModelType <- "PFDA"
 pfdaExampleMultiResults$Component <- "PFDA"
+kable(pfdaExampleMultiResults)
 ```
+
+This demonstrates how to run `PFDA` on the `FAUST` count matrix.

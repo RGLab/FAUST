@@ -1,6 +1,6 @@
 Package: faust
 Title: Full Annotation Using Shape-constrained Trees
-Version: 0.5.3
+Version: 0.5.4
 Authors@R: c(person("Evan", "Greene", email = "egreene@fredhutch.org", role = c("aut", "cre")),
    	   person("Laurie", "Davies", role = c("ctb")),	       
 	   person("J.R.M.", "Hosking", role=c("ctb")),
@@ -57,5 +57,7 @@ Suggests:
     knitr,
     mvtnorm,
     MASS,
-    rmarkdown
+    rmarkdown,
+    lme4,
+    multcomp
 

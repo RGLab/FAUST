@@ -391,6 +391,7 @@ In real cytometry data, the **<span style="color:skyblue">faust</span>** functio
 
 We will store the results in a temporary directory created at the `projPath`.
 By setting the `annotationsApproved` parameter to `TRUE`, we run the method from end-to-end.
+By setting the `threadNum` parameter to `4`, we instruct `faust` to use 4 threads.
 Additional **<span style="color:skyblue">faust</span>** parameters can be read about by typing `?faust` at the R prompt.
 
 ```{r run_faust_on_simulated_data, warning=FALSE, eval=TRUE, echo=TRUE}
@@ -401,7 +402,8 @@ faust(
     gatingSet           = gs,
     startingCellPop     = "root",
     projectPath         = projPath,
-    annotationsApproved = TRUE
+    annotationsApproved = TRUE,
+    threadNum           = 4
 )
 ```
 
