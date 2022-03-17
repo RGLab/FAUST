@@ -12,7 +12,8 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   comment = "#>",
-  dpi = 300
+  dpi = 300,
+  error = TRUE
 )
 ```
 
