@@ -2,7 +2,7 @@
 
 ### Full Annotation Using Shape-constrained Trees
 
-The `FAUST` package implements the FAUST method described in [New interpretable machine learning method for single-cell data reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v2).
+The `FAUST` package implements the FAUST method described in [New interpretable machine-learning method for single-cell data reveals correlates of clinical response to cancer immunotherapy](https://doi.org/10.1016/j.patter.2021.100372).
 
 Full Annotation Using Shape-constrained Trees (FAUST) is a method to perform discovery and annotation of phenotypes in single-cell data from flow and mass cytometry experiments.
 
@@ -106,4 +106,4 @@ If you are trying to install FAUST on Linux with GCC version greater than 8, and
 
 ## Citation
 
-If you end up using `FAUST` to analyze cytometry datasets, please consider citing [New interpretable machine learning method for single-cell data reveals correlates of clinical response to cancer immunotherapy](https://www.biorxiv.org/content/10.1101/702118v2).
+If you end up using `FAUST` to analyze cytometry datasets, please consider citing [New interpretable machine-learning method for single-cell data reveals correlates of clinical response to cancer immunotherapy](https://doi.org/10.1016/j.patter.2021.100372).
