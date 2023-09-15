@@ -193,7 +193,7 @@
                 naNames <- names(which(is.na(resListUpdate)))
                 for (changeName in naNames) {
                     modVals <- gateList[[changeName]][[channel]]
-                    if (!is.na(modVals)) {
+                    if (any(!is.na(modVals))) {
                         #there is empirical data for an experimental unit, so attempt to use it.
                         #this can arise if the "Preference" setting of supervision leads to using
                         #a gateNumber that is absent from a level of the imputation hierarchy.
